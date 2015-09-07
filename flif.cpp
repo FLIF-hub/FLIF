@@ -1,29 +1,3 @@
-/*
- FLIF - Free Lossless Image Format
- Copyright (C) 2010-2015  Jon Sneyers & Pieter Wuille
-
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
- Parts of this code are based on code from the FFMPEG project, in
- particular:
- - ffv1.c - Copyright (c) 2003 Michael Niedermayer <michaelni@gmx.at>
- - common.h - copyright (c) 2006 Michael Niedermayer <michaelni@gmx.at>
- - rangecoder.c - Copyright (c) 2004 Michael Niedermayer <michaelni@gmx.at>
-*/
-
 #include <string>
 
 #include "maniac/rac.h"
@@ -663,6 +637,7 @@ template<typename BitChance, typename Rac> void encode_tree(Rac &rac, const Colo
         else initPropRanges(propRanges, *ranges, p);
         MetaPropertySymbolCoder<BitChance, Rac> metacoder(rac, propRanges);
 //        forest[p].print(stdout);
+        if (ranges->min(p)<ranges->max(p))
         metacoder.write_tree(forest[p]);
     }
 }
@@ -673,6 +648,7 @@ template<typename BitChance, typename Rac> void decode_tree(Rac &rac, const Colo
         if (encoding==1) initPropRanges_scanlines(propRanges, *ranges, p);
         else initPropRanges(propRanges, *ranges, p);
         MetaPropertySymbolCoder<BitChance, Rac> metacoder(rac, propRanges);
+        if (ranges->min(p)<ranges->max(p))
         metacoder.read_tree(forest[p]);
 //        forest[p].print(stdout);
     }
@@ -926,7 +902,11 @@ int main(int argc, char **argv)
         desc.push_back("BND");  // get the bounds of the color spaces
         desc.push_back("PLT");  // try palette
         desc.push_back("ACB");  // try auto color buckets
-        encode(argv[2], image, desc, 2);
+        // if the image is small, no point in doing interlacing
+        if ((uint64_t)image.rows() * image.cols() > 10000)
+          encode(argv[2], image, desc, 1);
+        else
+          encode(argv[2], image, desc, 2);
     } else if (argc == 4) {
         decode(argv[2], image, -1);
         image.save(argv[3]);

@@ -326,7 +326,7 @@ protected:
         for (int p=0; p<plane; p++) {
                 if (!cb->exists(p,pixelL,pixelU)) return b;
         }
-        SimpleSymbolCoder<StaticBitChance, RacIn, 24> coder(rac);
+        SimpleSymbolCoder<SimpleBitChance, RacIn, 24> coder(rac);
 
         ColorVal smin,smax;
         minmax(srcRanges,plane,pixelL,pixelU,smin,smax);
@@ -385,7 +385,7 @@ protected:
                         return;
                 }
         }
-        SimpleSymbolCoder<StaticBitChance, RacOut, 24> coder(rac);
+        SimpleSymbolCoder<SimpleBitChance, RacOut, 24> coder(rac);
 //        if (b.min > b.max) printf("SHOULD NOT HAPPEN!\n");
 
         ColorVal smin,smax;
