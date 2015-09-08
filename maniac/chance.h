@@ -164,6 +164,25 @@ public:
         int oldBest = best;
         symbols++;
 #endif
+/*        if (bit == 0)  {
+          for (int i=0; i<N; i++) {
+            uint64_t sbits = 0;
+            chances[i].estim(0, sbits);
+            uint64_t oqual=quality[i];
+            quality[i] = (oqual*255 + sbits*4097 + 128)>>8;
+            chances[i].put(0, table.subTable[i]);
+          }
+        } else {
+          for (int i=0; i<N; i++) {
+            uint64_t sbits = 0;
+            chances[i].estim(1, sbits);
+            uint64_t oqual=quality[i];
+            quality[i] = (oqual*255 + sbits*4097 + 128)>>8;
+            chances[i].put(1, table.subTable[i]);
+          }
+        }
+*/
+        
         for (int i=0; i<N; i++) { // for each scale
             uint64_t sbits = 0;
             chances[i].estim(bit, sbits); // number of bits if this scale was used
@@ -181,6 +200,7 @@ public:
             if (i == oldBest) realSize += sbits;
 #endif
         }
+
         for (int i=0; i<N; i++) if (quality[i] < quality[best]) best=i;
     }
 

@@ -355,7 +355,7 @@ protected:
         return b;
     }
     void load(const ColorRanges *srcRanges, RacIn &rac) {
-        printf("Loading Color Buckets\n");
+//        printf("Loading Color Buckets\n");
         prevPlanes pixelL, pixelU;
         cb->bucket0 = load_bucket(rac, srcRanges, 0, pixelL, pixelU);
         pixelL.push_back(cb->min0);
@@ -392,7 +392,7 @@ protected:
         minmax(srcRanges,plane,pixelL,pixelU,smin,smax);
         if (smin==smax) { return;}
 
-        b.printshort();
+//        b.printshort();
 
         if (b.min > b.max) {
                 coder.write_int(0, 1, 0);  // empty bucket
@@ -415,14 +415,14 @@ protected:
         }
     }
     void save(const ColorRanges *srcRanges, RacOut &rac) const {
-        printf("Saving Y Color Bucket: ");
+//        printf("Saving Y Color Bucket: ");
         prevPlanes pixelL, pixelU;
         save_bucket(cb->bucket0, rac, srcRanges, 0, pixelL, pixelU);
-        printf("\nSaving I Color Buckets\n  ");
+//        printf("\nSaving I Color Buckets\n  ");
         pixelL.push_back(cb->min0);
         pixelU.push_back(cb->min0+CB0a-1);
         for (auto b : cb->bucket1) { save_bucket(b, rac, srcRanges, 1, pixelL, pixelU); pixelL[0] += CB0a; pixelU[0] += CB0a; }
-        printf("\nSaving Q Color Buckets\n  ");
+//        printf("\nSaving Q Color Buckets\n  ");
         pixelL[0] = cb->min0;
         pixelU[0] = cb->min0+CB0b-1;
         pixelL.push_back(cb->min1);
@@ -436,11 +436,11 @@ protected:
                 }
                 pixelL[0] += CB0b; pixelU[0] += CB0b;
         }
-        printf("\n");
+//        printf("\n");
         if (srcRanges->numPlanes() > 3) {
-          printf("Saving Alpha Color Bucket: ");
+//          printf("Saving Alpha Color Bucket: ");
           save_bucket(cb->bucket3, rac, srcRanges, 3, pixelL, pixelU);
-          printf("\n");
+//          printf("\n");
         }
     }
 
@@ -456,7 +456,7 @@ protected:
                   }
                   cb->addColor(pixel);
                   if (totaldiscretecolors > 20000 && totalcontinuousbuckets > 2000) {
-                        printf("Too many colors, not using color buckets.\n");
+//                        printf("Too many colors, not using color buckets.\n");
                         return false;
                   }
                 }
@@ -470,7 +470,7 @@ protected:
         // TAKE IMAGE SIZE INTO ACCOUNT!
         // CONSIDER RELATIVE AREA OF BUCKETS / BOUNDS!
 
-            printf("Filled color buckets with %i discrete colors + %i continous buckets\n",totaldiscretecolors,totalcontinuousbuckets);
+//            printf("Filled color buckets with %i discrete colors + %i continous buckets\n",totaldiscretecolors,totalcontinuousbuckets);
 
             if (totaldiscretecolors < 10000 && totalcontinuousbuckets < 500) return true;
 
@@ -478,14 +478,14 @@ protected:
             for (auto& b : cb->bucket1) b.simplify(80);
             for (auto& bv : cb->bucket2) for (auto& b : bv) b.simplify(60);
 
-            printf("Filled color buckets with %i discrete colors + %i continous buckets\n",totaldiscretecolors,totalcontinuousbuckets);
+//            printf("Filled color buckets with %i discrete colors + %i continous buckets\n",totaldiscretecolors,totalcontinuousbuckets);
             if (totaldiscretecolors > 1000) {
-                printf("Too many colors, simplifying...\n");
+//                printf("Too many colors, simplifying...\n");
                 for (auto& b : cb->bucket1) b.simplify(50);
                 for (auto& bv : cb->bucket2) for (auto& b : bv) b.simplify(20);
-                printf("Filled color buckets with %i discrete colors + %i continous buckets\n",totaldiscretecolors,totalcontinuousbuckets);
+//                printf("Filled color buckets with %i discrete colors + %i continous buckets\n",totaldiscretecolors,totalcontinuousbuckets);
                 if (totaldiscretecolors > 2000 || totalcontinuousbuckets > 2000) {
-                  printf("Still too many colors, not using auto-indexing.\n");
+//                  printf("Still too many colors, not using auto-indexing.\n");
                   return false;
                 }
             }

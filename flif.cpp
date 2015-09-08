@@ -1,4 +1,5 @@
 #include <string>
+#include <string.h>
 
 #include "maniac/rac.h"
 #include "maniac/compound.h"
@@ -166,7 +167,7 @@ template<typename Rac, typename Coder> void encode_scanlines_pass(Rac &rac, cons
         coders.push_back(new Coder(rac, propRanges, forest[p]));
     }
 
-    if (repeats>1) printf("Iterating %i times to find a better tree.\n",repeats);
+    if (repeats>1) printf("Learning a MANIAC tree. Iterating %i times.\n",repeats);
     while(repeats-- > 0) {
      encode_scanlines_inner(coders, image, ranges);
     }
@@ -412,9 +413,9 @@ template<typename Coder, typename ParityCoder> void encode_FLIF2_inner(std::vect
       std::pair<int, int> pzl = plane_zoomlevel(image, beginZL, endZL, i);
       int p = pzl.first;
       int z = pzl.second;
-      if (ranges->min(p) < ranges->max(p))
-        fprintf(stdout,"[%i/%i] ENC(p:%i,z:%i), %ix%i\t",i,plane_zoomlevels(image, beginZL, endZL)-1,p,z,image.rows(z),image.cols(z));
-      else continue;
+      if (ranges->min(p) < ranges->max(p)) {
+        if (endZL == 0) fprintf(stdout,"[%i/%i] ENC[%i,%ix%i]\t",i,plane_zoomlevels(image, beginZL, endZL)-1,p,image.rows(z),image.cols(z));
+      } else continue;
       fflush(stdout);
       Properties properties((nump>3?NB_PROPERTIESA[p]:NB_PROPERTIES[p]));
       if (z % 2 == 0) {
@@ -442,7 +443,7 @@ template<typename Coder, typename ParityCoder> void encode_FLIF2_inner(std::vect
       }
       long nfs = ftell(f);
       long pixels = image.cols(z)*image.rows(z)/2;
-      if (nfs-fs > 0) fprintf(stdout,"filesize:%li (+%li bytes, %li pixels, %f bpp)\n", nfs, nfs-fs, pixels, 8.0*(nfs-fs)/pixels );
+      if (nfs-fs > 0 && endZL==0) fprintf(stdout,"filesize:%li (+%li bytes, %li pixels, %f bpp)\n", nfs, nfs-fs, pixels, 8.0*(nfs-fs)/pixels );
       fs = nfs;
     }
 }
@@ -466,11 +467,10 @@ template<typename Rac, typename Coder> void encode_FLIF2_pass(Rac &rac, const Im
     }
     SimpleBitCoder<FLIFBitChanceParities,Rac> parityCoder(rac);
 
-    if (repeats>1) printf("Iterating %i times to find a better tree.\n",repeats);
+    if (repeats>1) printf("Learning a MANIAC tree. Iterating %i times.\n",repeats);
     while(repeats-- > 0) {
      encode_FLIF2_inner(coders, parityCoder, image, ranges, beginZL, endZL);
     }
-
     for (int p = 0; p < image.numPlanes(); p++) {
         coders[p]->simplify();
     }
@@ -492,8 +492,8 @@ void encode_FLIF2_interpol_zero_alpha(Image &image, const ColorRanges *ranges, c
       int p = pzl.first;
       int z = pzl.second;
       if (p == 3) continue;
-      fprintf(stdout,"[%i] interpol_zero_alpha ",p);
-      fflush(stdout);
+//      fprintf(stdout,"[%i] interpol_zero_alpha ",p);
+//      fflush(stdout);
       if (z % 2 == 0) {
         // horizontal: scan the odd rows
           for (int r = 1; r < image.rows(z); r += 2) {
@@ -510,7 +510,7 @@ void encode_FLIF2_interpol_zero_alpha(Image &image, const ColorRanges *ranges, c
           }
       }
     }
-    fprintf(stdout,"\n");
+//    fprintf(stdout,"\n");
 }
 
 
@@ -522,7 +522,8 @@ void decode_FLIF2_inner_interpol(Image &image, const ColorRanges *ranges, int I,
       std::pair<int, int> pzl = plane_zoomlevel(image, beginZL, endZL, i);
       int p = pzl.first;
       int z = pzl.second;
-      fprintf(stdout,"[%i/%i] INTERPOLATE Plane %i, Zoomlevel %i, size: %ix%i\n",i,plane_zoomlevels(image, beginZL, endZL)-1,p,z,image.rows(z),image.cols(z));
+      fprintf(stdout,"[%i/%i] INTERPOLATE[%i,%ix%i]\t",i,plane_zoomlevels(image, beginZL, endZL)-1,p,image.rows(z),image.cols(z));
+      fflush(stdout);
       if (z % 2 == 0) {
         // horizontal: scan the odd rows
           for (int r = (I==i?R:1); r < image.rows(z); r += 2) {
@@ -542,12 +543,16 @@ void decode_FLIF2_inner_interpol(Image &image, const ColorRanges *ranges, int I,
           }
       }
     }
+    printf("\n");
 }
 
 template<typename Coder, typename ParityCoder> void decode_FLIF2_inner(std::vector<Coder*> &coders, ParityCoder &parityCoder, Image &image, const ColorRanges *ranges, const int beginZL, const int endZL, int lastI)
 {
     ColorVal min,max;
     int nump = image.numPlanes();
+    if (lastI >= 0) {
+      lastI = plane_zoomlevels(image, beginZL, endZL) * lastI / 100;
+    }
     // decode
     for (int i = 0; i < plane_zoomlevels(image, beginZL, endZL); i++) {
       std::pair<int, int> pzl = plane_zoomlevel(image, beginZL, endZL, i);
@@ -557,9 +562,10 @@ template<typename Coder, typename ParityCoder> void decode_FLIF2_inner(std::vect
               decode_FLIF2_inner_interpol(image, ranges, i, beginZL, endZL, (z%2 == 0 ?1:0));
               return;
       }
-      if (ranges->min(p) < ranges->max(p))
-        fprintf(stdout,"[%i/%i] DEC Plane %i, Zoomlevel %i, size: %ix%i\n",i,plane_zoomlevels(image, beginZL, endZL)-1,p,z,image.rows(z),image.cols(z));
-      else continue;
+      if (ranges->min(p) < ranges->max(p)) {
+        if (endZL == 0) fprintf(stdout,"[%i/%i] DEC[%i,%ix%i]\t",i,plane_zoomlevels(image, beginZL, endZL)-1,p,image.rows(z),image.cols(z));
+        fflush(stdout);
+      } else continue;
       ColorVal curr;
       Properties properties((nump>3?NB_PROPERTIESA[p]:NB_PROPERTIES[p]));
       if (z % 2 == 0) {
@@ -596,6 +602,7 @@ template<typename Coder, typename ParityCoder> void decode_FLIF2_inner(std::vect
         }
       }
     }
+    if (endZL == 0) printf("\n");
 }
 
 template<typename Rac, typename Coder> void decode_FLIF2_pass(Rac &rac, Image &image, const ColorRanges *ranges, std::vector<Tree> &forest, const int beginZL, const int endZL, int lastI)
@@ -669,23 +676,27 @@ bool encode(const char* filename, Image &image, std::vector<std::string> transDe
     metaCoder.write_int(1, 16, numPlanes);
     metaCoder.write_int(1, 65536, image.cols());
     metaCoder.write_int(1, 65536, image.rows());
-    printf("Input planes: ");
+    printf("Input channels:");
     for (int p = 0; p < numPlanes; p++) {
         assert(image.min(p) == 0);
         metaCoder.write_int(1, 16, ilog2(image.max(p)+1));
-        printf("[%i] %i bpp (%i..%i) \t",p,ilog2(image.max(p)+1),image.min(p), image.max(p));
+        printf(" [%i] %i bpp",p,ilog2(image.max(p)+1));
+//        printf(" [%i] %i bpp (%i..%i)",p,ilog2(image.max(p)+1),image.min(p), image.max(p));
     }
     printf("\n");
 
     std::vector<const ColorRanges*> rangesList;
     std::vector<Transform*> transforms;
     rangesList.push_back(getRanges(image));
+    int tcount=0;
+    printf("Transforms: ");
     for (unsigned int i=0; i<transDesc.size(); i++) {
         Transform *trans = create_transform(transDesc[i]);
         if (!trans->init(rangesList.back()) || !trans->process(rangesList.back(), image)) {
-            fprintf(stderr, "Transform '%s' failed\n", transDesc[i].c_str());
+            //fprintf(stderr, "Transform '%s' failed\n", transDesc[i].c_str());
         } else {
-            printf("Doing transform '%s'\n", transDesc[i].c_str());
+            if (tcount++ > 0) printf(", ");
+            printf("%s", transDesc[i].c_str());
             rac.write(true);
             write_name(rac, transDesc[i]);
             trans->save(rangesList.back(), rac);
@@ -693,6 +704,7 @@ bool encode(const char* filename, Image &image, std::vector<std::string> transDe
             trans->data(image);
         }
     }
+    if (tcount==0) printf("none\n"); else printf("\n");
     rac.write(false);
     const ColorRanges* ranges = rangesList.back();
     grey.clear();
@@ -724,28 +736,27 @@ bool encode(const char* filename, Image &image, std::vector<std::string> transDe
     if (encoding == 2) {
       roughZL = image.zooms() - NB_NOLEARN_ZOOMS-1;
       if (roughZL < 0) roughZL = 0;
-      fprintf(stdout,"Encoding rough data\n");
+      //fprintf(stdout,"Encoding rough data\n");
       encode_FLIF2_pass<RacOut, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut, bits> >(rac, image, ranges, forest, image.zooms(), roughZL+1, 1);
     }
 
-    fprintf(stdout,"Encoding data (pass 1)\n");
+    //fprintf(stdout,"Encoding data (pass 1)\n");
     switch(encoding) {
         case 1: encode_scanlines_pass<RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, bits> >(dummy, image, ranges, forest, TREE_LEARN_REPEATS); break;
         case 2: encode_FLIF2_pass<RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, bits> >(dummy, image, ranges, forest, roughZL, 0, TREE_LEARN_REPEATS); break;
     }
 
-    fprintf(stdout,"Encoding tree\n");
+    //fprintf(stdout,"Encoding tree\n");
     long fs = ftell(f);
     encode_tree<FLIFBitChanceTree, RacOut>(rac, ranges, forest, encoding);
-    fprintf(stdout,"Rough data total: %li bytes.  Tree total: %li bytes.\n", fs, ftell(f)-fs);
-    fprintf(stdout,"Encoding data (pass 2)\n");
+    fprintf(stdout,"\nHeader + rough data: %li bytes.  MANIAC tree: %li bytes.\n", fs, ftell(f)-fs);
+    //fprintf(stdout,"Encoding data (pass 2)\n");
     switch(encoding) {
         case 1: encode_scanlines_pass<RacOut, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut, bits> >(rac, image, ranges, forest, 1); break;
         case 2: encode_FLIF2_pass<RacOut, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut, bits> >(rac, image, ranges, forest, roughZL, 0, 1); break;
     }
-
-    fprintf(stdout,"Encoding done\n");
-    fprintf(stdout,"Writing checksum: %X\n", checksum);
+    //fprintf(stdout,"Encoding done\n");
+    //fprintf(stdout,"Writing checksum: %X\n", checksum);
     metaCoder.write_int(0, 0xFFFF, checksum / 0x10000);
     metaCoder.write_int(0, 0xFFFF, checksum & 0xFFFF);
     rac.flush();
@@ -787,18 +798,23 @@ bool decode(const char* filename, Image &image, int lastI)
     int width = metaCoder.read_int(1, 65536);
     int height = metaCoder.read_int(1, 65536);
     image.init(width, height, 0, 0, 0);
+    printf("Output channels:");
     for (int p = 0; p < numPlanes; p++) {
         int subSampleR = 1;
         int subSampleC = 1;
         int min = 0;
         int max = (1 << metaCoder.read_int(1, 16)) - 1;
         image.add_plane(min, max, subSampleR, subSampleC);
-        printf("plane %i: %i bits per pixel (%i..%i)\n",p,ilog2(image.max(p)+1),image.min(p), image.max(p));
+//        printf(" [%i] %i bpp (%i..%i)",p,ilog2(image.max(p)+1),image.min(p), image.max(p));
+        printf(" [%i] %i bpp",p,ilog2(image.max(p)+1));
     }
+    printf("\n");
 
     std::vector<const ColorRanges*> rangesList;
     std::vector<Transform*> transforms;
     rangesList.push_back(getRanges(image));
+    printf("Transforms: ");
+    int tcount=0;
     while (rac.read()) {
         std::string desc = read_name(rac);
         Transform *trans = create_transform(desc);
@@ -810,11 +826,13 @@ bool decode(const char* filename, Image &image, int lastI)
             fprintf(stderr,"Transformation '%s' failed\n", desc.c_str());
             return false;
         }
-        printf("Doing transform '%s'\n", desc.c_str());
+        if (tcount++ > 0) printf(", ");
+        printf("%s", desc.c_str());
         trans->load(rangesList.back(), rac);
         rangesList.push_back(trans->meta(image, rangesList.back()));
         transforms.push_back(trans);
     }
+    if (tcount==0) printf("none\n"); else printf("\n");
     const ColorRanges* ranges = rangesList.back();
     grey.clear();
     for (int p = 0; p < ranges->numPlanes(); p++) grey.push_back((ranges->min(p)+ranges->max(p))/2);
@@ -843,13 +861,13 @@ bool decode(const char* filename, Image &image, int lastI)
     if (encoding == 2) {
       roughZL = image.zooms() - NB_NOLEARN_ZOOMS-1;
       if (roughZL < 0) roughZL = 0;
-      fprintf(stdout,"Decoding rough data\n");
+//      fprintf(stdout,"Decoding rough data\n");
       decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, bits> >(rac, image, ranges, forest, image.zooms(), roughZL+1, -1);
     }
     if (encoding == 2 && lastI < -2) {
-      printf("Not decoding tree\n");
+      printf("Not decoding MANIAC tree\n");
     } else {
-      fprintf(stdout,"Decoding tree\n");
+      fprintf(stdout,"Decoded header + rough data. Decoding MANIAC tree.\n");
       decode_tree<FLIFBitChanceTree, RacIn>(rac, ranges, forest, encoding);
     }
     switch(encoding) {
@@ -865,12 +883,13 @@ bool decode(const char* filename, Image &image, int lastI)
 
     if (lastI < 0) {
       uint32_t checksum = image.checksum();
-      fprintf(stdout,"Computed checksum: %X\n", checksum);
+//      fprintf(stdout,"Computed checksum: %X\n", checksum);
       uint32_t checksum2 = metaCoder.read_int(0, 0xFFFF);
       checksum2 *= 0x10000;
       checksum2 += metaCoder.read_int(0, 0xFFFF);
-      fprintf(stdout,"Read checksum: %X\n", checksum2);
-      if (checksum != checksum2) printf("\nCORRUPTION DETECTED!\n");
+//      fprintf(stdout,"Read checksum: %X\n", checksum2);
+      if (checksum != checksum2) printf("\nCORRUPTION DETECTED!\n\n");
+      else printf("Image decoded, checksum verified.\n");
     } else {
       fprintf(stdout,"Not checking checksum, lossy partial decoding was chosen.\n");
     }
@@ -892,30 +911,117 @@ bool decode(const char* filename, Image &image, int lastI)
 }
 
 
+void show_help() {
+    fprintf(stderr,"Usage: (encoding)\n");
+    fprintf(stderr,"   flif [options] <input.pnm | input.png> <output.flif>\n");
+    fprintf(stderr,"Encode options:\n");
+    fprintf(stderr,"   -i                    Interlacing (default, except for tiny images)\n");
+    fprintf(stderr,"   -ni                   No interlacing\n");
+    fprintf(stderr,"\n");
+    fprintf(stderr,"Usage: (decoding)\n");
+    fprintf(stderr,"   flif -d [options] <input.flif> <output.pnm | output.png>\n");
+    fprintf(stderr,"Decode options:\n");
+    fprintf(stderr,"   -q <0..100>           Lossy decode\n");
+}
+
+bool file_exists(const char * filename){    
+        FILE * file = fopen(filename, "r");
+        if (file) {
+                fclose(file);
+                return true;
+        }
+        return false;
+}
+
 int main(int argc, char **argv)
 {
     Image image;
-    if (argc == 3) {
-        image.load(argv[1]);
+    int mode = 0; // 0 = encode, 1 = decode
+    int method = 0; // 1=non-interlacing, 2=interlacing
+    int zl = -1; // -1 = everything, positive value: partial decode
+    if (strcmp(argv[0],"flif") == 0) mode = 0;
+    if (strcmp(argv[0],"dflif") == 0) mode = 1;
+    if (strcmp(argv[0],"deflif") == 0) mode = 1;
+    if (strcmp(argv[0],"decflif") == 0) mode = 1;
+    argc--; argv++;
+    while(argc>0) {
+          if (strcmp(argv[0],"-e") == 0 || strcmp(argv[0],"--encode") == 0) {
+            mode = 0; argc--; argv++; continue; }
+          if (strcmp(argv[0],"-d") == 0 || strcmp(argv[0],"--decode") == 0) {
+            mode = 1; argc--; argv++; continue; }
+          if (strcmp(argv[0],"-h") == 0 || strcmp(argv[0],"--help") == 0) {
+            show_help(); return 0; }
+          if (strcmp(argv[0],"-i") == 0 || strcmp(argv[0],"--interlace") == 0) {
+            if (mode == 1) {fprintf(stderr,"Warning: -i option specified while decoding (it will be ignored).\n");};
+            method = 2; argc--; argv++; continue; }
+          if (strcmp(argv[0],"-ni") == 0 || strcmp(argv[0],"--no-interlace") == 0) {
+            if (mode == 1) {fprintf(stderr,"Warning: -ni option specified while decoding (it will be ignored).\n");};
+            method = 1; argc--; argv++; continue; }
+          if (strcmp(argv[0],"-q") == 0 || strcmp(argv[0],"--quality") == 0) {
+            if (mode == 0) {fprintf(stderr,"Warning: -q option specified while encoding (it will be ignored).\n");};
+            if (argc < 3) {fprintf(stderr,"Option -q expects a number\n"); return 1; }
+            zl=(int)strtol(argv[1],NULL,10);
+            argc -= 2; argv += 2; continue; }
+          if (file_exists(argv[0])) {
+                  char *f = strrchr(argv[0],'/');
+                  char *ext = f ? strrchr(f,'.') : strrchr(argv[0],'.');
+                  if (mode == 0) {
+                          if (ext && ( !strcasecmp(ext,".png") ||  !strcasecmp(ext,".pnm") ||  !strcasecmp(ext,".ppm")  ||  !strcasecmp(ext,".pgm") ||  !strcasecmp(ext,".pbm"))) {
+                                // ok
+                          } else {
+                                fprintf(stderr,"Warning: expected \".png\" or \".pnm\" file name extension for input file, trying anyway...\n");
+                          }
+                  } else {
+                          if (ext && ( !strcasecmp(ext,".flif"))) {
+                                // ok
+                          } else {
+                                fprintf(stderr,"Warning: expected file name extension \".flif\" for input file, trying anyway...\n");
+                          }
+                  }
+                  break;
+          }
+          if (argv[0][0] == '-') {
+                fprintf(stderr,"Unrecognized option: %s\n",argv[0]);
+          } else {
+                fprintf(stderr,"Input file does not exist: %s\n",argv[0]);
+          }
+          show_help();
+          return 1;
+  }
+  if (argc == 0) {
+        fprintf(stderr,"Input file missing.\n");
+        show_help();
+        return 1;
+  }
+  if (argc == 1) {
+        fprintf(stderr,"Output file missing.\n");
+        show_help();
+        return 1;
+  }
+
+  fprintf(stderr,"     _____  __     __  _____\n");
+  fprintf(stderr,"    / ___/ / /    / / / ___/     |  FLIF 0.1   [September 2015]\n");
+  fprintf(stderr,"   / __/  / /__  / / / __/       |  by Jon Sneyers & Pieter Wuille\n");
+  fprintf(stderr,"  /_/    /____/ /_/ /_/          |  (c) 2010-2015;  GNU GPL v3.\n");
+  fprintf(stderr,"______________________________________________________________________\n");
+
+  if (mode == 0) {
+        image.load(argv[0]);
         std::vector<std::string> desc;
         desc.push_back("YIQ");  // convert RGB(A) to YIQ(A)
         desc.push_back("BND");  // get the bounds of the color spaces
         desc.push_back("PLT");  // try palette
         desc.push_back("ACB");  // try auto color buckets
-        // if the image is small, no point in doing interlacing
-        if ((uint64_t)image.rows() * image.cols() > 10000)
-          encode(argv[2], image, desc, 1);
-        else
-          encode(argv[2], image, desc, 2);
-    } else if (argc == 4) {
-        decode(argv[2], image, -1);
-        image.save(argv[3]);
-    } else if (argc == 5) {
-        decode(argv[3], image, strtol(argv[2],NULL,0));
-        image.save(argv[4]);
-    } else {
-        fprintf(stderr, "Usage: %s [-d [level]] source dest\n", argv[0]);
-        return 1;
-    }
-    return 0;
+        if (method == 0) {
+          // no method specified, pick one heuristically
+          if ((uint64_t)image.rows() * image.cols() < 10000) method=1; // if the image is small, not much point in doing interlacing
+          else method=2; // default method: interlacing
+        }
+        encode(argv[1], image, desc, method);
+  } else {
+        decode(argv[0], image, zl);
+        printf("Saving decoded output to '%s'\n",argv[1]);
+        image.save(argv[1]);
+  }
+  return 0;
 }

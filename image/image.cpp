@@ -35,7 +35,8 @@ bool Image::load(const char *filename)
     if (ext && !strcasecmp(ext,".ppm")) {
         return image_load_pnm(filename,*this);
     }
-    fprintf(stderr,"Unknown extension for read from: %s\n",ext ? ext : "(none)");
+    if (image_load_pnm(filename,*this) || image_load_png(filename,*this)) return true;
+    fprintf(stderr,"ERROR: Unknown extension for read from: %s\n",ext ? ext : "(none)");
     return false;
 }
 
@@ -44,7 +45,7 @@ bool Image::save(const char *filename) const
     const char *f = strrchr(filename,'/');
     const char *ext = f ? strrchr(f,'.') : strrchr(filename,'.');
     if (ext && !strcasecmp(ext,".png")) {
-      return image_save_png(filename,*this);
+        return image_save_png(filename,*this);
     }
     if (ext && !strcasecmp(ext,".pnm")) {
         return image_save_pnm(filename,*this);
@@ -55,7 +56,7 @@ bool Image::save(const char *filename) const
     if (ext && !strcasecmp(ext,".ppm")) {
         return image_save_pnm(filename,*this);
     }
-    fprintf(stderr,"Unknown extension to write to: %s\n",ext ? ext : "(none)");
+    fprintf(stderr,"ERROR: Unknown extension to write to: %s\n",ext ? ext : "(none)");
     return false;
 }
 

@@ -64,11 +64,11 @@ public:
             }
         }
         for (Color c : Palette) Palette_vector.push_back(c);
-        printf("Palette size: %lu\n",Palette.size());
+//        printf("Palette size: %lu\n",Palette.size());
         return true;
     }
     void data(Image& image) const {
-        printf("TransformPalette::data\n");
+//        printf("TransformPalette::data\n");
         for (int r=0; r<image.rows(); r++) {
             for (int c=0; c<image.cols(); c++) {
                 Color C(image(0,r,c), image(1,r,c), image(2,r,c));
@@ -98,7 +98,7 @@ public:
         Color min(srcRanges->min(0), srcRanges->min(1), srcRanges->min(2));
         Color max(srcRanges->max(0), srcRanges->max(1), srcRanges->max(2));
         coder.write_int(1, MAX_PALETTE_SIZE, Palette_vector.size());
-        printf("Saving %lu colors: ", Palette_vector.size());
+//        printf("Saving %lu colors: ", Palette_vector.size());
         Color prev(-1,-1,-1);
         prevPlanes pp(2);
         for (Color c : Palette_vector) {
@@ -111,9 +111,9 @@ public:
                 coderQ.write_int(std::get<2>(min), std::get<2>(max), std::get<2>(c));
                 std::get<0>(min) = std::get<0>(c);
                 prev = c;
-                printf("YIQ(%i,%i,%i)\t", std::get<0>(c), std::get<1>(c), std::get<2>(c));
+//                printf("YIQ(%i,%i,%i)\t", std::get<0>(c), std::get<1>(c), std::get<2>(c));
         }
-        printf("\nSaved palette of size: %lu\n",Palette_vector.size());
+//        printf("\nSaved palette of size: %lu\n",Palette_vector.size());
     }
     void load(const ColorRanges *srcRanges, RacIn &rac) {
         SimpleSymbolCoder<SimpleBitChance, RacIn, 24> coder(rac);
@@ -123,7 +123,7 @@ public:
         Color min(srcRanges->min(0), srcRanges->min(1), srcRanges->min(2));
         Color max(srcRanges->max(0), srcRanges->max(1), srcRanges->max(2));
         long unsigned size = coder.read_int(1, MAX_PALETTE_SIZE);
-        printf("Loading %lu colors: ", size);
+//        printf("Loading %lu colors: ", size);
         Color prev(-1,-1,-1);
         prevPlanes pp(2);
         for (unsigned int p=0; p<size; p++) {
@@ -136,9 +136,9 @@ public:
                 Palette_vector.push_back(c);
                 std::get<0>(min) = std::get<0>(c);
                 prev = c;
-                printf("YIQ(%i,%i,%i)\t", std::get<0>(c), std::get<1>(c), std::get<2>(c));
+//                printf("YIQ(%i,%i,%i)\t", std::get<0>(c), std::get<1>(c), std::get<2>(c));
         }
-        printf("\nLoaded palette of size: %lu\n",Palette_vector.size());
+//        printf("\nLoaded palette of size: %lu\n",Palette_vector.size());
     }
 };
 

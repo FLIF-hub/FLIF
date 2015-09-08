@@ -45,9 +45,8 @@ protected:
             ColorVal min = coder.read_int(0, srcRanges->max(p) - srcRanges->min(p)) + srcRanges->min(p);
             ColorVal max = coder.read_int(0, srcRanges->max(p) - min) + min;
             bounds.push_back(std::make_pair(min,max));
-            fprintf(stdout,"plane[%i] : %i..%i \t",p,min,max);
+            fprintf(stdout,"[%i:%i..%i]",p,min,max);
         }
-        fprintf(stdout,"\n");
     }
 
     void save(const ColorRanges *srcRanges, RacOut &rac) const {
@@ -57,9 +56,8 @@ protected:
             ColorVal max = bounds[p].second;
             coder.write_int(0, srcRanges->max(p) - srcRanges->min(p), min - srcRanges->min(p));
             coder.write_int(0, srcRanges->max(p) - min, max - min);
-            fprintf(stdout,"plane[%i] : %i..%i \t",p,min,max);
+            fprintf(stdout,"[%i:%i..%i]",p,min,max);
         }
-        fprintf(stdout,"\n");
     }
 
     bool process(const ColorRanges *srcRanges, const Image &image) {

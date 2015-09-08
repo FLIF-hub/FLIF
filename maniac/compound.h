@@ -325,49 +325,36 @@ private:
     Tree &inner_node;
 
     FinalCompoundSymbolChances<BitChance,bits> inline &find_leaf(Properties &properties) {
-        uint32_t pos = 0;
+        Tree::size_type pos = 0;
         while(inner_node[pos].property != -1) {
-            if (inner_node[pos].count > 0) {
+            if (inner_node[pos].count < 0) {
+                if (properties[inner_node[pos].property] > inner_node[pos].splitval) {
+                  pos = inner_node[pos].childID;
+                } else {
+                  pos = inner_node[pos].childID+1;
+                }
+            } else if (inner_node[pos].count > 0) {
                 assert(inner_node[pos].leafID >= 0);
                 assert((unsigned int)inner_node[pos].leafID < leaf_node.size());
                 inner_node[pos].count--;
-                return leaf_node[inner_node[pos].leafID];
+                break;
             } else if (inner_node[pos].count == 0) {
                 inner_node[pos].count--;
-                break;
-            }
-
-            if (properties[inner_node[pos].property] > inner_node[pos].splitval) {
-                pos = inner_node[pos].childID;
-            } else {
-                pos = inner_node[pos].childID+1;
-            }
-        }
-        assert(inner_node[pos].leafID >= 0);
-        FinalCompoundSymbolChances<BitChance,bits> &result = leaf_node[inner_node[pos].leafID];
-        if(inner_node[pos].property != -1) {
-            assert(inner_node[pos].count == -1);
-            uint32_t old_leaf = inner_node[pos].leafID;
-            uint32_t new_leaf = leaf_node.size();
-            FinalCompoundSymbolChances<BitChance,bits> resultCopy = result;
-            leaf_node.push_back(resultCopy);
-            inner_node[inner_node[pos].childID].leafID = old_leaf;
-            inner_node[inner_node[pos].childID+1].leafID = new_leaf;
-            assert(old_leaf >= 0);
-            assert(new_leaf >= 0);
-            assert((unsigned int)old_leaf < leaf_node.size());
-            assert((unsigned int)new_leaf < leaf_node.size());
-            inner_node[pos].leafID = -1;
-            if (properties[inner_node[pos].property] > inner_node[pos].splitval) {
-//                fprintf(stderr, "LeafLeft %i\n", old_leaf);
-                return leaf_node[old_leaf];
-            } else {
-//                fprintf(stderr, "LeafRight %i\n", new_leaf);
-                return leaf_node[new_leaf];
+                FinalCompoundSymbolChances<BitChance,bits> &result = leaf_node[inner_node[pos].leafID];
+                uint32_t old_leaf = inner_node[pos].leafID;
+                uint32_t new_leaf = leaf_node.size();
+                FinalCompoundSymbolChances<BitChance,bits> resultCopy = result;
+                leaf_node.push_back(resultCopy);
+                inner_node[inner_node[pos].childID].leafID = old_leaf;
+                inner_node[inner_node[pos].childID+1].leafID = new_leaf;
+                if (properties[inner_node[pos].property] > inner_node[pos].splitval) {
+                  return leaf_node[old_leaf];
+                } else {
+                  return leaf_node[new_leaf];
+                }
             }
         }
-//        fprintf(stderr, "LeafBottom %i\n", inner_node[pos].leafID);
-        return result;
+        return leaf_node[inner_node[pos].leafID];
     }
 
 public:
@@ -489,7 +476,7 @@ private:
         chances.count++;
         if (chances.count > (1LL<<50)) {
             // numbers are getting dangerously large
-            printf("Reducing big numbers...\n");
+            //printf("Reducing big numbers...\n");
             for(unsigned int i=0; i<nb_properties; i++) {
               chances.virtPropSum[i] /= 8;
             }
@@ -643,7 +630,7 @@ public:
         }
     }
     void write_tree(const Tree &tree) {
-          fprintf(stdout,"Saving tree with %lu nodes.\n",tree.size());
+          //fprintf(stdout,"Saving tree with %lu nodes.\n",tree.size());
           Ranges rootrange(range);
           write_subtree(0, rootrange, tree);
     }
