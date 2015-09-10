@@ -6,6 +6,7 @@
 #include "bounds.h"
 #include "colorbuckets.h"
 #include "palette.h"
+#include "palette_A.h"
 
 Transform *create_transform(std::string desc)
 {
@@ -17,5 +18,7 @@ Transform *create_transform(std::string desc)
         return new TransformCB();
     if (desc == "PLT")
         return new TransformPalette();
+    if (desc == "PLA")
+        return new TransformPaletteA();
     return NULL;
 }

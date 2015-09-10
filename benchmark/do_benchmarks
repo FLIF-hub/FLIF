@@ -1,0 +1,190 @@
+#!/bin/bash
+
+
+FLIF="../flif"
+PREFIX="output_data/result"
+INPUTPREFIX="input/"
+OUTPUTPREFIX="output/"
+
+DO_FLIF="yes"
+DO_FLIF_NI="yes"
+# make sure convert, pngcrush and pngout are available
+PNG="yes"
+PNGADAM7="yes"
+# make sure cwebp and dwebp are installed if you want to include WebP
+#WEBP="yes"
+JP2="yes"
+# make sure bpgenc and bpgdec are installed if you want to include BPG
+#BPG="yes"
+
+CHECK_DECODE="yes"
+TIMER="/usr/bin/time -o tmp/tmp.timing -f %U"
+
+mkdir -p $(dirname $PREFIX)
+mkdir -p tmp
+
+for c in $INPUTPREFIX/*
+do
+    TYPE=$(basename $c)
+    OUTDIR=$OUTPUTPREFIX/$TYPE/
+    mkdir -p $OUTDIR
+    mkdir -p $OUTDIR/png
+    mkdir -p $OUTDIR/png90
+    mkdir -p $OUTDIR/png-crush
+    mkdir -p $OUTDIR/png-crush-pngout
+    mkdir -p $OUTDIR/pngAdam7
+    mkdir -p $OUTDIR/pngAdam7-crush
+    mkdir -p $OUTDIR/webp
+    mkdir -p $OUTDIR/bpg
+    mkdir -p $OUTDIR/jp2
+    mkdir -p $OUTDIR/flif
+    mkdir -p $OUTDIR/flif-ni
+    for f in $c/*.png
+    do
+                B=$(basename $f .png)
+                echo "Category: $TYPE =========================================================== Image $B"
+
+                convert $f -depth 8 tmp/tmp.png
+                convert $f -depth 8 tmp/tmp.pnm
+                IMAGESIZE=$(head -n 2 tmp/tmp.pnm | tail -n 1)
+
+                $TIMER convert tmp/tmp.png -quality 95 $OUTDIR/png/$B.png
+                TIME=$(cat tmp/tmp.timing)
+                STIME=$TIME
+                $TIMER convert $OUTDIR/png/$B.png tmp/tmp_png95-decoded.png
+                TIMED=$(cat tmp/tmp.timing)
+                STIMED=$TIMED
+                SIZE=$(stat -c %s $OUTDIR/png/$B.png 2>&1)
+                SSIZE=$SIZE
+                RAT=$(echo $SIZE/$SSIZE |bc -l)
+                echo "$RAT $SSIZE $STIME $STIMED $B $TYPE $IMAGESIZE $SIZE $TIME $TIMED" >> $PREFIX.PNG95.$TYPE
+                SIZE=$(stat -c %s $f 2>&1)
+                RAT=$(echo $SIZE/$SSIZE |bc -l)
+                echo "$RAT $SSIZE $STIME $STIMED $B $TYPE $IMAGESIZE $SIZE $TIME $TIMED" >> $PREFIX.PNG-orig.$TYPE
+
+                if [[ "$PNG" == "yes" ]]
+                then
+                  $TIMER convert tmp/tmp.png -quality 90 $OUTDIR/png90/$B.png
+                  TIME=$(cat tmp/tmp.timing)
+                  $TIMER convert $OUTDIR/png90/$B.png tmp/tmp_png90-decoded.png
+                  TIMED=$(cat tmp/tmp.timing)
+                  SIZE=$(stat -c %s $OUTDIR/png90/$B.png 2>&1)
+                  RAT=$(echo $SIZE/$SSIZE |bc -l)
+                  echo "$RAT $SSIZE $STIME $STIMED $B $TYPE $IMAGESIZE $SIZE $TIME $TIMED" >> $PREFIX.PNG90.$TYPE
+                  $TIMER pngcrush -brute tmp/tmp.png $OUTDIR/png-crush/$B.png
+                  TIME=$(cat tmp/tmp.timing)
+                  $TIMER pngout $OUTDIR/png-crush/$B.png $OUTDIR/png-crush-pngout/$B.png
+                  TIME=$(echo $TIME+$(cat tmp/tmp.timing) |bc -l)
+                  $TIMER convert $OUTDIR/png-crush-pngout/$B.png tmp/tmp_png-crush-pngout-decoded.png
+                  TIMED=$(cat tmp/tmp.timing)
+                  SIZE=$(stat -c %s $OUTDIR/png-crush-pngout/$B.png 2>&1)
+                  RAT=$(echo $SIZE/$SSIZE |bc -l)
+                  echo "$RAT $SSIZE $STIME $STIMED $B $TYPE $IMAGESIZE $SIZE $TIME $TIMED" >> $PREFIX.PNGcrushpngout.$TYPE
+                fi
+                if [[ "$PNGADAM7" == "yes" ]]
+                then
+                  $TIMER convert tmp/tmp.png -interlace PNG $OUTDIR/pngAdam7/$B.png
+                  TIME=$(cat tmp/tmp.timing)
+                  $TIMER convert $OUTDIR/pngAdam7/$B.png tmp/tmp_pngadam7-decoded.png
+                  TIMED=$(cat tmp/tmp.timing)
+                  SIZE=$(stat -c %s $OUTDIR/pngAdam7/$B.png 2>&1)
+                  RAT=$(echo $SIZE/$SSIZE |bc -l)
+                  echo "$RAT $SSIZE $STIME $STIMED $B $TYPE $IMAGESIZE $SIZE $TIME $TIMED" >> $PREFIX.PNGadam7.$TYPE
+                  $TIMER pngcrush -brute $OUTDIR/pngAdam7/$B.png $OUTDIR/pngAdam7-crush/$B.png
+                  TIME=$(cat tmp/tmp.timing)
+                  SIZE=$(stat -c %s $OUTDIR/pngAdam7-crush/$B.png 2>&1)
+                  $TIMER convert $OUTDIR/pngAdam7-crush/$B.png tmp/tmp_pngadam7-crush-decoded.png
+                  TIMED=$(cat tmp/tmp.timing)
+                  RAT=$(echo $SIZE/$SSIZE |bc -l)
+                  echo "$RAT $SSIZE $STIME $STIMED $B $TYPE $IMAGESIZE $SIZE $TIME $TIMED" >> $PREFIX.PNGcrushAdam7.$TYPE
+                fi
+                if [[ "$WEBP" == "yes" ]]
+                then
+                  $TIMER cwebp -lossless -m 6 tmp/tmp.png -o $OUTDIR/webp/$B.webp
+                  TIME=$(cat tmp/tmp.timing)
+                  $TIMER dwebp $OUTDIR/webp/$B.webp -o tmp/tmp_webp-decoded.png
+                  TIMED=$(cat tmp/tmp.timing)
+                  SIZE=$(stat -c %s $OUTDIR/webp/$B.webp 2>&1)
+                  RAT=$(echo $SIZE/$SSIZE |bc -l)
+                  echo "$RAT $SSIZE $STIME $STIMED $B $TYPE $IMAGESIZE $SIZE $TIME $TIMED" >> $PREFIX.WebP.$TYPE
+                fi
+                if [[ "$JP2" == "yes" ]]
+                then
+                  $TIMER convert tmp/tmp.png -quality 100 -interlace JPEG $OUTDIR/jp2/$B.jp2
+                  TIME=$(cat tmp/tmp.timing)
+                  $TIMER convert $OUTDIR/jp2/$B.jp2 tmp/tmp_jp2-decoded.png
+                  TIMED=$(cat tmp/tmp.timing)
+                  SIZE=$(stat -c %s $OUTDIR/jp2/$B.jp2 2>&1)
+                  RAT=$(echo $SIZE/$SSIZE |bc -l)
+                  echo "$RAT $SSIZE $STIME $STIMED $B $TYPE $IMAGESIZE $SIZE $TIME $TIMED" >> $PREFIX.jp2.$TYPE
+                fi
+                if [[ "$BPG" == "yes" ]]
+                then
+                  $TIMER bpgenc -lossless tmp/tmp.png -o $OUTDIR/bpg/$B.bpg
+                  TIME=$(cat tmp/tmp.timing)
+                  $TIMER bpgdec $OUTDIR/bpg/$B.bpg -o tmp/tmp_bpg-decoded.png
+                  TIMED=$(cat tmp/tmp.timing)
+                  SIZE=$(stat -c %s $OUTDIR/bpg/$B.bpg 2>&1)
+                  RAT=$(echo $SIZE/$SSIZE |bc -l)
+                  echo "$RAT $SSIZE $STIME $STIMED $B $TYPE $IMAGESIZE $SIZE $TIME $TIMED" >> $PREFIX.bpg.$TYPE
+                fi
+
+                if [[ "$DO_FLIF" == "yes" ]]
+                then
+                OUTFILE=$OUTDIR/flif/$B.flif
+                $TIMER $FLIF tmp/tmp.png $OUTFILE
+                TIME=$(cat tmp/tmp.timing)
+                SIZE=$(stat -c %s $OUTFILE 2>&1)
+                RAT=$(echo $SIZE/$SSIZE |bc -l)
+                if [[ "$CHECK_DECODE" == "yes" ]]
+                then
+                  $TIMER $FLIF -d $OUTFILE tmp/tmp_flif-decoded.png
+                  TIMED=$(cat tmp/tmp.timing)
+                  if cmp tmp/tmp_flif-decoded.png tmp/tmp.png
+                  then
+                  echo "OK-cmp (identical decoded files)"
+                  else
+                    if [[ $(compare -metric mepp tmp/tmp.png tmp/tmp_flif-decoded.png null: 2>&1) == "0 (0, 0)" ]]
+                    then
+                      echo "OK-compare (identical decoded images)"
+                    else
+                      echo PROBLEM IN FILE $B
+                      exit
+                    fi
+                  fi
+                else
+                  TIMED=unknown
+                fi
+                echo "$RAT $SSIZE $STIME $STIMED $B $TYPE $IMAGESIZE $SIZE $TIME $TIMED" >> $PREFIX.FLIF.$TYPE
+                fi
+
+                if [[ "$DO_FLIF_NI" == "yes" ]]
+                then
+                OUTFILE=$OUTDIR/flif-ni/$B.flif
+                $TIMER $FLIF -ni tmp/tmp.png $OUTFILE
+                TIME=$(cat tmp/tmp.timing)
+                SIZE=$(stat -c %s $OUTFILE 2>&1)
+                RAT=$(echo $SIZE/$SSIZE |bc -l)
+                if [[ "$CHECK_DECODE" == "yes" ]]
+                then
+                  $TIMER $FLIF -d $OUTFILE tmp/tmp_flif-decoded.png
+                  TIMED=$(cat tmp/tmp.timing)
+                  if cmp tmp/tmp_flif-decoded.png tmp/tmp.png
+                  then
+                  echo "OK-cmp (identical decoded files)"
+                  else
+                    if [[ $(compare -metric mepp tmp/tmp.png tmp/tmp_flif-decoded.png null: 2>&1) == "0 (0, 0)" ]]
+                    then
+                      echo "OK-compare (identical decoded images)"
+                    else
+                      echo PROBLEM IN FILE $B
+                      exit
+                    fi
+                  fi
+                else
+                  TIMED=unknown
+                fi
+                echo "$RAT $SSIZE $STIME $STIMED $B $TYPE $IMAGESIZE $SIZE $TIME $TIMED" >> $PREFIX.FLIF-ni.$TYPE
+                fi
+      done
+done

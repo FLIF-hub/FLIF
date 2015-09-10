@@ -1027,7 +1027,8 @@ int main(int argc, char **argv)
         std::vector<std::string> desc;
         desc.push_back("YIQ");  // convert RGB(A) to YIQ(A)
         desc.push_back("BND");  // get the bounds of the color spaces
-        desc.push_back("PLT");  // try palette
+        desc.push_back("PLA");  // try palette (including alpha)
+        desc.push_back("PLT");  // try palette (without alpha)
         if (acb == -1) {
           // not specified if ACB should be used
           if (nb_pixels < 10000) acb=0;
