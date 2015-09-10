@@ -16,3 +16,6 @@ do
       echo "Skipping $TYPE"
     fi
 done
+
+perl -p -e "s/CATEGORY/\*/g; s/\*.png/all.png/; s/NUMBER/$(cat output_data/result.PNG95.* |wc -l)/"  plot-template.gnu > tmp/plot.gnu
+gnuplot tmp/plot.gnu

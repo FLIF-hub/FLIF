@@ -1,5 +1,5 @@
 set terminal pngcairo size 1280,900 dashed
-set output 'plot-CATEGORY.png'
+set output 'compression-CATEGORY.png'
 
 bm = 0.15
 lm = 0.12
@@ -61,6 +61,7 @@ plot [x1:x2][y3:y4]\
 '<sort -n output_data/*.jp2.CATEGORY' using ($0):($1) with lines lw 3  lc rgb "#000088" lt 1 title "lossless JPEG 2000",\
 '<sort -n output_data/*.bpg.CATEGORY' using ($0):($1) with lines lw 2  lc rgb "#AA00AA" lt 1 title "BPG -lossless",\
 '<sort -n output_data/*.PNGadam7.CATEGORY' using ($0):($1) with lines lw 2 lc rgb "#00FF00" lt 1 title "PNG, Adam7 interlacing",\
+'<sort -n output_data/*.PNG-orig.CATEGORY' using ($0):($1) with lines lw 1  lc rgb "#008800" lt 1 title "PNG (original)",\
 '<sort -n output_data/*.PNG95.CATEGORY' using ($0):($1) with lines lw 3  lc rgb "#008800" lt 1 title "PNG (convert -quality 95, reference)",\
 '<sort -n output_data/*.PNGcrushAdam7.CATEGORY' using ($0):($1) with lines lw 2 lc rgb "#00FF00" lt 2 title "PNG, Adam7, pngcrush -brute",\
 '<sort -n output_data/*.PNGcrushpngout.CATEGORY' using ($0):($1) with lines lw 2 lc rgb "#008800" lt 2 title "PNG, pngcrush -brute, pngout",\
