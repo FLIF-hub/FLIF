@@ -305,6 +305,10 @@ private:
 public:
     SimpleBitCoder(RAC &racIn) : rac(racIn) {}
 
+    void set(uint16_t chance) {
+        ctx.set(chance);
+    }
+
     void write(bool bit) {
         rac.write(ctx.get(), bit);
         ctx.put(bit, table);

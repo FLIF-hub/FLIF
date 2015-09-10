@@ -39,23 +39,27 @@ protected:
     }
 
     void load(const ColorRanges *srcRanges, RacIn &rac) {
-        SimpleSymbolCoder<StaticBitChance, RacIn, 24> coder(rac);
+        SimpleSymbolCoder<SimpleBitChance, RacIn, 24> coder(rac);
         bounds.clear();
         for (int p=0; p<srcRanges->numPlanes(); p++) {
-            ColorVal min = coder.read_int(0, srcRanges->max(p) - srcRanges->min(p)) + srcRanges->min(p);
-            ColorVal max = coder.read_int(0, srcRanges->max(p) - min) + min;
+//            ColorVal min = coder.read_int(0, srcRanges->max(p) - srcRanges->min(p)) + srcRanges->min(p);
+//            ColorVal max = coder.read_int(0, srcRanges->max(p) - min) + min;
+            ColorVal min = coder.read_int(srcRanges->min(p), srcRanges->max(p));
+            ColorVal max = coder.read_int(min, srcRanges->max(p));
             bounds.push_back(std::make_pair(min,max));
             fprintf(stdout,"[%i:%i..%i]",p,min,max);
         }
     }
 
     void save(const ColorRanges *srcRanges, RacOut &rac) const {
-        SimpleSymbolCoder<StaticBitChance, RacOut, 24> coder(rac);
+        SimpleSymbolCoder<SimpleBitChance, RacOut, 24> coder(rac);
         for (int p=0; p<srcRanges->numPlanes(); p++) {
             ColorVal min = bounds[p].first;
             ColorVal max = bounds[p].second;
-            coder.write_int(0, srcRanges->max(p) - srcRanges->min(p), min - srcRanges->min(p));
-            coder.write_int(0, srcRanges->max(p) - min, max - min);
+//            coder.write_int(0, srcRanges->max(p) - srcRanges->min(p), min - srcRanges->min(p));
+//            coder.write_int(0, srcRanges->max(p) - min, max - min);
+            coder.write_int(srcRanges->min(p), srcRanges->max(p), min);
+            coder.write_int(min, srcRanges->max(p), max);
             fprintf(stdout,"[%i:%i..%i]",p,min,max);
         }
     }

@@ -1,3 +1,6 @@
+#ifndef _RAC_COMPOUND_H_
+#define _RAC_COMPOUND_H_ 1
+
 #include <vector>
 #include <math.h>
 #include <stdint.h>
@@ -672,3 +675,5 @@ public:
           read_subtree(0, rootrange, tree);
     }
 };
+
+#endif

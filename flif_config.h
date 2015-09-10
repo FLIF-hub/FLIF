@@ -17,3 +17,6 @@ typedef RacInput40 RacIn;
 typedef RacOutput40 RacOut;
 //typedef RacInput24 RacIn;
 //typedef RacOutput24 RacOut;
+
+#include "maniac/compound.h"
+typedef MultiscaleBitChance<6,SimpleBitChance>  FLIFBitChanceMeta;

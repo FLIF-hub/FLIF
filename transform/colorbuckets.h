@@ -6,6 +6,7 @@
 #include "transform.h"
 #include "../maniac/symbol.h"
 
+
 #define MAX_PER_BUCKET_0 255
 #define MAX_PER_BUCKET_1 510
 // if bucket0 and bucket1 are big enough to be exact (and no simplification happens!), then we don't need the bit to check for empty buckets
@@ -290,6 +291,9 @@ protected:
     bool init(const ColorRanges *srcRanges) {
         if(srcRanges->numPlanes() < 3) return false;
         if (srcRanges->min(1) == 0 && srcRanges->max(1) == 0 && srcRanges->min(2) == 0 && srcRanges->max(2) == 0) return false; // probably palette image
+        if (srcRanges->min(0) == srcRanges->max(0) &&
+            srcRanges->min(1) == srcRanges->max(1) &&
+            srcRanges->min(2) == srcRanges->max(2)) return false; // only alpha plane contains information
         cb = new ColorBuckets(srcRanges);
         return true;
     }
@@ -326,7 +330,8 @@ protected:
         for (int p=0; p<plane; p++) {
                 if (!cb->exists(p,pixelL,pixelU)) return b;
         }
-        SimpleSymbolCoder<SimpleBitChance, RacIn, 24> coder(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn, 24> coder(rac);
+        SimpleBitCoder<FLIFBitChanceMeta, RacIn> bcoder(rac);
 
         ColorVal smin,smax;
         minmax(srcRanges,plane,pixelL,pixelU,smin,smax);
@@ -345,13 +350,23 @@ protected:
            int nb = coder.read_int(2, max_per_colorbucket[plane]);
            b.values.push_back(b.min);
            ColorVal v=b.min;
-           for (int p=1; p < nb-1; p++) {
-             b.values.push_back(coder.read_int(v+1, b.max-1));
-//             printf("val %i\n",b.values[p]);
-             v = b.values[p];
-           }
+/*           if (nb > 10) {
+             v++;
+             bcoder.set( 0x1000 * (nb-2) / (b.max-b.min-1) );
+             for (int p=1; p < nb - 1; p++) {
+               while (bcoder.read() == 0) { v++; }
+               b.values.push_back(v); v++;
+             }
+           } else */
+             for (int p=1; p < nb-1; p++) {
+               b.values.push_back(coder.read_int(v+1, b.max-1));
+//               b.values.push_back(v+1+coder.read_int(0, b.max-v-2));
+//               printf("val %i\n",b.values[p]);
+               v = b.values[p];
+             }
            if (b.min < b.max) b.values.push_back(b.max);
         }
+//        b.print();
         return b;
     }
     void load(const ColorRanges *srcRanges, RacIn &rac) {
@@ -385,7 +400,8 @@ protected:
                         return;
                 }
         }
-        SimpleSymbolCoder<SimpleBitChance, RacOut, 24> coder(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut, 24> coder(rac);
+        SimpleBitCoder<FLIFBitChanceMeta, RacOut> bcoder(rac);
 //        if (b.min > b.max) printf("SHOULD NOT HAPPEN!\n");
 
         ColorVal smin,smax;
@@ -393,6 +409,7 @@ protected:
         if (smin==smax) { return;}
 
 //        b.printshort();
+//        b.print();
 
         if (b.min > b.max) {
                 coder.write_int(0, 1, 0);  // empty bucket
@@ -408,10 +425,19 @@ protected:
         if (b.discrete) {
            coder.write_int(2, max_per_colorbucket[plane], b.values.size());
            ColorVal v=b.min;
-           for (unsigned int p=1; p < b.values.size() - 1; p++) {
-             coder.write_int(v+1, b.max-1, b.values[p]);
-             v = b.values[p];
-           }
+/*           if (b.values.size() > 10) {
+             v++;
+             bcoder.set( 0x1000 * (b.values.size()-2) / (b.max-b.min-1) );
+             for (unsigned int p=1; p < b.values.size() - 1; p++) {
+               while (v<b.values[p]) { bcoder.write(0); v++; }
+               bcoder.write(1); v++;
+             }
+           } else   */
+             for (unsigned int p=1; p < b.values.size() - 1; p++) {
+               coder.write_int(v+1, b.max-1, b.values[p]);
+//               coder.write_int(0, b.max-v-2, b.values[p]-v-1);
+               v = b.values[p];
+             }
         }
     }
     void save(const ColorRanges *srcRanges, RacOut &rac) const {
