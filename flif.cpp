@@ -1015,11 +1015,11 @@ int main(int argc, char **argv)
         return 1;
   }
 
-  printf("     _____  __     __  _____\n");
-  printf("    / ___/ / /    / / / ___/     |  FLIF 0.1   [September 2015]\n");
-  printf("   / __/  / /__  / / / __/       |  by Jon Sneyers & Pieter Wuille\n");
-  printf("  /_/    /____/ /_/ /_/          |  (c) 2010-2015;  GNU GPL v3.\n");
-  printf("______________________________________________________________________\n");
+  printf("    _____   ___     ___   _____ \n");
+  printf("   (  ___) (   )   (   ) (  ___)       FLIF 0.1   [September 2015]\n");
+  printf("    ) __)   ) (__   ) (   ) __)        by Jon Sneyers & Pieter Wuille\n");
+  printf("   (__)    (_____) (___) (__)          (c) 2010-2015;  GNU GPL v3.\n");
+  printf("----------------------------------------------------------------------\n");
 
   if (mode == 0) {
         image.load(argv[0]);
