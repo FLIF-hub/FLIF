@@ -324,14 +324,13 @@ protected:
         }
     }
 
-    ColorBucket load_bucket(RacIn &rac, const ColorRanges *srcRanges, const int plane, const prevPlanes &pixelL, const prevPlanes &pixelU) {
+    ColorBucket load_bucket(SimpleSymbolCoder<FLIFBitChanceMeta, RacIn, 24> &coder, const ColorRanges *srcRanges, const int plane, const prevPlanes &pixelL, const prevPlanes &pixelU) {
         ColorBucket b;
         if (plane<3)
         for (int p=0; p<plane; p++) {
                 if (!cb->exists(p,pixelL,pixelU)) return b;
         }
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn, 24> coder(rac);
-        SimpleBitCoder<FLIFBitChanceMeta, RacIn> bcoder(rac);
+//        SimpleBitCoder<FLIFBitChanceMeta, RacIn> bcoder(rac);
 
         ColorVal smin,smax;
         minmax(srcRanges,plane,pixelL,pixelU,smin,smax);
@@ -371,11 +370,12 @@ protected:
     }
     void load(const ColorRanges *srcRanges, RacIn &rac) {
 //        printf("Loading Color Buckets\n");
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn, 24> coder(rac);
         prevPlanes pixelL, pixelU;
-        cb->bucket0 = load_bucket(rac, srcRanges, 0, pixelL, pixelU);
+        cb->bucket0 = load_bucket(coder, srcRanges, 0, pixelL, pixelU);
         pixelL.push_back(cb->min0);
         pixelU.push_back(cb->min0+CB0a-1);
-        for (ColorBucket& b : cb->bucket1) {b=load_bucket(rac, srcRanges, 1, pixelL, pixelU); pixelL[0] += CB0a; pixelU[0] += CB0a; }
+        for (ColorBucket& b : cb->bucket1) {b=load_bucket(coder, srcRanges, 1, pixelL, pixelU); pixelL[0] += CB0a; pixelU[0] += CB0a; }
         pixelL[0] = cb->min0;
         pixelU[0] = cb->min0+CB0b-1;
         pixelL.push_back(cb->min1);
@@ -384,15 +384,15 @@ protected:
                 pixelL[1] = cb->min1;
                 pixelU[1] = cb->min1+CB1-1;
                 for (ColorBucket& b : bv) {
-                        b=load_bucket(rac, srcRanges, 2, pixelL, pixelU);
+                        b=load_bucket(coder, srcRanges, 2, pixelL, pixelU);
                         pixelL[1] += CB1; pixelU[1] += CB1; 
                 }
                 pixelL[0] += CB0b; pixelU[0] += CB0b; 
         }
-        if (srcRanges->numPlanes() > 3) cb->bucket3 = load_bucket(rac, srcRanges, 3, pixelL, pixelU);
+        if (srcRanges->numPlanes() > 3) cb->bucket3 = load_bucket(coder, srcRanges, 3, pixelL, pixelU);
     }
 
-    void save_bucket(const ColorBucket &b, RacOut &rac, const ColorRanges *srcRanges, const int plane, const prevPlanes &pixelL, const prevPlanes &pixelU) const {
+    void save_bucket(const ColorBucket &b, SimpleSymbolCoder<FLIFBitChanceMeta, RacOut, 24> &coder, const ColorRanges *srcRanges, const int plane, const prevPlanes &pixelL, const prevPlanes &pixelU) const {
         if (plane<3)
         for (int p=0; p<plane; p++) {
                 if (!cb->exists(p,pixelL,pixelU)) {
@@ -400,8 +400,7 @@ protected:
                         return;
                 }
         }
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut, 24> coder(rac);
-        SimpleBitCoder<FLIFBitChanceMeta, RacOut> bcoder(rac);
+//        SimpleBitCoder<FLIFBitChanceMeta, RacOut> bcoder(rac);
 //        if (b.min > b.max) printf("SHOULD NOT HAPPEN!\n");
 
         ColorVal smin,smax;
@@ -441,13 +440,15 @@ protected:
         }
     }
     void save(const ColorRanges *srcRanges, RacOut &rac) const {
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut, 24> coder(rac);
+
 //        printf("Saving Y Color Bucket: ");
         prevPlanes pixelL, pixelU;
-        save_bucket(cb->bucket0, rac, srcRanges, 0, pixelL, pixelU);
+        save_bucket(cb->bucket0, coder, srcRanges, 0, pixelL, pixelU);
 //        printf("\nSaving I Color Buckets\n  ");
         pixelL.push_back(cb->min0);
         pixelU.push_back(cb->min0+CB0a-1);
-        for (auto b : cb->bucket1) { save_bucket(b, rac, srcRanges, 1, pixelL, pixelU); pixelL[0] += CB0a; pixelU[0] += CB0a; }
+        for (auto b : cb->bucket1) { save_bucket(b, coder, srcRanges, 1, pixelL, pixelU); pixelL[0] += CB0a; pixelU[0] += CB0a; }
 //        printf("\nSaving Q Color Buckets\n  ");
         pixelL[0] = cb->min0;
         pixelU[0] = cb->min0+CB0b-1;
@@ -457,7 +458,7 @@ protected:
                 pixelL[1] = cb->min1;
                 pixelU[1] = cb->min1+CB1-1;
                 for (auto b : bv) {
-                        save_bucket(b, rac, srcRanges, 2, pixelL, pixelU);
+                        save_bucket(b, coder, srcRanges, 2, pixelL, pixelU);
                         pixelL[1] += CB1; pixelU[1] += CB1;
                 }
                 pixelL[0] += CB0b; pixelU[0] += CB0b;
@@ -465,7 +466,7 @@ protected:
 //        printf("\n");
         if (srcRanges->numPlanes() > 3) {
 //          printf("Saving Alpha Color Bucket: ");
-          save_bucket(cb->bucket3, rac, srcRanges, 3, pixelL, pixelU);
+          save_bucket(cb->bucket3, coder, srcRanges, 3, pixelL, pixelU);
 //          printf("\n");
         }
     }
