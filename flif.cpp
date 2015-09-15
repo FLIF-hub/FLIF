@@ -41,8 +41,8 @@
 FILE *f;  // the compressed file
 
 std::vector<ColorVal> grey; // a pixel with values in the middle of the bounds
-int pixels_todo = 0;
-int pixels_done = 0;
+uint64_t pixels_todo = 0;
+uint64_t pixels_done = 0;
 
 typedef SimpleBitChance                         FLIFBitChancePass1;
 
@@ -166,7 +166,7 @@ template<typename Coder> void encode_scanlines_inner(std::vector<Coder*> &coders
     int beginp = (nump>3 ? 3 : 0); int i=0;
     for (int p = beginp; i++ < nump; p = (p+1)%nump) {
         Properties properties((nump>3?NB_PROPERTIES_scanlinesA[p]:NB_PROPERTIES_scanlines[p]));
-        printf("\r%i%% done [%i/%i] ENC[%ix%i]    ",100*pixels_done/pixels_todo,i,nump,image.rows(),image.cols());
+        printf("\r%lu%% done [%i/%i] ENC[%ix%i]    ",100*pixels_done/pixels_todo,i,nump,image.rows(),image.cols());
         pixels_done += image.cols()*image.rows();
         fflush(stdout);
         if (ranges->min(p) >= ranges->max(p)) continue;
@@ -244,7 +244,7 @@ template<typename Coder> void decode_scanlines_inner(std::vector<Coder*> &coders
     int beginp = (nump>3 ? 3 : 0); int i=0;
     for (int p = beginp; i++ < nump; p = (p+1)%nump) {
         Properties properties((nump>3?NB_PROPERTIES_scanlinesA[p]:NB_PROPERTIES_scanlines[p]));
-        printf("\r%i%% done [%i/%i] DEC[%ix%i]    ",100*pixels_done/pixels_todo,i,nump,image.rows(),image.cols());
+        printf("\r%lu%% done [%i/%i] DEC[%ix%i]    ",100*pixels_done/pixels_todo,i,nump,image.rows(),image.cols());
         pixels_done += image.cols()*image.rows();
         fflush(stdout);
         if (ranges->min(p) >= ranges->max(p)) continue;
@@ -438,7 +438,7 @@ template<typename Coder, typename ParityCoder> void encode_FLIF2_inner(std::vect
       std::pair<int, int> pzl = plane_zoomlevel(image, beginZL, endZL, i);
       int p = pzl.first;
       int z = pzl.second;
-      if (endZL==0) printf("\r%i%% done [%i/%i] ENC[%i,%ix%i]  ",100*pixels_done/pixels_todo,i,plane_zoomlevels(image, beginZL, endZL)-1,p,image.rows(z),image.cols(z));
+      if (endZL==0) printf("\r%lu%% done [%i/%i] ENC[%i,%ix%i]  ",100*pixels_done/pixels_todo,i,plane_zoomlevels(image, beginZL, endZL)-1,p,image.rows(z),image.cols(z));
       if (endZL==0) printf("wrote %li bytes    ", ftell(f));
       fflush(stdout);
       pixels_done += image.cols(z)*image.rows(z)/2;
@@ -545,7 +545,7 @@ void decode_FLIF2_inner_interpol(Image &image, const ColorRanges *ranges, int I,
       int p = pzl.first;
       int z = pzl.second;
       pixels_done += image.cols(z)*image.rows(z)/2;
-      printf("\r%i%% done [%i/%i] INTERPOLATE[%i,%ix%i]      ",100*pixels_done/pixels_todo,i,plane_zoomlevels(image, beginZL, endZL)-1,p,image.rows(z),image.cols(z));
+      printf("\r%lu%% done [%i/%i] INTERPOLATE[%i,%ix%i]      ",100*pixels_done/pixels_todo,i,plane_zoomlevels(image, beginZL, endZL)-1,p,image.rows(z),image.cols(z));
       fflush(stdout);
       if (z % 2 == 0) {
         // horizontal: scan the odd rows
@@ -585,7 +585,7 @@ template<typename Coder, typename ParityCoder> void decode_FLIF2_inner(std::vect
               decode_FLIF2_inner_interpol(image, ranges, i, beginZL, endZL, (z%2 == 0 ?1:0));
               return;
       }
-      if (endZL == 0) printf("\r%i%% done [%i/%i] DEC[%i,%ix%i]  ",100*pixels_done/pixels_todo,i,plane_zoomlevels(image, beginZL, endZL)-1,p,image.rows(z),image.cols(z));
+      if (endZL == 0) printf("\r%lu%% done [%i/%i] DEC[%i,%ix%i]  ",100*pixels_done/pixels_todo,i,plane_zoomlevels(image, beginZL, endZL)-1,p,image.rows(z),image.cols(z));
       if (endZL==0) printf("read %li bytes    ", ftell(f));
       fflush(stdout);
       pixels_done += image.cols(z)*image.rows(z)/2;
@@ -744,6 +744,8 @@ bool encode(const char* filename, Image &image, std::vector<std::string> transDe
     }
     const int bits = 10; // hardcoding things for 8 bit RGB (which means 9 bit IQ and 10 bit differences)
     if (mbits > bits) { printf("OOPS: %i > %i\n",mbits,bits); return false;}
+
+    pixels_todo = image.rows()*image.cols()*image.numPlanes()*(learn_repeats+1);
 
     // two passes
     std::vector<Tree> forest(ranges->numPlanes(), Tree());
@@ -1075,7 +1077,6 @@ int main(int argc, char **argv)
           if (nb_pixels < 5000) learn_repeats--;        // avoid large trees for small images
           if (learn_repeats < 0) learn_repeats=0;
         }
-        pixels_todo = nb_pixels*image.numPlanes()*(learn_repeats+1);
         encode(argv[1], image, desc, method, learn_repeats);
   } else {
         decode(argv[0], image, zl);

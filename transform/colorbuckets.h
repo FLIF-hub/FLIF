@@ -138,6 +138,7 @@ public:
         if (c <= min) return min;
         if (c >= max) return max;
         if (discrete) {
+          assert(snapvalues.size() > c-min);
           return snapvalues[c-min];
         }
         return c;
@@ -212,7 +213,7 @@ public:
 
         const ColorBucket b = findBucket(p,pp);
         //if (b.min > b.max) return false;
-        if (b.snapColor(pp[p]) != pp[p]) return false;
+        if (b.snapColor_slow(pp[p]) != pp[p]) return false;
         return true;
     }
     bool exists(const int p, const prevPlanes &lower, const prevPlanes &upper) const {
@@ -302,6 +303,10 @@ protected:
                 }
                 pixelL[0] += CB0b; pixelU[0] += CB0b;
         }
+        cb->bucket0.prepare_snapvalues();
+        cb->bucket3.prepare_snapvalues();
+        for (auto& b : cb->bucket1) b.prepare_snapvalues();
+        for (auto& bv : cb->bucket2) for (auto& b : bv) b.prepare_snapvalues();
 
         return new ColorRangesCB(srcRanges, cb);
     }
@@ -383,7 +388,6 @@ protected:
            if (b.min < b.max) b.values.push_back(b.max);
         }
 //        b.print();
-        b.prepare_snapvalues();
         return b;
     }
     void load(const ColorRanges *srcRanges, RacIn &rac) {
@@ -536,10 +540,6 @@ protected:
                 }
               }
             }
-            cb->bucket0.prepare_snapvalues();
-            cb->bucket3.prepare_snapvalues();
-            for (auto& b : cb->bucket1) b.prepare_snapvalues();
-            for (auto& bv : cb->bucket2) for (auto& b : bv) b.prepare_snapvalues();
             return true;
     }
 };
