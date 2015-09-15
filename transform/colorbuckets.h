@@ -31,6 +31,7 @@ public:
     ColorVal max;
     std::vector<ColorVal> values;
     bool discrete;
+    std::vector<ColorVal> snapvalues;
 
     ColorBucket() {
         min = 10000;  // +infinity
@@ -85,6 +86,30 @@ public:
     bool empty() const {
        return (min>max);
     }
+    ColorVal snapColor_slow(const ColorVal c) const {
+        if (c <= min) return min;
+        if (c >= max) return max;
+        if (discrete) {
+          ColorVal mindiff = abs(c-min);
+          unsigned int best = 0;
+          for(unsigned int i=1; i < values.size(); i++) {
+                if (c == values[i]) return c;
+                ColorVal diff = abs(c-values[i]);
+                if (diff < mindiff) {best = i; mindiff = diff;}
+                if (values[i] > c) break; // can safely skip the rest, values is sorted
+          }
+          return values[best];
+        }
+        return c;
+    }
+    void prepare_snapvalues() {
+        if (discrete) {
+                snapvalues.clear();
+                for (ColorVal c=min; c<max; c++) {
+                        snapvalues.push_back(snapColor_slow(c));
+                }
+        }
+    }
     void simplify_lossless() {
         if (discrete) {
                 if ((int)values.size() == max-min+1) {
@@ -110,18 +135,10 @@ public:
     }
 
     ColorVal snapColor(const ColorVal c) const {
-        if (c<min) return min;
-        if (c>max) return max;
+        if (c <= min) return min;
+        if (c >= max) return max;
         if (discrete) {
-          ColorVal mindiff = abs(c-min);
-          unsigned int best = 0;
-          for(unsigned int i=0; i < values.size(); i++) {
-                if (c == values[i]) return c;
-                ColorVal diff = abs(c-values[i]);
-                if (diff < mindiff) {best = i; mindiff = diff;}
-                if (values[i] > c) break; // can safely skip the rest, values is sorted
-          }
-          return values[best];
+          return snapvalues[c-min];
         }
         return c;
     }
@@ -366,6 +383,7 @@ protected:
            if (b.min < b.max) b.values.push_back(b.max);
         }
 //        b.print();
+        b.prepare_snapvalues();
         return b;
     }
     void load(const ColorRanges *srcRanges, RacIn &rac) {
@@ -498,15 +516,16 @@ protected:
         // CONSIDER RELATIVE AREA OF BUCKETS / BOUNDS!
 
 //            printf("Filled color buckets with %i discrete colors + %i continous buckets\n",totaldiscretecolors,totalcontinuousbuckets);
-
-            if (totaldiscretecolors < 10000 && totalcontinuousbuckets < 500) return true;
+            bool doing_it=false;
+            if (totaldiscretecolors < 10000 && totalcontinuousbuckets < 500) doing_it=true;
 
             // simplify buckets
-            for (auto& b : cb->bucket1) b.simplify(80);
-            for (auto& bv : cb->bucket2) for (auto& b : bv) b.simplify(60);
+            if (!doing_it) {
+              for (auto& b : cb->bucket1) b.simplify(80);
+              for (auto& bv : cb->bucket2) for (auto& b : bv) b.simplify(60);
 
-//            printf("Filled color buckets with %i discrete colors + %i continous buckets\n",totaldiscretecolors,totalcontinuousbuckets);
-            if (totaldiscretecolors > 1000) {
+//              printf("Filled color buckets with %i discrete colors + %i continous buckets\n",totaldiscretecolors,totalcontinuousbuckets);
+              if (totaldiscretecolors > 1000) {
 //                printf("Too many colors, simplifying...\n");
                 for (auto& b : cb->bucket1) b.simplify(50);
                 for (auto& bv : cb->bucket2) for (auto& b : bv) b.simplify(20);
@@ -515,8 +534,12 @@ protected:
 //                  printf("Still too many colors, not using auto-indexing.\n");
                   return false;
                 }
+              }
             }
-
+            cb->bucket0.prepare_snapvalues();
+            cb->bucket3.prepare_snapvalues();
+            for (auto& b : cb->bucket1) b.prepare_snapvalues();
+            for (auto& bv : cb->bucket2) for (auto& b : bv) b.prepare_snapvalues();
             return true;
     }
 };
