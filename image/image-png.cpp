@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include <png.h>
+#include <zlib.h>
 
 #include "image.h"
 #include "image-png.h"
