@@ -504,15 +504,16 @@ protected:
                     pixel.push_back(v);
                   }
                   cb->addColor(pixel);
-                  if (totaldiscretecolors > 20000 && totalcontinuousbuckets > 2000) {
-//                        printf("Too many colors, not using color buckets.\n");
-                        return false;
-                  }
                 }
             }
 
             cb->bucket0.simplify_lossless();
             cb->bucket3.simplify_lossless();
+
+//                  if (totaldiscretecolors > 20000 && totalcontinuousbuckets > 2000) {
+//                        printf("Too many colors, not using color buckets.\n");
+//                        return false;
+//                  }
 
 
         // TODO: IMPROVE THESE HEURISTICS!

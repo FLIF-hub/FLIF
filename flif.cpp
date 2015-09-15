@@ -545,7 +545,7 @@ void decode_FLIF2_inner_interpol(Image &image, const ColorRanges *ranges, int I,
       int p = pzl.first;
       int z = pzl.second;
       pixels_done += image.cols(z)*image.rows(z)/2;
-      printf("\r%lu%% done [%i/%i] INTERPOLATE[%i,%ix%i]      ",100*pixels_done/pixels_todo,i,plane_zoomlevels(image, beginZL, endZL)-1,p,image.rows(z),image.cols(z));
+      printf("\r%lu%% done [%i/%i] INTERPOLATE[%i,%ix%i]             ",100*pixels_done/pixels_todo,i,plane_zoomlevels(image, beginZL, endZL)-1,p,image.rows(z),image.cols(z));
       fflush(stdout);
       if (z % 2 == 0) {
         // horizontal: scan the odd rows
@@ -573,15 +573,16 @@ template<typename Coder, typename ParityCoder> void decode_FLIF2_inner(std::vect
 {
     ColorVal min,max;
     int nump = image.numPlanes();
-    if (lastI >= 0) {
-      lastI = plane_zoomlevels(image, beginZL, endZL) * lastI / 100;
-    }
+//    if (lastI >= 0) {
+//      lastI = plane_zoomlevels(image, beginZL, endZL) * lastI / 100;
+//    }
     // decode
     for (int i = 0; i < plane_zoomlevels(image, beginZL, endZL); i++) {
       std::pair<int, int> pzl = plane_zoomlevel(image, beginZL, endZL, i);
       int p = pzl.first;
       int z = pzl.second;
-      if (lastI != -1  && i > lastI) {
+      if (lastI != -1  && (uint64_t) lastI < 100*pixels_done/pixels_todo) {
+//i > lastI) {
               decode_FLIF2_inner_interpol(image, ranges, i, beginZL, endZL, (z%2 == 0 ?1:0));
               return;
       }
@@ -685,7 +686,7 @@ template<typename BitChance, typename Rac> void decode_tree(Rac &rac, const Colo
 }
 
 
-bool encode(const char* filename, Image &image, std::vector<std::string> transDesc, int encoding, int learn_repeats)
+bool encode(const char* filename, Image &image, std::vector<std::string> transDesc, int encoding, int learn_repeats, int acb)
 {
     f = fopen(filename,"w");
     RacOut rac(f);
@@ -716,7 +717,8 @@ bool encode(const char* filename, Image &image, std::vector<std::string> transDe
     printf("Transforms: ");
     for (unsigned int i=0; i<transDesc.size(); i++) {
         Transform *trans = create_transform(transDesc[i]);
-        if (!trans->init(rangesList.back()) || !trans->process(rangesList.back(), image)) {
+        if (!trans->init(rangesList.back()) || 
+	    (!trans->process(rangesList.back(), image) && !(acb==1 && transDesc[i] == "ACB" && printf(", forced_") && (tcount=0)==0 ) ) ) {
             //fprintf(stderr, "Transform '%s' failed\n", transDesc[i].c_str());
         } else {
             if (tcount++ > 0) printf(", ");
@@ -1062,10 +1064,9 @@ int main(int argc, char **argv)
         desc.push_back("PLT");  // try palette (without alpha)
         if (acb == -1) {
           // not specified if ACB should be used
-          if (nb_pixels < 10000) acb=0;
-          else acb=1;
-        }
-        if (acb) desc.push_back("ACB");  // try auto color buckets
+          if (nb_pixels > 10000) desc.push_back("ACB");  // try auto color buckets
+        } else if (acb) desc.push_back("ACB");  // try auto color buckets
+
         if (method == 0) {
           // no method specified, pick one heuristically
           if (nb_pixels < 10000) method=1; // if the image is small, not much point in doing interlacing
@@ -1077,7 +1078,7 @@ int main(int argc, char **argv)
           if (nb_pixels < 5000) learn_repeats--;        // avoid large trees for small images
           if (learn_repeats < 0) learn_repeats=0;
         }
-        encode(argv[1], image, desc, method, learn_repeats);
+        encode(argv[1], image, desc, method, learn_repeats, acb);
   } else {
         decode(argv[0], image, zl);
         printf("Saving decoded output to '%s'\n",argv[1]);
