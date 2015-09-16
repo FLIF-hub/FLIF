@@ -81,6 +81,7 @@ public:
 
     bool load(const char *name);
     bool save(const char *name) const;
+    bool save(const char *name, const int scale) const;
 
     bool is_set(int p, int r, int c) const {
         return ((r % subsample[p].first) == 0 && (c % subsample[p].second) == 0);

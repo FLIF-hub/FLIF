@@ -20,6 +20,7 @@ bool Image::load(const char *filename)
 {
     const char *f = strrchr(filename,'/');
     const char *ext = f ? strrchr(f,'.') : strrchr(filename,'.');
+    printf("Loading input file: %s\n",filename);
     if (ext && !strcasecmp(ext,".png")) {
         return !image_load_png(filename,*this);
     }
@@ -44,6 +45,7 @@ bool Image::save(const char *filename) const
 {
     const char *f = strrchr(filename,'/');
     const char *ext = f ? strrchr(f,'.') : strrchr(filename,'.');
+    printf("Saving output file: %s\n",filename);
     if (ext && !strcasecmp(ext,".png")) {
         return !image_save_png(filename,*this);
     }
@@ -58,6 +60,20 @@ bool Image::save(const char *filename) const
     }
     fprintf(stderr,"ERROR: Unknown extension to write to: %s\n",ext ? ext : "(none)");
     return false;
+}
+bool Image::save(const char *filename, const int scale) const
+{
+    Image downscaled;
+    downscaled.init(this->width/scale, this->height/scale, this->min(0), this->max(0), this->numPlanes());
+    printf("Saving downscaled (%ix%i -> %ix%i)\n",this->width,this->height,this->width/scale,this->height/scale);
+    for (int p=0; p<downscaled.numPlanes(); p++) {
+        for (int r=0; r<downscaled.rows(); r++) {
+            for (int c=0; c<downscaled.cols(); c++) {
+                    downscaled(p,r,c) = this->operator()(p,r*scale,c*scale);
+            }
+        }
+    }
+    return downscaled.save(filename);
 }
 
 void Image::add_plane(ColorVal min, ColorVal max, int subSampleR, int subSampleC)

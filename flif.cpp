@@ -538,14 +538,15 @@ void encode_FLIF2_interpol_zero_alpha(Image &image, const ColorRanges *ranges, c
 
 // interpolate rest of the image
 // used when decoding lossy
-void decode_FLIF2_inner_interpol(Image &image, const ColorRanges *ranges, int I, const int beginZL, const int endZL, int R)
+void decode_FLIF2_inner_interpol(Image &image, const ColorRanges *ranges, const int I, const int beginZL, const int endZL, const int R, const int scale)
 {
     for (int i = I; i < plane_zoomlevels(image, beginZL, endZL); i++) {
       std::pair<int, int> pzl = plane_zoomlevel(image, beginZL, endZL, i);
       int p = pzl.first;
       int z = pzl.second;
+      if ( 1<<(z/2) < scale) continue;
       pixels_done += image.cols(z)*image.rows(z)/2;
-      printf("\r%lu%% done [%i/%i] INTERPOLATE[%i,%ix%i]             ",100*pixels_done/pixels_todo,i,plane_zoomlevels(image, beginZL, endZL)-1,p,image.rows(z),image.cols(z));
+      printf("\r%lu%% done [%i/%i] INTERPOLATE[%i,%ix%i]      ",100*pixels_done/pixels_todo,i,plane_zoomlevels(image, beginZL, endZL)-1,p,image.rows(z),image.cols(z));
       fflush(stdout);
       if (z % 2 == 0) {
         // horizontal: scan the odd rows
@@ -569,21 +570,20 @@ void decode_FLIF2_inner_interpol(Image &image, const ColorRanges *ranges, int I,
     printf("\n");
 }
 
-template<typename Coder, typename ParityCoder> void decode_FLIF2_inner(std::vector<Coder*> &coders, ParityCoder &parityCoder, Image &image, const ColorRanges *ranges, const int beginZL, const int endZL, int lastI)
+template<typename Coder, typename ParityCoder> void decode_FLIF2_inner(std::vector<Coder*> &coders, ParityCoder &parityCoder, Image &image, const ColorRanges *ranges, const int beginZL, const int endZL, int lastI, int scale)
 {
     ColorVal min,max;
     int nump = image.numPlanes();
-//    if (lastI >= 0) {
-//      lastI = plane_zoomlevels(image, beginZL, endZL) * lastI / 100;
-//    }
+    if (lastI >= 0) {
+      lastI = plane_zoomlevels(image, beginZL, endZL) * lastI / 100;
+    }
     // decode
     for (int i = 0; i < plane_zoomlevels(image, beginZL, endZL); i++) {
       std::pair<int, int> pzl = plane_zoomlevel(image, beginZL, endZL, i);
       int p = pzl.first;
       int z = pzl.second;
-      if (lastI != -1  && (uint64_t) lastI < 100*pixels_done/pixels_todo) {
-//i > lastI) {
-              decode_FLIF2_inner_interpol(image, ranges, i, beginZL, endZL, (z%2 == 0 ?1:0));
+      if ((lastI != -1  && i > lastI) ||  1<<(z/2) < scale) {
+              decode_FLIF2_inner_interpol(image, ranges, i, beginZL, endZL, (z%2 == 0 ?1:0), scale);
               return;
       }
       if (endZL == 0) printf("\r%lu%% done [%i/%i] DEC[%i,%ix%i]  ",100*pixels_done/pixels_todo,i,plane_zoomlevels(image, beginZL, endZL)-1,p,image.rows(z),image.cols(z));
@@ -598,7 +598,7 @@ template<typename Coder, typename ParityCoder> void decode_FLIF2_inner(std::vect
 #ifdef CHECK_FOR_BROKENFILES
             if (feof(f)) {
               printf("Row %i: Unexpected file end. Interpolation from now on.\n",r);
-              decode_FLIF2_inner_interpol(image, ranges, i, beginZL, endZL, (r>1?r-2:r));
+              decode_FLIF2_inner_interpol(image, ranges, i, beginZL, endZL, (r>1?r-2:r), scale);
               return;
             }
 #endif
@@ -614,7 +614,7 @@ template<typename Coder, typename ParityCoder> void decode_FLIF2_inner(std::vect
 #ifdef CHECK_FOR_BROKENFILES
             if (feof(f)) {
               printf("Row %i: Unexpected file end. Interpolation from now on.\n", r);
-              decode_FLIF2_inner_interpol(image, ranges, i, beginZL, endZL, (r>0?r-1:r));
+              decode_FLIF2_inner_interpol(image, ranges, i, beginZL, endZL, (r>0?r-1:r), scale);
               return;
             }
 #endif
@@ -629,7 +629,7 @@ template<typename Coder, typename ParityCoder> void decode_FLIF2_inner(std::vect
     }
 }
 
-template<typename Rac, typename Coder> void decode_FLIF2_pass(Rac &rac, Image &image, const ColorRanges *ranges, std::vector<Tree> &forest, const int beginZL, const int endZL, int lastI)
+template<typename Rac, typename Coder> void decode_FLIF2_pass(Rac &rac, Image &image, const ColorRanges *ranges, std::vector<Tree> &forest, const int beginZL, const int endZL, int lastI, int scale)
 {
     std::vector<Coder*> coders;
     for (int p = 0; p < image.numPlanes(); p++) {
@@ -648,7 +648,7 @@ template<typename Rac, typename Coder> void decode_FLIF2_pass(Rac &rac, Image &i
 
     SimpleBitCoder<FLIFBitChanceParities,Rac> parityCoder(rac);
 
-    decode_FLIF2_inner(coders, parityCoder, image, ranges, beginZL, endZL, lastI);
+    decode_FLIF2_inner(coders, parityCoder, image, ranges, beginZL, endZL, lastI, scale);
 
     for (int p = 0; p < image.numPlanes(); p++) {
         delete coders[p];
@@ -686,7 +686,7 @@ template<typename BitChance, typename Rac> void decode_tree(Rac &rac, const Colo
 }
 
 
-bool encode(const char* filename, Image &image, std::vector<std::string> transDesc, int encoding, int learn_repeats, int acb)
+bool encode(const char* filename, Image &image, std::vector<std::string> transDesc, int encoding, int learn_repeats)
 {
     f = fopen(filename,"w");
     RacOut rac(f);
@@ -717,8 +717,7 @@ bool encode(const char* filename, Image &image, std::vector<std::string> transDe
     printf("Transforms: ");
     for (unsigned int i=0; i<transDesc.size(); i++) {
         Transform *trans = create_transform(transDesc[i]);
-        if (!trans->init(rangesList.back()) || 
-	    (!trans->process(rangesList.back(), image) && !(acb==1 && transDesc[i] == "ACB" && printf(", forced_") && (tcount=0)==0 ) ) ) {
+        if (!trans->init(rangesList.back()) || !trans->process(rangesList.back(), image)) {
             //fprintf(stderr, "Transform '%s' failed\n", transDesc[i].c_str());
         } else {
             if (tcount++ > 0) printf(", ");
@@ -727,6 +726,7 @@ bool encode(const char* filename, Image &image, std::vector<std::string> transDe
             rac.write(true);
             write_name(rac, transDesc[i]);
             trans->save(rangesList.back(), rac);
+            fflush(stdout);
             rangesList.push_back(trans->meta(image, rangesList.back()));
             trans->data(image);
         }
@@ -804,7 +804,7 @@ bool encode(const char* filename, Image &image, std::vector<std::string> transDe
 
 
 
-bool decode(const char* filename, Image &image, int lastI)
+bool decode(const char* filename, Image &image, int lastI, int scale)
 {
     image.reset();
 
@@ -815,18 +815,24 @@ bool decode(const char* filename, Image &image, int lastI)
     std::string str = read_name(rac);
     if (str == "FLI1") {
         encoding=1;
+        if (scale != 1) { printf("Cannot decode non-interleaved FLIF file at lower scale\n"); return false;}
     } else if (str == "FLI2") {
         encoding=2;
+        if (scale != 1 && scale != 2 && scale != 4 && scale != 8 && scale != 16 && scale != 32 && scale != 64 && scale != 128) {
+                printf("Invalid scale down factor: %i\n", scale);
+                return false;
+        }
     } else {
         fprintf(stderr,"Unknown magic '%s'\n", str.c_str());
         return false;
     }
-
     SimpleSymbolCoder<FLIFBitChanceMeta, RacIn, 24> metaCoder(rac);
     int numPlanes = metaCoder.read_int(1, 16);
     int width = metaCoder.read_int(1, 65536);
     int height = metaCoder.read_int(1, 65536);
-    pixels_todo = width*height*numPlanes;
+    pixels_todo = width*height*numPlanes/scale/scale;
+    // TODO: implement downscaled decoding without allocating a fullscale image buffer!
+
     image.init(width, height, 0, 0, 0);
     printf("Output channels:");
     for (int p = 0; p < numPlanes; p++) {
@@ -892,7 +898,7 @@ bool decode(const char* filename, Image &image, int lastI)
       roughZL = image.zooms() - NB_NOLEARN_ZOOMS-1;
       if (roughZL < 0) roughZL = 0;
 //      printf("Decoding rough data\n");
-      decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, bits> >(rac, image, ranges, forest, image.zooms(), roughZL+1, -1);
+      decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, bits> >(rac, image, ranges, forest, image.zooms(), roughZL+1, -1, scale);
     }
     if (encoding == 2 && lastI < -2) {
       printf("Not decoding MANIAC tree\n");
@@ -905,13 +911,13 @@ bool decode(const char* filename, Image &image, int lastI)
                 decode_scanlines_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, bits> >(rac, image, ranges, forest);
                 break;
         case 2: printf("Decoding data (FLIF2)\n");
-                decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, bits> >(rac, image, ranges, forest, roughZL, 0, lastI);
+                decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, bits> >(rac, image, ranges, forest, roughZL, 0, lastI, scale);
                 break;
     }
-    printf("\rDecoding done, %li bytes for %ix%i pixels (%.4fbpp)   \n",ftell(f), image.rows(), image.cols(), 1.0*ftell(f)/image.rows()/image.cols());
+    printf("\rDecoding done, %li bytes for %ix%i pixels (%.4fbpp)   \n",ftell(f), image.rows()/scale, image.cols()/scale, 1.0*ftell(f)/image.rows()/image.cols()/scale/scale);
 
 
-    if (lastI < 0) {
+    if (lastI < 0 && scale==1) {
       uint32_t checksum = image.checksum();
 //      printf("Computed checksum: %X\n", checksum);
       uint32_t checksum2 = metaCoder.read_int(0, 0xFFFF);
@@ -954,6 +960,7 @@ void show_help() {
     printf("   flif -d [options] <input.flif> <output.pnm | output.png>\n");
     printf("Decode options:\n");
     printf("   -q <0..100>           Lossy decode (100=lossless, 0=very lossy)\n");
+    printf("   -s <2|4|8|16>         Decode lossy downscaled image at scale 1/2, 1/4, 1/8 or 1/16\n");
 }
 
 bool file_exists(const char * filename){    
@@ -973,6 +980,7 @@ int main(int argc, char **argv)
     int zl = -1; // -1 = everything, positive value: partial decode
     int learn_repeats = -1;
     int acb = -1; // try auto color buckets
+    int scale = 1;
     if (strcmp(argv[0],"flif") == 0) mode = 0;
     if (strcmp(argv[0],"dflif") == 0) mode = 1;
     if (strcmp(argv[0],"deflif") == 0) mode = 1;
@@ -986,24 +994,31 @@ int main(int argc, char **argv)
           if (strcmp(argv[0],"-h") == 0 || strcmp(argv[0],"--help") == 0) {
             show_help(); return 0; }
           if (strcmp(argv[0],"-i") == 0 || strcmp(argv[0],"--interlace") == 0) {
-            if (mode == 1) {fprintf(stderr,"Warning: -i option specified while decoding (it will be ignored).\n");};
+            //if (mode == 1) {fprintf(stderr,"Warning: -i option specified while decoding (it will be ignored).\n");};
             method = 2; argc--; argv++; continue; }
           if (strcmp(argv[0],"-ni") == 0 || strcmp(argv[0],"--no-interlace") == 0) {
-            if (mode == 1) {fprintf(stderr,"Warning: -ni option specified while decoding (it will be ignored).\n");};
+            //if (mode == 1) {fprintf(stderr,"Warning: -ni option specified while decoding (it will be ignored).\n");};
             method = 1; argc--; argv++; continue; }
           if (strcmp(argv[0],"-acb") == 0 || strcmp(argv[0],"--auto-color-buckets") == 0) {
-            if (mode == 1) {fprintf(stderr,"Warning: -acb option specified while decoding (it will be ignored).\n");};
+            //if (mode == 1) {fprintf(stderr,"Warning: -acb option specified while decoding (it will be ignored).\n");};
             acb = 1; argc--; argv++; continue; }
           if (strcmp(argv[0],"-nacb") == 0 || strcmp(argv[0],"--no-auto-color-buckets") == 0) {
-            if (mode == 1) {fprintf(stderr,"Warning: -nacb option specified while decoding (it will be ignored).\n");};
+            //if (mode == 1) {fprintf(stderr,"Warning: -nacb option specified while decoding (it will be ignored).\n");};
             acb = 0; argc--; argv++; continue; }
           if (strcmp(argv[0],"-q") == 0 || strcmp(argv[0],"--quality") == 0) {
-            if (mode == 0) {fprintf(stderr,"Warning: -q option specified while encoding (it will be ignored).\n");};
+            //if (mode == 0) {fprintf(stderr,"Warning: -q option specified while encoding (it will be ignored).\n");};
             if (argc < 3) {fprintf(stderr,"Option -q expects a number\n"); return 1; }
             zl=(int)strtol(argv[1],NULL,10);
+            if (zl < 0 || zl > 100) {fprintf(stderr,"Not a sensible number for option -q\n"); return 1; }
+            argc -= 2; argv += 2; continue; }
+          if (strcmp(argv[0],"-s") == 0 || strcmp(argv[0],"--scale") == 0) {
+            //if (mode == 0) {fprintf(stderr,"Warning: -s option specified while encoding (it will be ignored).\n");};
+            if (argc < 3) {fprintf(stderr,"Option -s expects a number\n"); return 1; }
+            scale=(int)strtol(argv[1],NULL,10);
+            if (scale < 1 || scale > 128) {fprintf(stderr,"Not a sensible number for option -s\n"); return 1; }
             argc -= 2; argv += 2; continue; }
           if (strcmp(argv[0],"-r") == 0 || strcmp(argv[0],"--repeat") == 0) {
-            if (mode == 1) {fprintf(stderr,"Warning: -r option specified while decoding (it will be ignored).\n");};
+            //if (mode == 1) {fprintf(stderr,"Warning: -r option specified while decoding (it will be ignored).\n");};
             if (argc < 3) {fprintf(stderr,"Option -r expects a number\n"); return 1; }
             learn_repeats=(int)strtol(argv[1],NULL,10);
             if (learn_repeats < 0 || learn_repeats > 1000) {fprintf(stderr,"Not a sensible number for option -r\n"); return 1; }
@@ -1064,9 +1079,10 @@ int main(int argc, char **argv)
         desc.push_back("PLT");  // try palette (without alpha)
         if (acb == -1) {
           // not specified if ACB should be used
-          if (nb_pixels > 10000) desc.push_back("ACB");  // try auto color buckets
-        } else if (acb) desc.push_back("ACB");  // try auto color buckets
-
+          if (nb_pixels < 10000) acb=0;
+          else acb=1;
+        }
+        if (acb) desc.push_back("ACB");  // try auto color buckets
         if (method == 0) {
           // no method specified, pick one heuristically
           if (nb_pixels < 10000) method=1; // if the image is small, not much point in doing interlacing
@@ -1078,11 +1094,11 @@ int main(int argc, char **argv)
           if (nb_pixels < 5000) learn_repeats--;        // avoid large trees for small images
           if (learn_repeats < 0) learn_repeats=0;
         }
-        encode(argv[1], image, desc, method, learn_repeats, acb);
+        encode(argv[1], image, desc, method, learn_repeats);
   } else {
-        decode(argv[0], image, zl);
-        printf("Saving decoded output to '%s'\n",argv[1]);
-        if (image.save(argv[1])) return 0;
+        if (!decode(argv[0], image, zl, scale)) return 3;
+//        printf("Saving decoded output to '%s'\n",argv[1]);
+        if (image.save(argv[1],scale)) return 0;
         else return 2;
   }
   return 0;
