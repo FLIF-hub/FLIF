@@ -689,25 +689,31 @@ bool encode(const char* filename, Image &image, std::vector<std::string> transDe
     int numPlanes = image.numPlanes();
     char c=' '+16*encoding+numPlanes;
     fputc(c,f);
+    c='1';
+    for (int p = 0; p < numPlanes; p++) {if (image.max(p) != 255) c='2';}
+    if (c=='2') {for (int p = 0; p < numPlanes; p++) {if (image.max(p) != 65535) c='0';}}
+    fputc(c,f);
+
+    assert(image.cols() <= 0xFFFF);
+    fputc(image.cols() >> 8,f);
+    fputc(image.cols() & 0xFF,f);
+    assert(image.rows() <= 0xFFFF);
+    fputc(image.rows() >> 8,f);
+    fputc(image.rows() & 0xFF,f);
+
     RacOut rac(f);
     SimpleSymbolCoder<FLIFBitChanceMeta, RacOut, 24> metaCoder(rac);
-    c='1';
-    for (int p = 0; p < numPlanes; p++) if (image.max(p) != 255) c='2';
-    if (c=='2') for (int p = 0; p < numPlanes; p++) if (image.max(p) != 65536) c='0';
-    fputc(c,f);
-    assert(image.cols() <= 0xFFFF);
-    c=image.cols() >> 8; fputc(c,f);
-    c=image.cols() & 0xFF; fputc(c,f);
-    assert(image.rows() <= 0xFFFF);
-    c=image.rows() >> 8; fputc(c,f);
-    c=image.rows() & 0xFF; fputc(c,f);
 
     printf("Input: %ix%i, channels:", image.cols(), image.rows());
     for (int p = 0; p < numPlanes; p++) {
         assert(image.min(p) == 0);
-        if (c=='0') metaCoder.write_int(1, 16, ilog2(image.max(p)+1));
-        printf(" [%i] %i bpp",p,ilog2(image.max(p)+1));
+        if (c=='0') {
+          metaCoder.write_int(1, 16, ilog2(image.max(p)+1));
+          printf(" [%i] %i bpp",p,ilog2(image.max(p)+1));
+        }
     }
+    if (c=='1') printf(" %i, depth: 8 bit",numPlanes);
+    if (c=='2') printf(" %i, depth: 16 bit",numPlanes);
     printf("\n");
 //    metaCoder.write_int(1, 65536, image.cols());
 //    metaCoder.write_int(1, 65536, image.rows());
@@ -852,8 +858,10 @@ bool decode(const char* filename, Image &image, int lastI, int scale)
         else if (c=='0') max=(1 << metaCoder.read_int(1, 16)) - 1;
         image.add_plane(min, max, subSampleR, subSampleC);
 //        printf(" [%i] %i bpp (%i..%i)",p,ilog2(image.max(p)+1),image.min(p), image.max(p));
-        printf(" [%i] %i bpp",p,ilog2(image.max(p)+1));
+        if (c=='0') printf(" [%i] %i bpp",p,ilog2(image.max(p)+1));
     }
+    if (c=='1') printf(" %i, depth: 8 bit",numPlanes);
+    if (c=='2') printf(" %i, depth: 16 bit",numPlanes);
     printf("\n");
 
     std::vector<const ColorRanges*> rangesList;
