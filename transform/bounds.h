@@ -47,7 +47,7 @@ protected:
             ColorVal min = coder.read_int(srcRanges->min(p), srcRanges->max(p));
             ColorVal max = coder.read_int(min, srcRanges->max(p));
             bounds.push_back(std::make_pair(min,max));
-            fprintf(stdout,"[%i:%i..%i]",p,min,max);
+            v_printf(5,"[%i:%i..%i]",p,min,max);
         }
     }
 
@@ -60,7 +60,7 @@ protected:
 //            coder.write_int(0, srcRanges->max(p) - min, max - min);
             coder.write_int(srcRanges->min(p), srcRanges->max(p), min);
             coder.write_int(min, srcRanges->max(p), max);
-            fprintf(stdout,"[%i:%i..%i]",p,min,max);
+            v_printf(5,"[%i:%i..%i]",p,min,max);
         }
     }
 

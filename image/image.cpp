@@ -4,6 +4,7 @@
 #include "image.h"
 #include "image-png.h"
 #include "image-pnm.h"
+#include "../flif.h"
 
 void Plane::init(int subwidth, int subheight, ColorVal min, ColorVal max)
 {
@@ -20,7 +21,7 @@ bool Image::load(const char *filename)
 {
     const char *f = strrchr(filename,'/');
     const char *ext = f ? strrchr(f,'.') : strrchr(filename,'.');
-    printf("Loading input file: %s\n",filename);
+    v_printf(2,"Loading input file: %s\n",filename);
     if (ext && !strcasecmp(ext,".png")) {
         return !image_load_png(filename,*this);
     }
@@ -45,7 +46,7 @@ bool Image::save(const char *filename) const
 {
     const char *f = strrchr(filename,'/');
     const char *ext = f ? strrchr(f,'.') : strrchr(filename,'.');
-    printf("Saving output file: %s\n",filename);
+    v_printf(2,"Saving output file: %s\n",filename);
     if (ext && !strcasecmp(ext,".png")) {
         return !image_save_png(filename,*this);
     }
@@ -65,7 +66,7 @@ bool Image::save(const char *filename, const int scale) const
 {
     Image downscaled;
     downscaled.init(this->width/scale, this->height/scale, this->min(0), this->max(0), this->numPlanes());
-    printf("Saving downscaled (%ix%i -> %ix%i)\n",this->width,this->height,this->width/scale,this->height/scale);
+    if (scale>1) v_printf(3,"Downscaled output: %ix%i -> %ix%i\n",this->width,this->height,this->width/scale,this->height/scale);
     for (int p=0; p<downscaled.numPlanes(); p++) {
         for (int r=0; r<downscaled.rows(); r++) {
             for (int c=0; c<downscaled.cols(); c++) {

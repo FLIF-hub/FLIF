@@ -5,6 +5,7 @@
 
 #include "image.h"
 #include "image-pnm.h"
+#include "../flif.h"
 
 #define PPMREADBUFLEN 256
 
@@ -79,7 +80,7 @@ bool image_save_pnm(const char *filename, const Image& image)
     }
 
     if (image.numPlanes() >= 3) {
-        if (image.numPlanes() == 4) printf("WARNING: image has alpha channel, saving to flat PPM! Save to .PNG if you want to keep the alpha channel!\n");
+        if (image.numPlanes() == 4) v_printf(1,"WARNING: image has alpha channel, saving to flat PPM! Save to .PNG if you want to keep the alpha channel!\n");
         ColorVal max = std::max(std::max(image.max(0), image.max(1)), image.max(2));
         ColorVal min = std::min(std::min(image.min(0), image.min(1)), image.min(2));
 

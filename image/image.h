@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <valarray>
-//#include "../flif_config.h"
 #include "crc32k.h"
 
 typedef int16_t ColorVal;  // used in computations

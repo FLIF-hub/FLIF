@@ -5,6 +5,7 @@
 #include "../image/color_range.h"
 #include "../maniac/rac.h"
 #include "../flif_config.h"
+#include "../flif.h"
 
 
 class Transform {

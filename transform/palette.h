@@ -114,7 +114,7 @@ public:
 //                printf("YIQ(%i,%i,%i)\t", std::get<0>(c), std::get<1>(c), std::get<2>(c));
         }
 //        printf("\nSaved palette of size: %lu\n",Palette_vector.size());
-        printf("[%lu]",Palette_vector.size());
+        v_printf(5,"[%lu]",Palette_vector.size());
     }
     void load(const ColorRanges *srcRanges, RacIn &rac) {
         SimpleSymbolCoder<SimpleBitChance, RacIn, 24> coder(rac);
@@ -140,7 +140,7 @@ public:
 //                printf("YIQ(%i,%i,%i)\t", std::get<0>(c), std::get<1>(c), std::get<2>(c));
         }
 //        printf("\nLoaded palette of size: %lu\n",Palette_vector.size());
-        printf("[%lu]",Palette_vector.size());
+        v_printf(5,"[%lu]",Palette_vector.size());
     }
 };
 
