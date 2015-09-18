@@ -232,7 +232,7 @@ void encode_scanlines_interpol_zero_alpha(Image &image, const ColorRanges *range
         for (int r = 0; r < image.rows(); r++) {
             for (int c = 0; c < image.cols(); c++) {
                 if (image(3,r,c) == 0) {
-                    image(p,r,c) = predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max);
+                    image.set(p,r,c, predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max));
                 }
             }
         }
@@ -256,9 +256,9 @@ template<typename Coder> void decode_scanlines_inner(std::vector<Coder*> &coders
         for (int r = 0; r < image.rows(); r++) {
             for (int c = 0; c < image.cols(); c++) {
                 ColorVal guess = predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max);
-                if (nump>3 && p<3 && image(3,r,c) == 0) { image(p,r,c)=guess; continue;}
+                if (nump>3 && p<3 && image(3,r,c) == 0) { image.set(p,r,c,guess); continue;}
                 ColorVal curr = coders[p]->read_int(properties, min - guess, max - guess) + guess;
-                image(p,r,c) = curr;
+                image.set(p,r,c, curr);
             }
         }
     }
@@ -530,14 +530,14 @@ void encode_FLIF2_interpol_zero_alpha(Image &image, const ColorRanges *ranges, c
         // horizontal: scan the odd rows
           for (int r = 1; r < image.rows(z); r += 2) {
             for (int c = 0; c < image.cols(z); c++) {
-               if (image(3,z,r,c) == 0) image(p,z,r,c) = predict(image,z,p,r,c);
+               if (image(3,z,r,c) == 0) image.set(p,z,r,c, predict(image,z,p,r,c));
             }
           }
       } else {
         // vertical: scan the odd columns
           for (int r = 0; r < image.rows(z); r++) {
             for (int c = 1; c < image.cols(z); c += 2) {
-               if (image(3,z,r,c) == 0) image(p,z,r,c) = predict(image,z,p,r,c);
+               if (image(3,z,r,c) == 0) image.set(p,z,r,c, predict(image,z,p,r,c));
             }
           }
       }
@@ -563,16 +563,14 @@ void decode_FLIF2_inner_interpol(Image &image, const ColorRanges *ranges, const 
         // horizontal: scan the odd rows
           for (int r = (I==i?R:1); r < image.rows(z); r += 2) {
             for (int c = 0; c < image.cols(z); c++) {
-               image(p,z,r,c) = predict(image,z,p,r,c);
-//               image(p,z,r,c) = image(p,z,r-1,c);
+               image.set(p,z,r,c, predict(image,z,p,r,c));
             }
           }
       } else {
         // vertical: scan the odd columns
           for (int r = (I==i?R:0); r < image.rows(z); r++) {
             for (int c = 1; c < image.cols(z); c += 2) {
-               image(p,z,r,c) = predict(image,z,p,r,c);
-//               image(p,z,r,c) = image(p,z,r,c-1);
+               image.set(p,z,r,c, predict(image,z,p,r,c));
 //               image(p,z,r,c) = ranges->snap(p,predict(image,z,p,r,c),z,r,c);
             }
           }
@@ -612,10 +610,10 @@ template<typename Coder, typename ParityCoder> void decode_FLIF2_inner(std::vect
             }
 #endif
             for (int c = 0; c < image.cols(z); c++) {
-                     if (nump>3 && p<3 && image(3,z,r,c) == 0) {image(p,z,r,c) = predict(image,z,p,r,c); continue;}
+                     if (nump>3 && p<3 && image(3,z,r,c) == 0) {image.set(p,z,r,c, predict(image,z,p,r,c)); continue;}
                      ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
                      curr = coders[p]->read_int(properties, min - guess, max - guess) + guess;
-                     image(p,z,r,c) = curr;
+                     image.set(p,z,r,c, curr);
             }
         }
       } else {
@@ -628,10 +626,10 @@ template<typename Coder, typename ParityCoder> void decode_FLIF2_inner(std::vect
             }
 #endif
             for (int c = 1; c < image.cols(z); c += 2) {
-                     if (nump>3 && p<3 && image(3,z,r,c) == 0) {image(p,z,r,c) = predict(image,z,p,r,c); continue;}
+                     if (nump>3 && p<3 && image(3,z,r,c) == 0) {image.set(p,z,r,c, predict(image,z,p,r,c)); continue;}
                      ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
                      curr = coders[p]->read_int(properties, min - guess, max - guess) + guess;
-                     image(p,z,r,c) = curr;
+                     image.set(p,z,r,c, curr);
             }
         }
       }
@@ -655,7 +653,7 @@ template<typename Rac, typename Coder> void decode_FLIF2_pass(Rac &rac, Image &i
       // special case: very left top pixel must be read first to get it all started
       SimpleSymbolCoder<FLIFBitChanceMeta, Rac, 24> metaCoder(rac);
       for (int p = 0; p < image.numPlanes(); p++) {
-        image(p,0,0) = metaCoder.read_int(ranges->min(p), ranges->max(p));
+        image.set(p,0,0, metaCoder.read_int(ranges->min(p), ranges->max(p)));
       }
     }
 
@@ -869,13 +867,11 @@ bool decode(const char* filename, Image &image, int quality, int scale)
     image.init(width, height, 0, 0, 0);
     v_printf(3,"Decoding %ix%i image, channels:",width,height);
     for (int p = 0; p < numPlanes; p++) {
-        int subSampleR = 1;
-        int subSampleC = 1;
         int min = 0;
         int max = 255;
         if (c=='2') max=65535;
         else if (c=='0') max=(1 << metaCoder.read_int(1, 16)) - 1;
-        image.add_plane(min, max, subSampleR, subSampleC);
+        image.add_plane(min, max);
 //        v_printf(2," [%i] %i bpp (%i..%i)",p,ilog2(image.max(p)+1),image.min(p), image.max(p));
         if (c=='0') v_printf(3," [%i] %i bpp",p,ilog2(image.max(p)+1));
     }

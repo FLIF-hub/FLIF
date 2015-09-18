@@ -63,7 +63,7 @@ int image_load_png(const char *filename, Image &image) {
           for (size_t r = 0; r < height; r++) {
             png_bytep row = rows[r];
             for (size_t c = 0; c < width; c++) {
-              image(0,r,c) = (uint8_t) row[c * 1 + 0];
+              image.set(0,r,c, (uint8_t) row[c * 1 + 0]);
             }
           }
           break;
@@ -71,10 +71,10 @@ int image_load_png(const char *filename, Image &image) {
           for (size_t r = 0; r < height; r++) {
             png_bytep row = rows[r];
             for (size_t c = 0; c < width; c++) {
-              image(0,r,c) = (uint8_t) row[c * 2 + 0];
-              image(1,r,c) = (uint8_t) row[c * 2 + 0];
-              image(2,r,c) = (uint8_t) row[c * 2 + 0];
-              image(3,r,c) = (uint8_t) row[c * 2 + 1];
+              image.set(0,r,c, (uint8_t) row[c * 2 + 0]);
+              image.set(1,r,c, (uint8_t) row[c * 2 + 0]);
+              image.set(2,r,c, (uint8_t) row[c * 2 + 0]);
+              image.set(3,r,c, (uint8_t) row[c * 2 + 1]);
             }
           }
           break;
@@ -82,9 +82,9 @@ int image_load_png(const char *filename, Image &image) {
           for (size_t r = 0; r < height; r++) {
             png_bytep row = rows[r];
             for (size_t c = 0; c < width; c++) {
-              image(0,r,c) = (uint8_t) row[c * 3 + 0];
-              image(1,r,c) = (uint8_t) row[c * 3 + 1];
-              image(2,r,c) = (uint8_t) row[c * 3 + 2];
+              image.set(0,r,c, (uint8_t) row[c * 3 + 0]);
+              image.set(1,r,c, (uint8_t) row[c * 3 + 1]);
+              image.set(2,r,c, (uint8_t) row[c * 3 + 2]);
             }
           }
           break;
@@ -92,10 +92,10 @@ int image_load_png(const char *filename, Image &image) {
           for (size_t r = 0; r < height; r++) {
             png_bytep row = rows[r];
             for (size_t c = 0; c < width; c++) {
-              image(0,r,c) = (uint8_t) row[c * 4 + 0];
-              image(1,r,c) = (uint8_t) row[c * 4 + 1];
-              image(2,r,c) = (uint8_t) row[c * 4 + 2];
-              image(3,r,c) = (uint8_t) row[c * 4 + 3];
+              image.set(0,r,c, (uint8_t) row[c * 4 + 0]);
+              image.set(1,r,c, (uint8_t) row[c * 4 + 1]);
+              image.set(2,r,c, (uint8_t) row[c * 4 + 2]);
+              image.set(3,r,c, (uint8_t) row[c * 4 + 3]);
             }
           }
           break;

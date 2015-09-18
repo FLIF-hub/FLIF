@@ -132,9 +132,9 @@ public:
                 int I = R - B + par*4 - 1;
                 int Q = (R + B) / 2 - G + par*4 - 1;
 
-                image(0,r,c) = Y;
-                image(1,r,c) = I;
-                image(2,r,c) = Q;
+                image.set(0,r,c, Y);
+                image.set(1,r,c, I);
+                image.set(2,r,c, Q);
             }
         }
     }
@@ -152,9 +152,9 @@ public:
                 clip(R, 0, par*4-1);
                 clip(G, 0, par*4-1);
                 clip(B, 0, par*4-1);
-                image(0,r,c) = R;
-                image(1,r,c) = G;
-                image(2,r,c) = B;
+                image.set(0,r,c, R);
+                image.set(1,r,c, G);
+                image.set(2,r,c, B);
             }
         }
     }

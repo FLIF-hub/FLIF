@@ -6,16 +6,6 @@
 #include "image-pnm.h"
 #include "../flif.h"
 
-void Plane::init(int subwidth, int subheight, ColorVal min, ColorVal max)
-{
-    this->subwidth = subwidth;
-    this->subheight = subheight;
-    this->min = min;
-    this->max = max;
-//    this->data = std::vector<ColorVal>(subwidth*subheight, 0);
-//    this->data = std::valarray<ColorVal>((ColorVal)-2, subwidth*subheight);
-    this->data = std::valarray<ColorVal_intern>(subwidth*subheight);
-}
 
 bool Image::load(const char *filename)
 {
@@ -71,24 +61,22 @@ bool Image::save(const char *filename, const int scale) const
     for (int p=0; p<downscaled.numPlanes(); p++) {
         for (int r=0; r<downscaled.rows(); r++) {
             for (int c=0; c<downscaled.cols(); c++) {
-                    downscaled(p,r,c) = this->operator()(p,r*scale,c*scale);
+                    downscaled.set(p,r,c, this->operator()(p,r*scale,c*scale));
             }
         }
     }
     return downscaled.save(filename);
 }
 
-void Image::add_plane(ColorVal min, ColorVal max, int subSampleR, int subSampleC)
+void Image::add_plane(ColorVal min, ColorVal max)
 {
-    planes.push_back(Plane((width+subSampleR-1)/subSampleR, (height+subSampleC-1)/subSampleC, min, max));
-    subsample.push_back(std::make_pair(subSampleR, subSampleC));
+    planes.push_back(Plane<ColorVal_intern>(width, height, min, max));
 }
 
 void Image::init(int width, int height, ColorVal min, ColorVal max, int planes)
 {
-    this->planes = std::vector<Plane>(planes, Plane(width, height, min, max));
+    this->planes = std::vector<Plane<ColorVal_intern> >(planes, Plane<ColorVal_intern>(width, height, min, max));
     this->width = width;
     this->height = height;
-    this->subsample = std::vector<std::pair<int,int> >(planes, std::make_pair(1,1));
 }
 

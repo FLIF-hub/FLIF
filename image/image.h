@@ -13,45 +13,44 @@ typedef int32_t ColorVal;  // used in computations
 typedef int16_t ColorVal_intern; // used in representations
 
 
-class Plane {
+template <typename pixel_t> class Plane {
 public:
-    std::valarray<ColorVal_intern> data;
-    int subwidth, subheight;
+    std::valarray<pixel_t> data;
+    int width, height;
     ColorVal min, max;
 
-    Plane(int subwidth, int subheight, ColorVal min, ColorVal max) {
-        init(subwidth, subheight, min, max);
+    Plane(int w, int h, ColorVal mi, ColorVal ma) : data(w*h), width(w), height(h), min(mi), max(ma) { }
+
+    Plane() { }
+//        init(0,0,0,0);
+//    }
+
+//    void init(int w, int h, ColorVal mi, ColorVal ma) : data(w*h), width(w), height(h), min(min), max(ma) { }
+
+//    ColorVal_intern &operator()(int r, int c) {
+//        assert(!(r >= height || r < 0 || c >= width || c < 0));
+//        return data[r*width + c];
+//    }
+    void set(int r, int c, ColorVal x) {
+        data[r*width + c] = x;
     }
 
-    Plane() {
-        init(0,0,0,0);
-    }
-
-    void init(int subwidth, int subheight, ColorVal min, ColorVal max);
-
-    ColorVal_intern &operator()(int subr, int subc) {
-        assert(!(subr >= subheight || subr < 0 || subc >= subwidth || subc < 0));
-        return data[subr*subwidth + subc];
-    }
-
-    ColorVal operator()(int subr, int subc) const {
-//        if (subr >= subheight || subr < 0 || subc >= subwidth || subc < 0) {printf("OUT OF RANGE!\n"); return 0;}
-        return data[subr*subwidth + subc];
+    ColorVal operator()(int r, int c) const {
+//        if (r >= height || r < 0 || c >= width || c < 0) {printf("OUT OF RANGE!\n"); return 0;}
+        return data[r*width + c];
     }
 };
 
 class Image {
 protected:
     int width, height;
-    std::vector<Plane> planes;
-    std::vector<std::pair<int,int> > subsample; // first=rows, seconds=cols
-
+    std::vector<Plane<ColorVal_intern> > planes;
 
 public:
-    Plane &operator()(int plane) {
+    Plane<ColorVal_intern> &operator()(int plane) {
         return planes[plane];
     }
-    const Plane &operator()(int plane) const {
+    const Plane<ColorVal_intern> &operator()(int plane) const {
         return planes[plane];
     }
 
@@ -69,31 +68,26 @@ public:
         init(0,0,0,0,0);
     }
 
-    void add_plane(ColorVal min, ColorVal max, int subSampleR = 1, int subSampleC = 1);
+    void add_plane(ColorVal min, ColorVal max);
 
     void drop_planes(int newsize) {
         planes.resize(newsize);
-        subsample.resize(newsize);
     }
 
     bool load(const char *name);
     bool save(const char *name) const;
     bool save(const char *name, const int scale) const;
 
-    bool is_set(int p, int r, int c) const {
-        return ((r % subsample[p].first) == 0 && (c % subsample[p].second) == 0);
-    }
-
     // access pixel by coordinate
     ColorVal operator()(int p, int r, int c) const {
         return planes[p](r,c);
-//        return planes[p](r / subsample[p].first,c / subsample[p].second);
     }
-    ColorVal_intern& operator()(int p, int r, int c) {
-        return planes[p](r,c);
-//        return planes[p](r / subsample[p].first,c / subsample[p].second);
+//    ColorVal_intern& operator()(int p, int r, int c) {
+//        return planes[p](r,c);
+//    }
+    void set(int p, int r, int c, ColorVal x) {
+        planes[p].set(r,c,x);
     }
-
 
     int numPlanes() const {
         return planes.size();
@@ -142,33 +136,26 @@ public:
 //        if (p==0 && r>= 0 && c>=0 && r<width &&c<height) fprintf(stdout,"Reading pixel at zoomlevel %i, position %i,%i, actual position %i,%i\n",z,rz,cz,rz*zoom_rowpixelsize(z),cz*zoom_colpixelsize(z));
         return planes[p](r,c);
     }
-    ColorVal_intern& operator()(int p, int z, int rz, int cz) {
+//    ColorVal_intern& operator()(int p, int z, int rz, int cz) {
+//        int r = rz*zoom_rowpixelsize(z);
+//        int c = cz*zoom_colpixelsize(z);
+//        return planes[p](r,c);
+//    }
+    void set(int p, int z, int rz, int cz, ColorVal x) {
 //        return operator()(p,rz*zoom_rowpixelsize(z),cz*zoom_colpixelsize(z));
         int r = rz*zoom_rowpixelsize(z);
         int c = cz*zoom_colpixelsize(z);
 //        if (p==0 && r>= 0 && c>=0 && r<width &&c<height) fprintf(stdout,"Writing to pixel at zoomlevel %i, position %i,%i, actual position %i,%i\n",z,rz,cz,rz*zoom_rowpixelsize(z),cz*zoom_colpixelsize(z));
-        return planes[p](r,c);
+        return planes[p].set(r,c,x);
     }
 
-    int subSampleR(int p) const {
-        return subsample[p].first;
-    }
-
-    int subSampleC(int p) const {
-        return subsample[p].second;
-    }
-    void permute_planes(const std::vector<int> &p) {
-        std::vector<Plane> oldplanes = planes;
-        for (unsigned int i=0; i<p.size(); i++)
-                planes[i] = oldplanes[p[i]];
-    }
     uint32_t checksum() {
           uint_fast32_t crc=0;
           crc32k_transform(crc,width & 255);
           crc32k_transform(crc,width / 256);
           crc32k_transform(crc,height & 255);
           crc32k_transform(crc,height / 256);
-          for (Plane p : planes) {
+          for (auto p : planes) {
             for (ColorVal d : p.data) {
                 crc32k_transform(crc,d & 255);
                 crc32k_transform(crc,d / 256);

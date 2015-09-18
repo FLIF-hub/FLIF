@@ -74,9 +74,9 @@ public:
                 Color C(image(0,r,c), image(1,r,c), image(2,r,c));
                 ColorVal P=0;
                 for (Color c : Palette_vector) {if (c==C) break; else P++;}
-                image(0,r,c) = P;
-                image(1,r,c) = 0;
-                image(2,r,c) = 0;
+                image.set(0,r,c, P);
+                image.set(1,r,c, 0);
+                image.set(2,r,c, 0);
             }
         }
     }
@@ -84,9 +84,9 @@ public:
         for (int r=0; r<image.rows(); r++) {
             for (int c=0; c<image.cols(); c++) {
                 int P=image(0,r,c);
-                image(0,r,c) = std::get<0>(Palette_vector[P]);
-                image(1,r,c) = std::get<1>(Palette_vector[P]);
-                image(2,r,c) = std::get<2>(Palette_vector[P]);
+                image.set(0,r,c, std::get<0>(Palette_vector[P]));
+                image.set(1,r,c, std::get<1>(Palette_vector[P]));
+                image.set(2,r,c, std::get<2>(Palette_vector[P]));
             }
         }
     }

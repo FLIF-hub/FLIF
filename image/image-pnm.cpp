@@ -56,14 +56,14 @@ bool image_load_pnm(const char *filename, Image& image)
       for (unsigned int y=0; y<height; y++) {
         for (unsigned int x=0; x<width; x++) {
                 if (x%8 == 0) byte = fgetc(fp);
-                image(0,y,x) = (byte & (128>>(x%8)) ? 0 : 1);
+                image.set(0,y,x, (byte & (128>>(x%8)) ? 0 : 1));
         }
       }
     } else {
       for (unsigned int y=0; y<height; y++) {
         for (unsigned int x=0; x<width; x++) {
             for (unsigned int c=0; c<nbplanes; c++) {
-                image(c,y,x) = fgetc(fp);
+                image.set(c,y,x, fgetc(fp));
             }
         }
       }
