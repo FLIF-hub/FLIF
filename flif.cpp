@@ -474,8 +474,8 @@ template<typename Coder, typename ParityCoder> void encode_FLIF2_inner(std::vect
           }
       }
       if (endZL==0 && ftell(f)>fs) {
-          v_printf(3,"wrote %li bytes    ", ftell(f));
-          v_printf(4,"\n");
+          v_printf(3,"    wrote %li bytes    ", ftell(f));
+          v_printf(5,"\n");
           fs = ftell(f);
       }
     }
@@ -557,7 +557,7 @@ void decode_FLIF2_inner_interpol(Image &image, const ColorRanges *ranges, const 
       if ( 1<<(z/2) < scale) continue;
       pixels_done += image.cols(z)*image.rows(z)/2;
       v_printf(2,"\r%lu%% done [%i/%i] INTERPOLATE[%i,%ix%i]                 ",100*pixels_done/pixels_todo,i,plane_zoomlevels(image, beginZL, endZL)-1,p,image.cols(z),image.rows(z));
-      v_printf(4,"\n");
+      v_printf(5,"\n");
 
       if (z % 2 == 0) {
         // horizontal: scan the odd rows
@@ -606,7 +606,7 @@ template<typename Coder, typename ParityCoder> void decode_FLIF2_inner(std::vect
           for (int r = 1; r < image.rows(z); r += 2) {
 #ifdef CHECK_FOR_BROKENFILES
             if (feof(f)) {
-              v_printf(2,"Row %i: Unexpected file end. Interpolation from now on.\n",r);
+              v_printf(1,"Row %i: Unexpected file end. Interpolation from now on.\n",r);
               decode_FLIF2_inner_interpol(image, ranges, i, beginZL, endZL, (r>1?r-2:r), scale);
               return;
             }
@@ -622,7 +622,7 @@ template<typename Coder, typename ParityCoder> void decode_FLIF2_inner(std::vect
           for (int r = 0; r < image.rows(z); r++) {
 #ifdef CHECK_FOR_BROKENFILES
             if (feof(f)) {
-              v_printf(2,"Row %i: Unexpected file end. Interpolation from now on.\n", r);
+              v_printf(1,"Row %i: Unexpected file end. Interpolation from now on.\n", r);
               decode_FLIF2_inner_interpol(image, ranges, i, beginZL, endZL, (r>0?r-1:r), scale);
               return;
             }
@@ -636,8 +636,8 @@ template<typename Coder, typename ParityCoder> void decode_FLIF2_inner(std::vect
         }
       }
       if (endZL==0) {
-          v_printf(3,"read %li bytes    ", ftell(f));
-          v_printf(4,"\n");
+          v_printf(3,"    read %li bytes   ", ftell(f));
+          v_printf(5,"\n");
       }
     }
 }
@@ -913,7 +913,7 @@ bool decode(const char* filename, Image &image, int quality, int scale)
     for (int p = 0; p < numPlanes; p++) {
         if (ranges->min(p) >= ranges->max(p)) {
              v_printf(4,"Constant plane %i at color value %i\n",p,ranges->min(p));
-             for (ColorVal& x : image(p).data) x=ranges->min(p);
+             for (ColorVal_intern& x : image(p).data) x=ranges->min(p);
         }
     }
 
@@ -943,7 +943,7 @@ bool decode(const char* filename, Image &image, int quality, int scale)
       v_printf(3,"Decoded header + rough data. Decoding MANIAC tree.\n");
       decode_tree<FLIFBitChanceTree, RacIn>(rac, ranges, forest, encoding);
     }
-    if (encoding == 1 || quality > 0) {
+//    if (encoding == 1 || quality > 0) {
       switch(encoding) {
         case 1: v_printf(3,"Decoding data (scanlines)\n");
                 decode_scanlines_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, bits> >(rac, image, ranges, forest);
@@ -952,7 +952,7 @@ bool decode(const char* filename, Image &image, int quality, int scale)
                 decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, bits> >(rac, image, ranges, forest, roughZL, 0, quality, scale);
                 break;
       }
-    }
+//    }
     v_printf(2,"\rDecoding done, %li bytes for %ix%i pixels (%.4fbpp)   \n",ftell(f), image.cols()/scale, image.rows()/scale, 1.0*ftell(f)/image.rows()/image.cols()/scale/scale);
 
 

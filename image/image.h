@@ -8,17 +8,16 @@
 #include <valarray>
 #include "crc32k.h"
 
-typedef int16_t ColorVal;  // used in computations
+typedef int32_t ColorVal;  // used in computations
 //typedef uint8_t ColorVal_intern; // used in representations
 typedef int16_t ColorVal_intern; // used in representations
 
 
-class Plane
-{
+class Plane {
 public:
+    std::valarray<ColorVal_intern> data;
     int subwidth, subheight;
     ColorVal min, max;
-    std::valarray<ColorVal_intern> data;
 
     Plane(int subwidth, int subheight, ColorVal min, ColorVal max) {
         init(subwidth, subheight, min, max);
@@ -41,8 +40,7 @@ public:
     }
 };
 
-class Image
-{
+class Image {
 protected:
     int width, height;
     std::vector<Plane> planes;

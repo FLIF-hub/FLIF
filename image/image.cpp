@@ -64,9 +64,10 @@ bool Image::save(const char *filename) const
 }
 bool Image::save(const char *filename, const int scale) const
 {
+    if (scale == 1) return this->save(filename);
     Image downscaled;
     downscaled.init(this->width/scale, this->height/scale, this->min(0), this->max(0), this->numPlanes());
-    if (scale>1) v_printf(3,"Downscaled output: %ix%i -> %ix%i\n",this->width,this->height,this->width/scale,this->height/scale);
+    v_printf(3,"Downscaled output: %ix%i -> %ix%i\n",this->width,this->height,this->width/scale,this->height/scale);
     for (int p=0; p<downscaled.numPlanes(); p++) {
         for (int r=0; r<downscaled.rows(); r++) {
             for (int c=0; c<downscaled.cols(); c++) {
