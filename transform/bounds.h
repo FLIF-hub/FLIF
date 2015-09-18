@@ -66,6 +66,7 @@ protected:
 
     bool process(const ColorRanges *srcRanges, const Image &image) {
         bounds.clear();
+        bool trivialbounds=true;
         for (int p=0; p<srcRanges->numPlanes(); p++) {
             ColorVal min = srcRanges->max(p);
             ColorVal max = srcRanges->min(p);
@@ -79,8 +80,10 @@ protected:
                 }
             }
             bounds.push_back(std::make_pair(min,max));
+            if (min > srcRanges->min(p)) trivialbounds=false;
+            if (max < srcRanges->max(p)) trivialbounds=false;
         }
-        return true;
+        return !trivialbounds;
     }
 };
 
