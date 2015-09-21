@@ -9,33 +9,24 @@
 #include "crc32k.h"
 
 typedef int32_t ColorVal;  // used in computations
-//typedef uint8_t ColorVal_intern; // used in representations
-typedef int16_t ColorVal_intern; // used in representations
+
+typedef uint8_t ColorVal_intern_8; // used in representations
+typedef uint16_t ColorVal_intern_16; // used in representations
+typedef int32_t ColorVal_intern_32; // used in representations
 
 
 template <typename pixel_t> class Plane {
-public:
+protected:
     std::valarray<pixel_t> data;
-    int width, height;
-    ColorVal min, max;
+public:
+    const uint32_t width, height;
+    Plane(uint32_t w, uint32_t h) : data(w*h), width(w), height(h) { }
 
-    Plane(int w, int h, ColorVal mi, ColorVal ma) : data(w*h), width(w), height(h), min(mi), max(ma) { }
-
-    Plane() { }
-//        init(0,0,0,0);
-//    }
-
-//    void init(int w, int h, ColorVal mi, ColorVal ma) : data(w*h), width(w), height(h), min(min), max(ma) { }
-
-//    ColorVal_intern &operator()(int r, int c) {
-//        assert(!(r >= height || r < 0 || c >= width || c < 0));
-//        return data[r*width + c];
-//    }
-    void set(int r, int c, ColorVal x) {
+    void set(const uint32_t r, const uint32_t c, const ColorVal x) {
         data[r*width + c] = x;
     }
 
-    ColorVal operator()(int r, int c) const {
+    ColorVal get(const uint32_t r, const uint32_t c) const {
 //        if (r >= height || r < 0 || c >= width || c < 0) {printf("OUT OF RANGE!\n"); return 0;}
         return data[r*width + c];
     }
@@ -43,35 +34,53 @@ public:
 
 class Image {
 protected:
-    int width, height;
-    std::vector<Plane<ColorVal_intern> > planes;
+    Plane<ColorVal_intern_8> *plane_8_1;
+    Plane<ColorVal_intern_8> *plane_8_2;
+    Plane<ColorVal_intern_16> *plane_16_1;
+    Plane<ColorVal_intern_16> *plane_16_2;
+    Plane<ColorVal_intern_32> *plane_32_1;
+    Plane<ColorVal_intern_32> *plane_32_2;
+    uint32_t width, height;
+    ColorVal minval,maxval;
+    int num;
+    int depth;
 
 public:
-    Plane<ColorVal_intern> &operator()(int plane) {
-        return planes[plane];
-    }
-    const Plane<ColorVal_intern> &operator()(int plane) const {
-        return planes[plane];
-    }
-
-    Image(int width, int height, ColorVal min, ColorVal max, int planes) {
+    Image(uint32_t width, uint32_t height, ColorVal min, ColorVal max, int planes) {
         init(width, height, min, max, planes);
     }
 
     Image() {
         reset();
     }
+    void init(uint32_t w, uint32_t h, ColorVal min, ColorVal max, int p) {
+      width = w;
+      height = h;
+      minval = min;
+      maxval = max;
+      num = p;
+      if (max < 256) depth=8; else depth=16;
+      assert(min == 0);
+      assert(max < (1<<depth));
+      assert(p <= 4);
+      if (depth <= 8) {
+        if (p>0) plane_8_1 = new Plane<ColorVal_intern_8>(width, height); // R,Y
+        if (p>1) plane_16_1 = new Plane<ColorVal_intern_16>(width, height); // G,I
+        if (p>2) plane_16_2 = new Plane<ColorVal_intern_16>(width, height); // B,Q
+        if (p>3) plane_8_2 = new Plane<ColorVal_intern_8>(width, height); // A
+        plane_32_1 = plane_32_2 = NULL;
+      } else {
+        plane_8_1 = plane_8_2 = NULL;
+        if (p>0) plane_16_1 = new Plane<ColorVal_intern_16>(width, height); // R,Y
+        if (p>1) plane_32_1 = new Plane<ColorVal_intern_32>(width, height); // G,I
+        if (p>2) plane_32_2 = new Plane<ColorVal_intern_32>(width, height); // B,Q
+        if (p>3) plane_16_2 = new Plane<ColorVal_intern_16>(width, height); // A
+      }
+    }
 
-    void init(int width, int height, ColorVal min, ColorVal max, int planes);
 
     void reset() {
         init(0,0,0,0,0);
-    }
-
-    void add_plane(ColorVal min, ColorVal max);
-
-    void drop_planes(int newsize) {
-        planes.resize(newsize);
     }
 
     bool load(const char *name);
@@ -79,48 +88,73 @@ public:
     bool save(const char *name, const int scale) const;
 
     // access pixel by coordinate
-    ColorVal operator()(int p, int r, int c) const {
-        return planes[p](r,c);
+    ColorVal operator()(const int p, const uint32_t r, const uint32_t c) const {
+      if (depth <= 8) {
+        switch(p) {
+          case 0: return plane_8_1->get(r,c);
+          case 1: return plane_16_1->get(r,c);
+          case 2: return plane_16_2->get(r,c);
+          default: return plane_8_2->get(r,c);
+        }
+      } else {
+        switch(p) {
+          case 0: return plane_16_1->get(r,c);
+          case 1: return plane_32_1->get(r,c);
+          case 2: return plane_32_2->get(r,c);
+          default: return plane_16_2->get(r,c);
+        }
+      }
     }
-//    ColorVal_intern& operator()(int p, int r, int c) {
-//        return planes[p](r,c);
-//    }
-    void set(int p, int r, int c, ColorVal x) {
-        planes[p].set(r,c,x);
+    void set(int p, uint32_t r, uint32_t c, ColorVal x) {
+      if (depth <= 8) {
+        switch(p) {
+          case 0: return plane_8_1->set(r,c,x);
+          case 1: return plane_16_1->set(r,c,x);
+          case 2: return plane_16_2->set(r,c,x);
+          default: return plane_8_2->set(r,c,x);
+        }
+      } else {
+        switch(p) {
+          case 0: return plane_16_1->set(r,c,x);
+          case 1: return plane_32_1->set(r,c,x);
+          case 2: return plane_32_2->set(r,c,x);
+          default: return plane_16_2->set(r,c,x);
+        }
+      }
     }
 
     int numPlanes() const {
-        return planes.size();
+        return num;
     }
 
-    int min(int p) const {
-        return planes[p].min;
+    ColorVal min(int p) const {
+        return minval;
     }
 
-    int max(int p) const {
-        return planes[p].max;
+    ColorVal max(int p) const {
+        return maxval;
     }
 
-    int rows() const {
+    uint32_t rows() const {
         return height;
     }
 
-    int cols() const {
+    uint32_t cols() const {
         return width;
     }
 
     // access pixel by zoomlevel coordinate
-    int zoom_rowpixelsize(int zoomlevel) const {
+    uint32_t zoom_rowpixelsize(int zoomlevel) const {
         return 1<<((zoomlevel+1)/2);
     }
-    int zoom_colpixelsize(int zoomlevel) const {
+    uint32_t zoom_colpixelsize(int zoomlevel) const {
         return 1<<((zoomlevel)/2);
     }
 
-    int rows(int zoomlevel) const {
+    uint32_t rows(int zoomlevel) const {
         return 1+(rows()-1)/zoom_rowpixelsize(zoomlevel);
     }
-    int cols(int zoomlevel) const {
+    uint32_t cols(int zoomlevel) const {
         return 1+(cols()-1)/zoom_colpixelsize(zoomlevel);
     }
     int zooms() const {
@@ -128,25 +162,25 @@ public:
         while (zoom_rowpixelsize(z) < rows() || zoom_colpixelsize(z) < cols()) z++;
         return z;
     }
-    ColorVal operator()(int p, int z, int rz, int cz) const {
+    ColorVal operator()(int p, int z, uint32_t rz, uint32_t cz) const {
 //        if (p==0) fprintf(stdout,"Reading pixel at zoomlevel %i, position %i,%i, actual position %i,%i\n",z,rz,cz,rz*zoom_rowpixelsize(z),cz*zoom_colpixelsize(z));
 //        return operator()(p,rz*zoom_rowpixelsize(z),cz*zoom_colpixelsize(z));
-        int r = rz*zoom_rowpixelsize(z);
-        int c = cz*zoom_colpixelsize(z);
+        uint32_t r = rz*zoom_rowpixelsize(z);
+        uint32_t c = cz*zoom_colpixelsize(z);
 //        if (p==0 && r>= 0 && c>=0 && r<width &&c<height) fprintf(stdout,"Reading pixel at zoomlevel %i, position %i,%i, actual position %i,%i\n",z,rz,cz,rz*zoom_rowpixelsize(z),cz*zoom_colpixelsize(z));
-        return planes[p](r,c);
+        return operator()(p,r,c);
     }
 //    ColorVal_intern& operator()(int p, int z, int rz, int cz) {
 //        int r = rz*zoom_rowpixelsize(z);
 //        int c = cz*zoom_colpixelsize(z);
 //        return planes[p](r,c);
 //    }
-    void set(int p, int z, int rz, int cz, ColorVal x) {
+    void set(int p, int z, uint32_t rz, uint32_t cz, ColorVal x) {
 //        return operator()(p,rz*zoom_rowpixelsize(z),cz*zoom_colpixelsize(z));
-        int r = rz*zoom_rowpixelsize(z);
-        int c = cz*zoom_colpixelsize(z);
+        uint32_t r = rz*zoom_rowpixelsize(z);
+        uint32_t c = cz*zoom_colpixelsize(z);
 //        if (p==0 && r>= 0 && c>=0 && r<width &&c<height) fprintf(stdout,"Writing to pixel at zoomlevel %i, position %i,%i, actual position %i,%i\n",z,rz,cz,rz*zoom_rowpixelsize(z),cz*zoom_colpixelsize(z));
-        return planes[p].set(r,c,x);
+        set(p,r,c,x);
     }
 
     uint32_t checksum() {
@@ -155,10 +189,14 @@ public:
           crc32k_transform(crc,width / 256);
           crc32k_transform(crc,height & 255);
           crc32k_transform(crc,height / 256);
-          for (auto p : planes) {
-            for (ColorVal d : p.data) {
-                crc32k_transform(crc,d & 255);
-                crc32k_transform(crc,d / 256);
+          for (int p=0; p<num; p++) {
+//            for (ColorVal d : p.data) {
+            for (uint32_t r=0; r<height; r++) {
+               for (uint32_t c=0; c<width; c++) {
+                 ColorVal d = operator()(p,r,c);
+                 crc32k_transform(crc,d & 255);
+                 crc32k_transform(crc,d / 256);
+              }
             }
           }
           return (~crc & 0xFFFFFFFF);

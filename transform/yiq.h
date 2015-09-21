@@ -80,11 +80,14 @@ class ColorRangesYIQ : public ColorRanges
 {
 protected:
     const Image *image;
-    // hardcoded for 8 bit RGB for now
-    const int par=64; // range: [0..4*par-1]
+//    const int par=64; // range: [0..4*par-1]
+    int par;
     const ColorRanges *ranges;
 public:
-    ColorRangesYIQ(Image &imageIn, int parIn, const ColorRanges *rangesIn) : image(&imageIn), ranges(rangesIn) { if (parIn != par) printf("OOPS: using YIQ transform on something other than rgb888 ?\n");}
+    ColorRangesYIQ(Image &imageIn, int parIn, const ColorRanges *rangesIn)
+            : image(&imageIn), par(parIn), ranges(rangesIn) {
+    //        if (parIn != par) printf("OOPS: using YIQ transform on something other than rgb888 ?\n");
+    }
     bool isStatic() const { return false; }
     int numPlanes() const { return ranges->numPlanes(); }
 
@@ -124,8 +127,8 @@ public:
 
     void data(Image& image) const {
 //        printf("TransformYIQ::data: par=%i\n", par);
-        for (int r=0; r<image.rows(); r++) {
-            for (int c=0; c<image.cols(); c++) {
+        for (uint32_t r=0; r<image.rows(); r++) {
+            for (uint32_t c=0; c<image.cols(); c++) {
                 int R=image(0,r,c), G=image(1,r,c), B=image(2,r,c);
 
                 int Y = ((R + B) / 2 + G) / 2;
@@ -140,8 +143,8 @@ public:
     }
 
     void invData(Image& image) const {
-        for (int r=0; r<image.rows(); r++) {
-            for (int c=0; c<image.cols(); c++) {
+        for (uint32_t r=0; r<image.rows(); r++) {
+            for (uint32_t c=0; c<image.cols(); c++) {
                 int Y=image(0,r,c), I=image(1,r,c), Q=image(2,r,c);
 
                 int R = Y + (Q + 2) / 2 + (I + 2) / 2 - 4*par;

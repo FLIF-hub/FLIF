@@ -56,8 +56,8 @@ public:
     }
 
     bool process(const ColorRanges *srcRanges, const Image &image) {
-        for (int r=0; r<image.rows(); r++) {
-            for (int c=0; c<image.cols(); c++) {
+        for (uint32_t r=0; r<image.rows(); r++) {
+            for (uint32_t c=0; c<image.cols(); c++) {
                 int Y=image(0,r,c), I=image(1,r,c), Q=image(2,r,c);
                 Palette.insert(Color(Y,I,Q));
                 if (Palette.size() > MAX_PALETTE_SIZE) return false;
@@ -69,8 +69,8 @@ public:
     }
     void data(Image& image) const {
 //        printf("TransformPalette::data\n");
-        for (int r=0; r<image.rows(); r++) {
-            for (int c=0; c<image.cols(); c++) {
+        for (uint32_t r=0; r<image.rows(); r++) {
+            for (uint32_t c=0; c<image.cols(); c++) {
                 Color C(image(0,r,c), image(1,r,c), image(2,r,c));
                 ColorVal P=0;
                 for (Color c : Palette_vector) {if (c==C) break; else P++;}
@@ -81,8 +81,8 @@ public:
         }
     }
     void invData(Image& image) const {
-        for (int r=0; r<image.rows(); r++) {
-            for (int c=0; c<image.cols(); c++) {
+        for (uint32_t r=0; r<image.rows(); r++) {
+            for (uint32_t c=0; c<image.cols(); c++) {
                 int P=image(0,r,c);
                 image.set(0,r,c, std::get<0>(Palette_vector[P]));
                 image.set(1,r,c, std::get<1>(Palette_vector[P]));

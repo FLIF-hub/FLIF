@@ -70,8 +70,8 @@ protected:
         for (int p=0; p<srcRanges->numPlanes(); p++) {
             ColorVal min = srcRanges->max(p);
             ColorVal max = srcRanges->min(p);
-            for (int r=0; r<image.rows(); r++) {
-                for (int c=0; c<image.cols(); c++) {
+            for (uint32_t r=0; r<image.rows(); r++) {
+                for (uint32_t c=0; c<image.cols(); c++) {
                     ColorVal v = image(p,r,c);
                     if (v < min) min = v;
                     if (v > max) max = v;

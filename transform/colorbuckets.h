@@ -138,7 +138,7 @@ public:
         if (c <= min) return min;
         if (c >= max) return max;
         if (discrete) {
-          assert(snapvalues.size() > c-min);
+          assert((ColorVal)snapvalues.size() > c-min);
           return snapvalues[c-min];
         }
         return c;
@@ -161,7 +161,7 @@ public:
         else if (min==max) printf("1");
         else {
                 if (discrete) {
-                        if (values.size()>9) printf("+"); else printf("%lu",values.size());
+                        if (values.size()>9) printf("+"); else printf("%u",(unsigned int) values.size());
                 } else {
                         printf("C");
                 }
@@ -313,6 +313,7 @@ protected:
     bool init(const ColorRanges *srcRanges) {
         if(srcRanges->numPlanes() < 3) return false;
         if (srcRanges->min(1) == 0 && srcRanges->max(1) == 0 && srcRanges->min(2) == 0 && srcRanges->max(2) == 0) return false; // probably palette image
+        if(srcRanges->max(0) > 255) return false; // TODO: implement color buckets for such images... now it is way too slow
         if (srcRanges->min(0) == srcRanges->max(0) &&
             srcRanges->min(1) == srcRanges->max(1) &&
             srcRanges->min(2) == srcRanges->max(2)) return false; // only alpha plane contains information
@@ -494,14 +495,15 @@ protected:
     }
 
     bool process(const ColorRanges *srcRanges, const Image &image) {
-            std::vector<ColorVal> pixel;
+            std::vector<ColorVal> pixel(image.numPlanes());
             // fill buckets
-            for (int r=0; r<image.rows(); r++) {
-                for (int c=0; c<image.cols(); c++) {
-                  pixel.clear();
+            for (uint32_t r=0; r<image.rows(); r++) {
+                for (uint32_t c=0; c<image.cols(); c++) {
+//                  pixel.clear();
                   for (int p=0; p<image.numPlanes(); p++) {
                     ColorVal v = image(p,r,c);
-                    pixel.push_back(v);
+//                    pixel.push_back(v);
+                    pixel[p] = v;
                   }
                   cb->addColor(pixel);
                 }

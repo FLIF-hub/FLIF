@@ -43,7 +43,7 @@ bool image_load_pnm(const char *filename, Image& image)
     if (type>4) {
     char bla;
     r = fscanf(fp, "%u%c", &maxval, &bla);
-    if ( (r < 2) || maxval<1 || maxval>255 ) {
+    if ( (r < 2) || maxval<1 || maxval > 0xffff ) {
         fprintf(stderr,"Invalid PPM file.\n");
         fclose(fp);
         return 2;
@@ -60,11 +60,23 @@ bool image_load_pnm(const char *filename, Image& image)
         }
       }
     } else {
-      for (unsigned int y=0; y<height; y++) {
-        for (unsigned int x=0; x<width; x++) {
+      if (maxval > 0xff) {
+        for (unsigned int y=0; y<height; y++) {
+          for (unsigned int x=0; x<width; x++) {
+            for (unsigned int c=0; c<nbplanes; c++) {
+                ColorVal pixel= (fgetc(fp) << 8);
+                pixel += fgetc(fp);
+                image.set(c,y,x, pixel);
+            }
+          }
+        }
+      } else {
+        for (unsigned int y=0; y<height; y++) {
+          for (unsigned int x=0; x<width; x++) {
             for (unsigned int c=0; c<nbplanes; c++) {
                 image.set(c,y,x, fgetc(fp));
             }
+          }
         }
       }
     }
@@ -81,39 +93,41 @@ bool image_save_pnm(const char *filename, const Image& image)
 
     if (image.numPlanes() >= 3) {
         if (image.numPlanes() == 4) v_printf(1,"WARNING: image has alpha channel, saving to flat PPM! Save to .PNG if you want to keep the alpha channel!\n");
-        ColorVal max = std::max(std::max(image.max(0), image.max(1)), image.max(2));
-        ColorVal min = std::min(std::min(image.min(0), image.min(1)), image.min(2));
+        ColorVal max = image.max(0);
 
-        if (max-min > 255) {
+        if (max > 0xffff) {
             fprintf(stderr,"Cannot store as PPM. Find out why.\n");
             fclose(fp);
             return false;
         }
 
         unsigned int height = image.rows(), width = image.cols();
-        fprintf(fp,"P6\n%u %u\n%i\n", width, height, max-min);
+        fprintf(fp,"P6\n%u %u\n%i\n", width, height, max);
         for (unsigned int y = 0; y < height; y++) {
             for (unsigned int x = 0; x < width; x++) {
-                fputc((image(0,y,x) - min) & 0xFF,fp);
-                fputc((image(1,y,x) - min) & 0xFF,fp);
-                fputc((image(2,y,x) - min) & 0xFF,fp);
+                if (max > 0xff) fputc(image(0,y,x) >> 8,fp);
+                fputc(image(0,y,x) & 0xFF,fp);
+                if (max > 0xff) fputc(image(1,y,x) >> 8,fp);
+                fputc(image(1,y,x) & 0xFF,fp);
+                if (max > 0xff) fputc(image(2,y,x) >> 8,fp);
+                fputc(image(2,y,x) & 0xFF,fp);
             }
         }
     } else if (image.numPlanes() == 1) {
         ColorVal max = image.max(0);
-        ColorVal min = image.min(0);
 
-        if (max-min > 255) {
+        if (max > 0xffff) {
             fprintf(stderr,"Cannot store as PPM. Find out why.\n");
             fclose(fp);
             return false;
         }
 
         unsigned int height = image.rows(), width = image.cols();
-        fprintf(fp,"P5\n%u %u\n%i\n", width, height, max-min);
+        fprintf(fp,"P5\n%u %u\n%i\n", width, height, max);
         for (unsigned int y = 0; y < height; y++) {
             for (unsigned int x = 0; x < width; x++) {
-                fputc((image(0,y,x) - min) & 0xFF,fp);
+                if (max > 0xff) fputc(image(0,y,x) >> 8,fp);
+                fputc(image(0,y,x) & 0xFF,fp);
             }
         }
     } else {

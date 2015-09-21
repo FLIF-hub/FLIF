@@ -39,8 +39,8 @@ int image_load_png(const char *filename, Image &image) {
 
 
 
-  png_read_png(png_ptr,info_ptr,PNG_TRANSFORM_STRIP_16 | PNG_TRANSFORM_PACKING | PNG_TRANSFORM_EXPAND, NULL);
-//      | PNG_TRANSFORM_STRIP_ALPHA
+  png_read_png(png_ptr,info_ptr, PNG_TRANSFORM_PACKING | PNG_TRANSFORM_EXPAND, NULL);
+//      | PNG_TRANSFORM_STRIP_ALPHA | PNG_TRANSFORM_STRIP_16
 
   size_t width = png_get_image_width(png_ptr,info_ptr);
   size_t height = png_get_image_height(png_ptr,info_ptr);
@@ -58,7 +58,8 @@ int image_load_png(const char *filename, Image &image) {
 
   png_bytepp rows = png_get_rows(png_ptr,info_ptr);
 
-  switch(color_type) {
+  if (bit_depth == 8) {
+    switch(color_type) {
         case PNG_COLOR_TYPE_GRAY:
           for (size_t r = 0; r < height; r++) {
             png_bytep row = rows[r];
@@ -100,8 +101,54 @@ int image_load_png(const char *filename, Image &image) {
           }
           break;
         default:
-          printf("Should not happen: unsupported PNG color type!\n");
-  }
+          fprintf(stderr,"Should not happen: unsupported PNG color type!\n");
+    }
+  } else if (bit_depth == 16) {
+    switch(color_type) {
+        case PNG_COLOR_TYPE_GRAY:
+          for (size_t r = 0; r < height; r++) {
+            png_bytep row = rows[r];
+            for (size_t c = 0; c < width; c++) {
+              image.set(0,r,c, (uint16_t) row[c * 1 + 0]);
+            }
+          }
+          break;
+        case PNG_COLOR_TYPE_GRAY_ALPHA:
+          for (size_t r = 0; r < height; r++) {
+            png_bytep row = rows[r];
+            for (size_t c = 0; c < width; c++) {
+              image.set(0,r,c, (uint16_t) row[c * 2 + 0]);
+              image.set(1,r,c, (uint16_t) row[c * 2 + 0]);
+              image.set(2,r,c, (uint16_t) row[c * 2 + 0]);
+              image.set(3,r,c, (uint16_t) row[c * 2 + 1]);
+            }
+          }
+          break;
+        case PNG_COLOR_TYPE_RGB:
+          for (size_t r = 0; r < height; r++) {
+            png_bytep row = rows[r];
+            for (size_t c = 0; c < width; c++) {
+              image.set(0,r,c, (uint16_t) row[c * 3 + 0]);
+              image.set(1,r,c, (uint16_t) row[c * 3 + 1]);
+              image.set(2,r,c, (uint16_t) row[c * 3 + 2]);
+            }
+          }
+          break;
+        case PNG_COLOR_TYPE_RGB_ALPHA:
+          for (size_t r = 0; r < height; r++) {
+            png_bytep row = rows[r];
+            for (size_t c = 0; c < width; c++) {
+              image.set(0,r,c, (uint16_t) row[c * 4 + 0]);
+              image.set(1,r,c, (uint16_t) row[c * 4 + 1]);
+              image.set(2,r,c, (uint16_t) row[c * 4 + 2]);
+              image.set(3,r,c, (uint16_t) row[c * 4 + 3]);
+            }
+          }
+          break;
+        default:
+          fprintf(stderr,"Should not happen: unsupported PNG color type!\n");
+    }
+  } else fprintf(stderr,"Should not happen: unsupported PNG bit depth: %i!\n",bit_depth);
 
   png_destroy_read_struct(&png_ptr,&info_ptr,(png_infopp) NULL);
   fclose(fp);
@@ -137,18 +184,29 @@ int image_save_png(const char *filename, const Image &image) {
   int nbplanes = image.numPlanes();
   if (nbplanes == 4) colortype=PNG_COLOR_TYPE_RGB_ALPHA;
   if (nbplanes == 1) colortype=PNG_COLOR_TYPE_GRAY;
-  png_set_IHDR(png_ptr,info_ptr,image.cols(),image.rows(),8,colortype,PNG_INTERLACE_NONE,PNG_COMPRESSION_TYPE_DEFAULT,
+  int bit_depth = 8, bytes_per_value=1;
+  if (image.max(0) > 255) {bit_depth = 16; bytes_per_value=2;}
+  png_set_IHDR(png_ptr,info_ptr,image.cols(),image.rows(),bit_depth,colortype,PNG_INTERLACE_NONE,PNG_COMPRESSION_TYPE_DEFAULT,
       PNG_FILTER_TYPE_DEFAULT);
 
   png_write_info(png_ptr,info_ptr);
 
-  png_bytep row = (png_bytep) png_malloc(png_ptr,nbplanes * image.cols());
+  png_bytep row = (png_bytep) png_malloc(png_ptr,nbplanes * bytes_per_value * image.cols());
 
   for (size_t r = 0; r < (size_t) image.rows(); r++) {
-    for (size_t c = 0; c < (size_t) image.cols(); c++) {
+    if (bytes_per_value == 1) {
+     for (size_t c = 0; c < (size_t) image.cols(); c++) {
       for (int p=0; p<nbplanes; p++) {
         row[c * nbplanes + p] = (png_byte) (image(p,r,c));
       }
+     }
+    } else {
+     for (size_t c = 0; c < (size_t) image.cols(); c++) {
+      for (int p=0; p<nbplanes; p++) {
+        row[c * nbplanes * 2 + 2*p] = (png_byte) (image(p,r,c) >> 8);
+        row[c * nbplanes * 2 + 2*p + 1] = (png_byte) (image(p,r,c) & 0xff);
+      }
+     }
     }
     png_write_row(png_ptr,row);
   }

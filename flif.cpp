@@ -126,7 +126,7 @@ void static initPropRanges_scanlines(Ranges &propRanges, const ColorRanges &rang
 
 
 
-ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRanges *ranges, const Image &image, const int p, const int r, const int c, ColorVal &min, ColorVal &max) {
+ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRanges *ranges, const Image &image, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) {
     ColorVal guess;
     int which = 0;
     int index=0;
@@ -173,8 +173,8 @@ template<typename Coder> void encode_scanlines_inner(std::vector<Coder*> &coders
         v_printf(2,"\r%lu%% done [%i/%i] ENC[%ix%i]    ",100*pixels_done/pixels_todo,i,nump,image.cols(),image.rows());
         pixels_done += image.cols()*image.rows();
         if (ranges->min(p) >= ranges->max(p)) continue;
-        for (int r = 0; r < image.rows(); r++) {
-            for (int c = 0; c < image.cols(); c++) {
+        for (uint32_t r = 0; r < image.rows(); r++) {
+            for (uint32_t c = 0; c < image.cols(); c++) {
                 if (nump>3 && p<3 && image(3,r,c) == 0) continue;
                 ColorVal guess = predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max);
                 ColorVal curr = image(p,r,c);
@@ -229,8 +229,8 @@ void encode_scanlines_interpol_zero_alpha(Image &image, const ColorRanges *range
         if (ranges->min(p) >= ranges->max(p)) continue;
 //          v_printf(2,"[%i] interpol_zero_alpha ",p);
 //        fflush(stdout);
-        for (int r = 0; r < image.rows(); r++) {
-            for (int c = 0; c < image.cols(); c++) {
+        for (uint32_t r = 0; r < image.rows(); r++) {
+            for (uint32_t c = 0; c < image.cols(); c++) {
                 if (image(3,r,c) == 0) {
                     image.set(p,r,c, predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max));
                 }
@@ -253,8 +253,8 @@ template<typename Coder> void decode_scanlines_inner(std::vector<Coder*> &coders
         v_printf(4,"\n");
         pixels_done += image.cols()*image.rows();
         if (ranges->min(p) >= ranges->max(p)) continue;
-        for (int r = 0; r < image.rows(); r++) {
-            for (int c = 0; c < image.cols(); c++) {
+        for (uint32_t r = 0; r < image.rows(); r++) {
+            for (uint32_t c = 0; c < image.cols(); c++) {
                 ColorVal guess = predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max);
                 if (nump>3 && p<3 && image(3,r,c) == 0) { image.set(p,r,c,guess); continue;}
                 ColorVal curr = coders[p]->read_int(properties, min - guess, max - guess) + guess;
@@ -312,7 +312,7 @@ void static initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p)
 }
 
 // Prediction used for interpolation. Does not have to be the same as the guess used for encoding/decoding.
-inline ColorVal predict(const Image &image, int z, int p, int r, int c)
+inline ColorVal predict(const Image &image, int z, int p, uint32_t r, uint32_t c)
 {
     if (z%2 == 0) { // filling horizontal lines
       ColorVal top = image(p,z,r-1,c);
@@ -328,7 +328,7 @@ inline ColorVal predict(const Image &image, int z, int p, int r, int c)
 }
 
 // Actual prediction. Also sets properties. Property vector should already have the right size before calling this.
-ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges, const Image &image, const int z, const int p, const int r, const int c, ColorVal &min, ColorVal &max) {
+ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges, const Image &image, const int z, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) {
     ColorVal guess;
     int which = 0;
     int index = 0;
@@ -452,8 +452,8 @@ template<typename Coder, typename ParityCoder> void encode_FLIF2_inner(std::vect
       Properties properties((nump>3?NB_PROPERTIESA[p]:NB_PROPERTIES[p]));
       if (z % 2 == 0) {
         // horizontal: scan the odd rows, output pixel values
-          for (int r = 1; r < image.rows(z); r += 2) {
-            for (int c = 0; c < image.cols(z); c++) {
+          for (uint32_t r = 1; r < image.rows(z); r += 2) {
+            for (uint32_t c = 0; c < image.cols(z); c++) {
                     if (nump>3 && p<3 && image(3,z,r,c) == 0) continue;
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
                     ColorVal curr = image(p,z,r,c);
@@ -463,8 +463,8 @@ template<typename Coder, typename ParityCoder> void encode_FLIF2_inner(std::vect
           }
       } else {
         // vertical: scan the odd columns
-          for (int r = 0; r < image.rows(z); r++) {
-            for (int c = 1; c < image.cols(z); c += 2) {
+          for (uint32_t r = 0; r < image.rows(z); r++) {
+            for (uint32_t c = 1; c < image.cols(z); c += 2) {
                     if (nump>3 && p<3 && image(3,z,r,c) == 0) continue;
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
                     ColorVal curr = image(p,z,r,c);
@@ -528,15 +528,15 @@ void encode_FLIF2_interpol_zero_alpha(Image &image, const ColorRanges *ranges, c
 //      fflush(stdout);
       if (z % 2 == 0) {
         // horizontal: scan the odd rows
-          for (int r = 1; r < image.rows(z); r += 2) {
-            for (int c = 0; c < image.cols(z); c++) {
+          for (uint32_t r = 1; r < image.rows(z); r += 2) {
+            for (uint32_t c = 0; c < image.cols(z); c++) {
                if (image(3,z,r,c) == 0) image.set(p,z,r,c, predict(image,z,p,r,c));
             }
           }
       } else {
         // vertical: scan the odd columns
-          for (int r = 0; r < image.rows(z); r++) {
-            for (int c = 1; c < image.cols(z); c += 2) {
+          for (uint32_t r = 0; r < image.rows(z); r++) {
+            for (uint32_t c = 1; c < image.cols(z); c += 2) {
                if (image(3,z,r,c) == 0) image.set(p,z,r,c, predict(image,z,p,r,c));
             }
           }
@@ -548,7 +548,7 @@ void encode_FLIF2_interpol_zero_alpha(Image &image, const ColorRanges *ranges, c
 
 // interpolate rest of the image
 // used when decoding lossy
-void decode_FLIF2_inner_interpol(Image &image, const ColorRanges *ranges, const int I, const int beginZL, const int endZL, const int R, const int scale)
+void decode_FLIF2_inner_interpol(Image &image, const ColorRanges *ranges, const int I, const int beginZL, const int endZL, const uint32_t R, const int scale)
 {
     for (int i = I; i < plane_zoomlevels(image, beginZL, endZL); i++) {
       std::pair<int, int> pzl = plane_zoomlevel(image, beginZL, endZL, i);
@@ -561,15 +561,15 @@ void decode_FLIF2_inner_interpol(Image &image, const ColorRanges *ranges, const 
 
       if (z % 2 == 0) {
         // horizontal: scan the odd rows
-          for (int r = (I==i?R:1); r < image.rows(z); r += 2) {
-            for (int c = 0; c < image.cols(z); c++) {
+          for (uint32_t r = (I==i?R:1); r < image.rows(z); r += 2) {
+            for (uint32_t c = 0; c < image.cols(z); c++) {
                image.set(p,z,r,c, predict(image,z,p,r,c));
             }
           }
       } else {
         // vertical: scan the odd columns
-          for (int r = (I==i?R:0); r < image.rows(z); r++) {
-            for (int c = 1; c < image.cols(z); c += 2) {
+          for (uint32_t r = (I==i?R:0); r < image.rows(z); r++) {
+            for (uint32_t c = 1; c < image.cols(z); c += 2) {
                image.set(p,z,r,c, predict(image,z,p,r,c));
 //               image(p,z,r,c) = ranges->snap(p,predict(image,z,p,r,c),z,r,c);
             }
@@ -601,7 +601,7 @@ template<typename Coder, typename ParityCoder> void decode_FLIF2_inner(std::vect
       ColorVal curr;
       Properties properties((nump>3?NB_PROPERTIESA[p]:NB_PROPERTIES[p]));
       if (z % 2 == 0) {
-          for (int r = 1; r < image.rows(z); r += 2) {
+          for (uint32_t r = 1; r < image.rows(z); r += 2) {
 #ifdef CHECK_FOR_BROKENFILES
             if (feof(f)) {
               v_printf(1,"Row %i: Unexpected file end. Interpolation from now on.\n",r);
@@ -609,7 +609,7 @@ template<typename Coder, typename ParityCoder> void decode_FLIF2_inner(std::vect
               return;
             }
 #endif
-            for (int c = 0; c < image.cols(z); c++) {
+            for (uint32_t c = 0; c < image.cols(z); c++) {
                      if (nump>3 && p<3 && image(3,z,r,c) == 0) {image.set(p,z,r,c, predict(image,z,p,r,c)); continue;}
                      ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
                      curr = coders[p]->read_int(properties, min - guess, max - guess) + guess;
@@ -617,7 +617,7 @@ template<typename Coder, typename ParityCoder> void decode_FLIF2_inner(std::vect
             }
         }
       } else {
-          for (int r = 0; r < image.rows(z); r++) {
+          for (uint32_t r = 0; r < image.rows(z); r++) {
 #ifdef CHECK_FOR_BROKENFILES
             if (feof(f)) {
               v_printf(1,"Row %i: Unexpected file end. Interpolation from now on.\n", r);
@@ -625,7 +625,7 @@ template<typename Coder, typename ParityCoder> void decode_FLIF2_inner(std::vect
               return;
             }
 #endif
-            for (int c = 1; c < image.cols(z); c += 2) {
+            for (uint32_t c = 1; c < image.cols(z); c += 2) {
                      if (nump>3 && p<3 && image(3,z,r,c) == 0) {image.set(p,z,r,c, predict(image,z,p,r,c)); continue;}
                      ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
                      curr = coders[p]->read_int(properties, min - guess, max - guess) + guess;
@@ -771,7 +771,8 @@ bool encode(const char* filename, Image &image, std::vector<std::string> transDe
           if (nBits > mbits) mbits = nBits;
         }
     }
-    const int bits = 10; // hardcoding things for 8 bit RGB (which means 9 bit IQ and 10 bit differences)
+    int bits = 10; // hardcoding things for 8 bit RGB (which means 9 bit IQ and 10 bit differences)
+    if (mbits >10) bits=18;
     if (mbits > bits) { printf("OOPS: %i > %i\n",mbits,bits); return false;}
 
     pixels_todo = image.rows()*image.cols()*image.numPlanes()*(learn_repeats+1);
@@ -794,14 +795,21 @@ bool encode(const char* filename, Image &image, std::vector<std::string> transDe
       roughZL = image.zooms() - NB_NOLEARN_ZOOMS-1;
       if (roughZL < 0) roughZL = 0;
       //v_printf(2,"Encoding rough data\n");
-      encode_FLIF2_pass<RacOut, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut, bits> >(rac, image, ranges, forest, image.zooms(), roughZL+1, 1);
+      if (bits==10) encode_FLIF2_pass<RacOut, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut, 10> >(rac, image, ranges, forest, image.zooms(), roughZL+1, 1);
+      else encode_FLIF2_pass<RacOut, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut, 18> >(rac, image, ranges, forest, image.zooms(), roughZL+1, 1);
     }
 
     //v_printf(2,"Encoding data (pass 1)\n");
     if (learn_repeats>1) v_printf(3,"Learning a MANIAC tree. Iterating %i times.\n",learn_repeats);
     switch(encoding) {
-        case 1: encode_scanlines_pass<RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, bits> >(dummy, image, ranges, forest, learn_repeats); break;
-        case 2: encode_FLIF2_pass<RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, bits> >(dummy, image, ranges, forest, roughZL, 0, learn_repeats); break;
+        case 1:
+           if (bits==10) encode_scanlines_pass<RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, 10> >(dummy, image, ranges, forest, learn_repeats);
+           else encode_scanlines_pass<RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, 18> >(dummy, image, ranges, forest, learn_repeats);
+           break;
+        case 2:
+           if (bits==10) encode_FLIF2_pass<RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, 10> >(dummy, image, ranges, forest, roughZL, 0, learn_repeats);
+           else encode_FLIF2_pass<RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, 18> >(dummy, image, ranges, forest, roughZL, 0, learn_repeats);
+           break;
     }
     v_printf(3,"\rHeader: %li bytes.", fs);
     if (encoding==2) v_printf(3," Rough data: %li bytes.", ftell(f)-fs);
@@ -813,8 +821,14 @@ bool encode(const char* filename, Image &image, std::vector<std::string> transDe
     v_printf(3," MANIAC tree: %li bytes.\n", ftell(f)-fs);
     //v_printf(2,"Encoding data (pass 2)\n");
     switch(encoding) {
-        case 1: encode_scanlines_pass<RacOut, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut, bits> >(rac, image, ranges, forest, 1); break;
-        case 2: encode_FLIF2_pass<RacOut, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut, bits> >(rac, image, ranges, forest, roughZL, 0, 1); break;
+        case 1:
+           if (bits==10) encode_scanlines_pass<RacOut, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut, 10> >(rac, image, ranges, forest, 1);
+           else encode_scanlines_pass<RacOut, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut, 18> >(rac, image, ranges, forest, 1);
+           break;
+        case 2:
+           if (bits==10) encode_FLIF2_pass<RacOut, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut, 10> >(rac, image, ranges, forest, roughZL, 0, 1);
+           else encode_FLIF2_pass<RacOut, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut, 18> >(rac, image, ranges, forest, roughZL, 0, 1);
+           break;
     }
     v_printf(2,"\rEncoding done, %li bytes for %ix%i pixels (%.4fbpp)   \n",ftell(f), image.cols(), image.rows(), 1.0*ftell(f)/image.rows()/image.cols());
     //v_printf(2,"Writing checksum: %X\n", checksum);
@@ -864,19 +878,22 @@ bool decode(const char* filename, Image &image, int quality, int scale)
     RacIn rac(f);
     SimpleSymbolCoder<FLIFBitChanceMeta, RacIn, 24> metaCoder(rac);
 
-    image.init(width, height, 0, 0, 0);
+//    image.init(width, height, 0, 0, 0);
     v_printf(3,"Decoding %ix%i image, channels:",width,height);
+    int maxmax=0;
     for (int p = 0; p < numPlanes; p++) {
-        int min = 0;
+//        int min = 0;
         int max = 255;
         if (c=='2') max=65535;
         else if (c=='0') max=(1 << metaCoder.read_int(1, 16)) - 1;
-        image.add_plane(min, max);
+        if (max>maxmax) maxmax=max;
+//        image.add_plane(min, max);
 //        v_printf(2," [%i] %i bpp (%i..%i)",p,ilog2(image.max(p)+1),image.min(p), image.max(p));
         if (c=='0') v_printf(3," [%i] %i bpp",p,ilog2(image.max(p)+1));
     }
     if (c=='1') v_printf(3," %i, depth: 8 bit",numPlanes);
     if (c=='2') v_printf(3," %i, depth: 16 bit",numPlanes);
+    image.init(width,height,0,maxmax,numPlanes);
     v_printf(3,"\n");
 
     std::vector<const ColorRanges*> rangesList;
@@ -909,7 +926,12 @@ bool decode(const char* filename, Image &image, int quality, int scale)
     for (int p = 0; p < numPlanes; p++) {
         if (ranges->min(p) >= ranges->max(p)) {
              v_printf(4,"Constant plane %i at color value %i\n",p,ranges->min(p));
-             for (ColorVal_intern& x : image(p).data) x=ranges->min(p);
+             //for (ColorVal_intern& x : image(p).data) x=ranges->min(p);
+            for (uint32_t r=0; r<image.rows(); r++) {
+              for (uint32_t c=0; c<image.cols(); c++) {
+                image.set(p,r,c,ranges->min(p));
+              }
+            }
         }
     }
 
@@ -920,7 +942,8 @@ bool decode(const char* filename, Image &image, int quality, int scale)
           if (nBits > mbits) mbits = nBits;
         }
     }
-    const int bits = 10;
+    int bits = 10;
+    if (mbits >10) bits=18;
     if (mbits > bits) { printf("OOPS: %i > %i\n",mbits,bits); return false;}
 
 
@@ -931,7 +954,8 @@ bool decode(const char* filename, Image &image, int quality, int scale)
       roughZL = image.zooms() - NB_NOLEARN_ZOOMS-1;
       if (roughZL < 0) roughZL = 0;
 //      v_printf(2,"Decoding rough data\n");
-      decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, bits> >(rac, image, ranges, forest, image.zooms(), roughZL+1, 100, scale);
+      if (bits==10) decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 10> >(rac, image, ranges, forest, image.zooms(), roughZL+1, 100, scale);
+      else decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 18> >(rac, image, ranges, forest, image.zooms(), roughZL+1, 100, scale);
     }
     if (encoding == 2 && quality <= 0) {
       v_printf(3,"Not decoding MANIAC tree\n");
@@ -942,10 +966,12 @@ bool decode(const char* filename, Image &image, int quality, int scale)
 //    if (encoding == 1 || quality > 0) {
       switch(encoding) {
         case 1: v_printf(3,"Decoding data (scanlines)\n");
-                decode_scanlines_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, bits> >(rac, image, ranges, forest);
+                if (bits==10) decode_scanlines_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 10> >(rac, image, ranges, forest);
+                else decode_scanlines_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 18> >(rac, image, ranges, forest);
                 break;
         case 2: v_printf(3,"Decoding data (FLIF2)\n");
-                decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, bits> >(rac, image, ranges, forest, roughZL, 0, quality, scale);
+                if (bits==10) decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 10> >(rac, image, ranges, forest, roughZL, 0, quality, scale);
+                else decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 18> >(rac, image, ranges, forest, roughZL, 0, quality, scale);
                 break;
       }
 //    }
@@ -990,7 +1016,7 @@ void show_help() {
     printf("Encode options:\n");
     printf("   -i                    Interlacing (default, except for tiny images)\n");
     printf("   -ni                   No interlacing\n");
-    printf("   -nacb                 Don't try auto color buckets (ACB)\n");
+    printf("   -acb, -nacb           Force auto color buckets (ACB) on/off\n");
     printf("   -r <number>           Number of repeats for MANIAC learning (default=%i)\n",TREE_LEARN_REPEATS);
     printf("\n");
     printf("Usage: (decoding)\n");
@@ -1000,13 +1026,23 @@ void show_help() {
     printf("   -s <2|4|8|16>         Decode lossy downscaled image at scale 1/2, 1/4, 1/8 or 1/16\n");
 }
 
-bool file_exists(const char * filename){    
+bool file_exists(const char * filename){
         FILE * file = fopen(filename, "r");
         if (file) {
                 fclose(file);
                 return true;
         }
         return false;
+}
+bool file_is_flif(const char * filename){
+        FILE * file = fopen(filename, "r");
+        if (!file) return false;
+        char buff[5];
+        bool result=true;
+        if (!fgets(buff,5,file)) result=false;
+        else if (strcmp(buff,"FLIF")) result=false;
+        fclose(file);
+        return result;
 }
 
 int main(int argc, char **argv)
@@ -1063,6 +1099,10 @@ int main(int argc, char **argv)
             if (learn_repeats < 0 || learn_repeats > 1000) {fprintf(stderr,"Not a sensible number for option -r\n"); return 1; }
             argc -= 2; argv += 2; continue; }
           if (file_exists(argv[0])) {
+                  if (mode == 0 && file_is_flif(argv[0])) {
+                    v_printf(2,"Input file is a FLIF file, adding implicit -d\n");
+                    mode = 1;
+                  }
                   char *f = strrchr(argv[0],'/');
                   char *ext = f ? strrchr(f,'.') : strrchr(argv[0],'.');
                   if (mode == 0) {
@@ -1089,10 +1129,10 @@ int main(int argc, char **argv)
           return 1;
   }
 
-    v_printf(3,"  _____   ___     ___   _____");
-  v_printf(3,"\n (  ___) (   )   (   ) (  ___)       ");v_printf(2,"FLIF 0.1 [18 September 2015]");
-  v_printf(3,"\n  ) __)   ) (__   ) (   ) __)      ");v_printf(2,"  (c) 2010-2015 J.Sneyers & P.Wuille");
-  v_printf(3,"\n (__)    (_____) (___) (__)       ");v_printf(2,"   GNU GPL v3+\n");
+    v_printf(3,"  _____  __  (__) _____");
+  v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1 [21 September 2015]");
+  v_printf(3,"\n  (__  ||  |_|__||  __)    Free Lossless Image Format");
+  v_printf(3,"\n    (__||______) |__)      (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
   v_printf(3,"\n");
   if (argc == 0) {
         //fprintf(stderr,"Input file missing.\n");
