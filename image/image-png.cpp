@@ -109,7 +109,7 @@ int image_load_png(const char *filename, Image &image) {
           for (size_t r = 0; r < height; r++) {
             png_bytep row = rows[r];
             for (size_t c = 0; c < width; c++) {
-              image.set(0,r,c, (uint16_t) row[c * 1 + 0]);
+              image.set(0,r,c, ((uint16_t) row[c * 2 + 0] <<8) + (uint16_t) row[c * 2 + 1]);
             }
           }
           break;
@@ -117,10 +117,10 @@ int image_load_png(const char *filename, Image &image) {
           for (size_t r = 0; r < height; r++) {
             png_bytep row = rows[r];
             for (size_t c = 0; c < width; c++) {
-              image.set(0,r,c, (uint16_t) row[c * 2 + 0]);
-              image.set(1,r,c, (uint16_t) row[c * 2 + 0]);
-              image.set(2,r,c, (uint16_t) row[c * 2 + 0]);
-              image.set(3,r,c, (uint16_t) row[c * 2 + 1]);
+              image.set(0,r,c, ((uint16_t) row[c * 4 + 0] <<8) + (uint16_t) row[c * 4 + 1]);
+              image.set(1,r,c, ((uint16_t) row[c * 4 + 0] <<8) + (uint16_t) row[c * 4 + 1]);
+              image.set(2,r,c, ((uint16_t) row[c * 4 + 0] <<8) + (uint16_t) row[c * 4 + 1]);
+              image.set(3,r,c, ((uint16_t) row[c * 4 + 2] <<8) + (uint16_t) row[c * 4 + 3]);
             }
           }
           break;
@@ -128,9 +128,9 @@ int image_load_png(const char *filename, Image &image) {
           for (size_t r = 0; r < height; r++) {
             png_bytep row = rows[r];
             for (size_t c = 0; c < width; c++) {
-              image.set(0,r,c, (uint16_t) row[c * 3 + 0]);
-              image.set(1,r,c, (uint16_t) row[c * 3 + 1]);
-              image.set(2,r,c, (uint16_t) row[c * 3 + 2]);
+              image.set(0,r,c, ((uint16_t) row[c * 6 + 0] <<8) + (uint16_t) row[c * 6 + 1]);
+              image.set(1,r,c, ((uint16_t) row[c * 6 + 2] <<8) + (uint16_t) row[c * 6 + 3]);
+              image.set(2,r,c, ((uint16_t) row[c * 6 + 4] <<8) + (uint16_t) row[c * 6 + 5]);
             }
           }
           break;
@@ -138,10 +138,10 @@ int image_load_png(const char *filename, Image &image) {
           for (size_t r = 0; r < height; r++) {
             png_bytep row = rows[r];
             for (size_t c = 0; c < width; c++) {
-              image.set(0,r,c, (uint16_t) row[c * 4 + 0]);
-              image.set(1,r,c, (uint16_t) row[c * 4 + 1]);
-              image.set(2,r,c, (uint16_t) row[c * 4 + 2]);
-              image.set(3,r,c, (uint16_t) row[c * 4 + 3]);
+              image.set(0,r,c, ((uint16_t) row[c * 8 + 0] <<8) + (uint16_t) row[c * 8 + 1]);
+              image.set(1,r,c, ((uint16_t) row[c * 8 + 2] <<8) + (uint16_t) row[c * 8 + 3]);
+              image.set(2,r,c, ((uint16_t) row[c * 8 + 4] <<8) + (uint16_t) row[c * 8 + 5]);
+              image.set(3,r,c, ((uint16_t) row[c * 8 + 6] <<8) + (uint16_t) row[c * 8 + 7]);
             }
           }
           break;
