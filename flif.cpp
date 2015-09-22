@@ -35,6 +35,7 @@
 
 #include "flif_config.h"
 
+#include "getopt.h"
 #include <stdarg.h>
 
 
@@ -697,7 +698,7 @@ template<typename BitChance, typename Rac> void decode_tree(Rac &rac, const Colo
 }
 
 
-bool encode(const char* filename, Image &image, std::vector<std::string> transDesc, int encoding, int learn_repeats)
+bool encode(const char* filename, Image &image, std::vector<std::string> transDesc, int encoding, int learn_repeats, int acb)
 {
     if (encoding < 1 || encoding > 2) { fprintf(stderr,"Unknown encoding: %i\n", encoding); return false;}
     f = fopen(filename,"w");
@@ -744,7 +745,9 @@ bool encode(const char* filename, Image &image, std::vector<std::string> transDe
     v_printf(4,"Transforms: ");
     for (unsigned int i=0; i<transDesc.size(); i++) {
         Transform *trans = create_transform(transDesc[i]);
-        if (!trans->init(rangesList.back()) || !trans->process(rangesList.back(), image)) {
+        if (!trans->init(rangesList.back()) || 
+            (!trans->process(rangesList.back(), image)
+              && !(acb==1 && transDesc[i] == "ACB" && printf(", forced_") && (tcount=0)==0))) {
             //fprintf(stderr, "Transform '%s' failed\n", transDesc[i].c_str());
         } else {
             if (tcount++ > 0) v_printf(4,", ");
@@ -1012,18 +1015,20 @@ void show_help() {
     printf("Usage: (encoding)\n");
     printf("   flif [options] <input.pnm | input.png> <output.flif>\n");
     printf("Options:\n");
-    printf("   -v                    Increase verbosity (multiple -v for more output)\n");
+    printf("   -h, --help          show help\n");
+    printf("   -v, --verbose       increase verbosity (multiple -v for more output)\n");
     printf("Encode options:\n");
-    printf("   -i                    Interlacing (default, except for tiny images)\n");
-    printf("   -ni                   No interlacing\n");
-    printf("   -acb, -nacb           Force auto color buckets (ACB) on/off\n");
-    printf("   -r <number>           Number of repeats for MANIAC learning (default=%i)\n",TREE_LEARN_REPEATS);
+    printf("   -i, --interlace     interlacing (default, except for tiny images)\n");
+    printf("   -n, --no-interlace  force no interlacing\n");
+    printf("   -a, --acb           force auto color buckets (ACB)\n");
+    printf("   -b, --no-acb        force no auto color buckets\n");
+    printf("   -r, --repeats=N     N repeats for MANIAC learning (default: N=%i)\n",TREE_LEARN_REPEATS);
     printf("\n");
     printf("Usage: (decoding)\n");
-    printf("   flif -d [options] <input.flif> <output.pnm | output.png>\n");
+    printf("   flif [-d] [options] <input.flif> <output.pnm | output.png>\n");
     printf("Decode options:\n");
-    printf("   -q <0..100>           Lossy decode (100=lossless, 0=very lossy)\n");
-    printf("   -s <2|4|8|16>         Decode lossy downscaled image at scale 1/2, 1/4, 1/8 or 1/16\n");
+    printf("   -q, --quality=Q     Lossy decode quality at Q percent (0..100)\n");
+    printf("   -s, --scale=S       Decode lossy downscaled image at scale 1:S (2,4,8,16)\n");
 }
 
 bool file_exists(const char * filename){
@@ -1058,79 +1063,76 @@ int main(int argc, char **argv)
     if (strcmp(argv[0],"dflif") == 0) mode = 1;
     if (strcmp(argv[0],"deflif") == 0) mode = 1;
     if (strcmp(argv[0],"decflif") == 0) mode = 1;
-    argc--; argv++;
-    while(argc>0) {
-          if (strcmp(argv[0],"-e") == 0 || strcmp(argv[0],"--encode") == 0) {
-            mode = 0; argc--; argv++; continue; }
-          if (strcmp(argv[0],"-d") == 0 || strcmp(argv[0],"--decode") == 0) {
-            mode = 1; argc--; argv++; continue; }
-          if (strcmp(argv[0],"-h") == 0 || strcmp(argv[0],"--help") == 0) {
-            show_help(); return 0; }
-          if (strcmp(argv[0],"-v") == 0 || strcmp(argv[0],"--verbose") == 0 || strcmp(argv[0],"--version") == 0) {
-            verbosity++; argc--; argv++; continue; }
-          if (strcmp(argv[0],"-i") == 0 || strcmp(argv[0],"--interlace") == 0) {
-            //if (mode == 1) {fprintf(stderr,"Warning: -i option specified while decoding (it will be ignored).\n");};
-            method = 2; argc--; argv++; continue; }
-          if (strcmp(argv[0],"-ni") == 0 || strcmp(argv[0],"--no-interlace") == 0) {
-            //if (mode == 1) {fprintf(stderr,"Warning: -ni option specified while decoding (it will be ignored).\n");};
-            method = 1; argc--; argv++; continue; }
-          if (strcmp(argv[0],"-acb") == 0 || strcmp(argv[0],"--auto-color-buckets") == 0) {
-            //if (mode == 1) {fprintf(stderr,"Warning: -acb option specified while decoding (it will be ignored).\n");};
-            acb = 1; argc--; argv++; continue; }
-          if (strcmp(argv[0],"-nacb") == 0 || strcmp(argv[0],"--no-auto-color-buckets") == 0) {
-            //if (mode == 1) {fprintf(stderr,"Warning: -nacb option specified while decoding (it will be ignored).\n");};
-            acb = 0; argc--; argv++; continue; }
-          if (strcmp(argv[0],"-q") == 0 || strcmp(argv[0],"--quality") == 0) {
-            //if (mode == 0) {fprintf(stderr,"Warning: -q option specified while encoding (it will be ignored).\n");};
-            if (argc < 3) {fprintf(stderr,"Option -q expects a number\n"); return 1; }
-            quality=(int)strtol(argv[1],NULL,10);
-            if (quality < -1 || quality > 100) {fprintf(stderr,"Not a sensible number for option -q\n"); return 1; }
-            argc -= 2; argv += 2; continue; }
-          if (strcmp(argv[0],"-s") == 0 || strcmp(argv[0],"--scale") == 0) {
-            //if (mode == 0) {fprintf(stderr,"Warning: -s option specified while encoding (it will be ignored).\n");};
-            if (argc < 3) {fprintf(stderr,"Option -s expects a number\n"); return 1; }
-            scale=(int)strtol(argv[1],NULL,10);
-            if (scale < 1 || scale > 128) {fprintf(stderr,"Not a sensible number for option -s\n"); return 1; }
-            argc -= 2; argv += 2; continue; }
-          if (strcmp(argv[0],"-r") == 0 || strcmp(argv[0],"--repeat") == 0) {
-            //if (mode == 1) {fprintf(stderr,"Warning: -r option specified while decoding (it will be ignored).\n");};
-            if (argc  < 3) {fprintf(stderr,"Option -r expects a number\n"); return 1; }
-            learn_repeats=(int)strtol(argv[1],NULL,10);
-            if (learn_repeats < 0 || learn_repeats > 1000) {fprintf(stderr,"Not a sensible number for option -r\n"); return 1; }
-            argc -= 2; argv += 2; continue; }
-          if (file_exists(argv[0])) {
-                  if (mode == 0 && file_is_flif(argv[0])) {
-                    v_printf(2,"Input file is a FLIF file, adding implicit -d\n");
-                    mode = 1;
-                  }
-                  char *f = strrchr(argv[0],'/');
-                  char *ext = f ? strrchr(f,'.') : strrchr(argv[0],'.');
-                  if (mode == 0) {
-                          if (ext && ( !strcasecmp(ext,".png") ||  !strcasecmp(ext,".pnm") ||  !strcasecmp(ext,".ppm")  ||  !strcasecmp(ext,".pgm") ||  !strcasecmp(ext,".pbm"))) {
-                                // ok
-                          } else {
-                                fprintf(stderr,"Warning: expected \".png\" or \".pnm\" file name extension for input file, trying anyway...\n");
-                          }
-                  } else {
-                          if (ext && ( !strcasecmp(ext,".flif"))) {
-                                // ok
-                          } else {
-                                fprintf(stderr,"Warning: expected file name extension \".flif\" for input file, trying anyway...\n");
-                          }
-                  }
-                  break;
-          }
-          if (argv[0][0] == '-') {
-                fprintf(stderr,"Unrecognized option: %s\n",argv[0]);
-          } else {
-                fprintf(stderr,"Input file does not exist: %s\n",argv[0]);
-          }
-          show_help();
+    static struct option optlist[] = {
+	{"help", 0, NULL, 'h'},
+	{"encode", 0, NULL, 'e'},
+	{"decode", 0, NULL, 'd'},
+	{"first", 1, NULL, 'f'},
+	{"verbose", 0, NULL, 'v'},
+	{"interlace", 0, NULL, 'i'},
+	{"no-interlace", 0, NULL, 'n'},
+	{"acb", 0, NULL, 'a'},
+	{"no-acb", 0, NULL, 'b'},
+	{"quality", 1, NULL, 'q'},
+	{"scale", 1, NULL, 's'},
+	{"repeats", 1, NULL, 'r'},
+	{0, 0, 0, 0}
+    };
+    int i,c;
+    while ((c = getopt_long (argc, argv, "hedvinabq:s:r:", optlist, &i)) != -1) {
+	switch (c) {
+	case 'e': mode=0; break;
+	case 'd': mode=1; break;
+	case 'v': verbosity++; break;
+	case 'i': if (method==0) method=2; break;
+	case 'n': method=1; break;
+	case 'a': acb=1; break;
+	case 'b': acb=0; break;
+	case 'q': quality=atoi(optarg);
+	          if (quality < -1 || quality > 100) {fprintf(stderr,"Not a sensible number for option -q\n"); return 1; }
+	          break;
+	case 's': scale=atoi(optarg);
+	          if (scale < 1 || scale > 128) {fprintf(stderr,"Not a sensible number for option -s\n"); return 1; }
+	          break;
+	case 'r': learn_repeats=atoi(optarg);
+	          if (learn_repeats < 0 || learn_repeats > 1000) {fprintf(stderr,"Not a sensible number for option -r\n"); return 1; }
+	          break;
+	case 'h':
+	default: show_help(); return 0;
+	}
+    }
+    argc -= optind;
+    argv += optind;
+    if (argc < 2) {show_help(); return 0;}
+
+    if (file_exists(argv[0])) {
+            if (mode == 0 && file_is_flif(argv[0])) {
+              v_printf(2,"Input file is a FLIF file, adding implicit -d\n");
+              mode = 1;
+            }
+            char *f = strrchr(argv[0],'/');
+            char *ext = f ? strrchr(f,'.') : strrchr(argv[0],'.');
+            if (mode == 0) {
+                    if (ext && ( !strcasecmp(ext,".png") ||  !strcasecmp(ext,".pnm") ||  !strcasecmp(ext,".ppm")  ||  !strcasecmp(ext,".pgm") ||  !strcasecmp(ext,".pbm"))) {
+                          // ok
+                    } else {
+                          fprintf(stderr,"Warning: expected \".png\" or \".pnm\" file name extension for input file, trying anyway...\n");
+                    }
+            } else {
+                    if (ext && ( !strcasecmp(ext,".flif"))) {
+                          // ok
+                    } else {
+                          fprintf(stderr,"Warning: expected file name extension \".flif\" for input file, trying anyway...\n");
+                    }
+            }
+    } else {
+          fprintf(stderr,"Input file does not exist: %s\n",argv[0]);
           return 1;
-  }
+    }
+
 
     v_printf(3,"  _____  __  (__) _____");
-  v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1 [21 September 2015]");
+  v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1 [22 September 2015]");
   v_printf(3,"\n  (__  ||  |_|__||  __)    Free Lossless Image Format");
   v_printf(3,"\n    (__||______) |__)      (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
   v_printf(3,"\n");
@@ -1158,10 +1160,8 @@ int main(int argc, char **argv)
         desc.push_back("PLT");  // try palette (without alpha)
         if (acb == -1) {
           // not specified if ACB should be used
-          if (nb_pixels < 10000) acb=0;
-          else acb=1;
-        }
-        if (acb) desc.push_back("ACB");  // try auto color buckets
+          if (nb_pixels > 10000) desc.push_back("ACB");  // try auto color buckets on large images
+        } else if (acb) desc.push_back("ACB");  // try auto color buckets if forced
         if (method == 0) {
           // no method specified, pick one heuristically
           if (nb_pixels < 10000) method=1; // if the image is small, not much point in doing interlacing
@@ -1173,7 +1173,7 @@ int main(int argc, char **argv)
           if (nb_pixels < 5000) learn_repeats--;        // avoid large trees for small images
           if (learn_repeats < 0) learn_repeats=0;
         }
-        encode(argv[1], image, desc, method, learn_repeats);
+        encode(argv[1], image, desc, method, learn_repeats, acb);
   } else {
         if (!decode(argv[0], image, quality, scale)) return 3;
 //        printf("Saving decoded output to '%s'\n",argv[1]);
