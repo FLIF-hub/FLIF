@@ -1145,7 +1145,7 @@ int main(int argc, char **argv)
 	{0, 0, 0, 0}
     };
     int i,c;
-    while ((c = getopt_long (argc, argv, "hedvinabq:s:r:", optlist, &i)) != -1) {
+    while ((c = getopt_long (argc, argv, "hedvinabq:s:r:f:", optlist, &i)) != -1) {
 	switch (c) {
 	case 'e': mode=0; break;
 	case 'd': mode=1; break;
