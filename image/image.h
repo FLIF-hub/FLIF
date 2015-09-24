@@ -46,6 +46,7 @@ protected:
     int depth;
 
 public:
+    bool palette;
     Image(uint32_t width, uint32_t height, ColorVal min, ColorVal max, int planes) {
         init(width, height, min, max, planes);
     }
@@ -60,6 +61,7 @@ public:
       maxval = max;
       num = p;
       if (max < 256) depth=8; else depth=16;
+      palette=false;
       assert(min == 0);
       assert(max < (1<<depth));
       assert(p <= 4);
@@ -203,5 +205,7 @@ public:
     }
 
 };
+
+typedef std::vector<Image>    Images;
 
 #endif

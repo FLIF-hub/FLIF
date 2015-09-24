@@ -30,7 +30,7 @@ class TransformBounds : public Transform {
 protected:
     std::vector<std::pair<ColorVal, ColorVal> > bounds;
 
-    const ColorRanges *meta(Image& image, const ColorRanges *srcRanges) {
+    const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) {
         if (srcRanges->isStatic()) {
             return new StaticColorRanges(bounds);
         } else {
@@ -64,12 +64,13 @@ protected:
         }
     }
 
-    bool process(const ColorRanges *srcRanges, const Image &image) {
+    bool process(const ColorRanges *srcRanges, const Images &images) {
         bounds.clear();
         bool trivialbounds=true;
         for (int p=0; p<srcRanges->numPlanes(); p++) {
             ColorVal min = srcRanges->max(p);
             ColorVal max = srcRanges->min(p);
+            for (const Image& image : images)
             for (uint32_t r=0; r<image.rows(); r++) {
                 for (uint32_t c=0; c<image.cols(); c++) {
                     ColorVal v = image(p,r,c);

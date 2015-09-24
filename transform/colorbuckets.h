@@ -313,7 +313,6 @@ protected:
     bool init(const ColorRanges *srcRanges) {
         if(srcRanges->numPlanes() < 3) return false;
         if (srcRanges->min(1) == 0 && srcRanges->max(1) == 0 && srcRanges->min(2) == 0 && srcRanges->max(2) == 0) return false; // probably palette image
-        if(srcRanges->max(0) > 255) return false; // TODO: implement color buckets for such images... now it is way too slow
         if (srcRanges->min(0) == srcRanges->max(0) &&
             srcRanges->min(1) == srcRanges->max(1) &&
             srcRanges->min(2) == srcRanges->max(2)) return false; // only alpha plane contains information
@@ -494,9 +493,10 @@ protected:
         }
     }
 
-    bool process(const ColorRanges *srcRanges, const Image &image) {
-            std::vector<ColorVal> pixel(image.numPlanes());
+    bool process(const ColorRanges *srcRanges, const Images &images) {
+            std::vector<ColorVal> pixel(images[0].numPlanes());
             // fill buckets
+            for (const Image& image : images)
             for (uint32_t r=0; r<image.rows(); r++) {
                 for (uint32_t c=0; c<image.cols(); c++) {
 //                  pixel.clear();

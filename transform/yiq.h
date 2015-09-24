@@ -79,13 +79,12 @@ ColorVal static inline get_max_q(int par, ColorVal y, ColorVal i) {
 class ColorRangesYIQ : public ColorRanges
 {
 protected:
-    const Image *image;
 //    const int par=64; // range: [0..4*par-1]
     int par;
     const ColorRanges *ranges;
 public:
-    ColorRangesYIQ(Image &imageIn, int parIn, const ColorRanges *rangesIn)
-            : image(&imageIn), par(parIn), ranges(rangesIn) {
+    ColorRangesYIQ(int parIn, const ColorRanges *rangesIn)
+            : par(parIn), ranges(rangesIn) {
     //        if (parIn != par) printf("OOPS: using YIQ transform on something other than rgb888 ?\n");
     }
     bool isStatic() const { return false; }
@@ -121,12 +120,13 @@ public:
         return true;
     }
 
-    const ColorRanges *meta(Image& image, const ColorRanges *srcRanges) {
-        return new ColorRangesYIQ(image, par, srcRanges);
+    const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) {
+        return new ColorRangesYIQ(par, srcRanges);
     }
 
-    void data(Image& image) const {
+    void data(Images& images) const {
 //        printf("TransformYIQ::data: par=%i\n", par);
+        for (Image& image : images)
         for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
                 int R=image(0,r,c), G=image(1,r,c), B=image(2,r,c);
@@ -142,7 +142,8 @@ public:
         }
     }
 
-    void invData(Image& image) const {
+    void invData(Images& images) const {
+        for (Image& image : images)
         for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
                 int Y=image(0,r,c), I=image(1,r,c), Q=image(2,r,c);

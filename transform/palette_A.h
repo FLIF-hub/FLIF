@@ -50,11 +50,13 @@ public:
         return true;
     }
 
-    const ColorRanges *meta(Image& image, const ColorRanges *srcRanges) {
+    const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) {
+        for (Image& image : images) image.palette=true;
         return new ColorRangesPaletteA(srcRanges, Palette_vector.size());
     }
 
-    bool process(const ColorRanges *srcRanges, const Image &image) {
+    bool process(const ColorRanges *srcRanges, const Images &images) {
+        for (const Image& image : images)
         for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
                 int Y=image(0,r,c), I=image(1,r,c), Q=image(2,r,c), A=image(3,r,c);
@@ -67,9 +69,10 @@ public:
 //        printf("Palette size: %lu\n",Palette.size());
         return true;
     }
-    void data(Image& image) const {
+    void data(Images& images) const {
 //        printf("TransformPalette::data\n");
-        for (uint32_t r=0; r<image.rows(); r++) {
+        for (Image& image : images) {
+          for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
                 Color C(image(3,r,c), image(0,r,c), image(1,r,c), image(2,r,c));
                 if (std::get<0>(C) == 0) { std::get<1>(C) = std::get<2>(C) = std::get<3>(C) = 0; }
@@ -80,10 +83,12 @@ public:
                 image.set(2,r,c, 0);
                 image.set(3,r,c, 1);
             }
+          }
         }
     }
-    void invData(Image& image) const {
-        for (uint32_t r=0; r<image.rows(); r++) {
+    void invData(Images& images) const {
+        for (Image& image : images) {
+          for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
                 int P=image(0,r,c);
                 image.set(0,r,c, std::get<1>(Palette_vector[P]));
@@ -91,6 +96,8 @@ public:
                 image.set(2,r,c, std::get<3>(Palette_vector[P]));
                 image.set(3,r,c, std::get<0>(Palette_vector[P]));
             }
+          }
+          image.palette=false;
         }
     }
     void save(const ColorRanges *srcRanges, RacOut &rac) const {
