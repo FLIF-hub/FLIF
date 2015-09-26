@@ -7,6 +7,7 @@
 #include "colorbuckets.h"
 #include "palette.h"
 #include "palette_A.h"
+#include "frameshape.h"
 
 Transform *create_transform(std::string desc)
 {
@@ -20,5 +21,7 @@ Transform *create_transform(std::string desc)
         return new TransformPalette();
     if (desc == "PLA")
         return new TransformPaletteA();
+    if (desc == "FRS")
+        return new TransformFrameShape();
     return NULL;
 }

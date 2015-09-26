@@ -47,6 +47,8 @@ protected:
 
 public:
     bool palette;
+    std::vector<uint32_t> col_begin;
+    std::vector<uint32_t> col_end;
     Image(uint32_t width, uint32_t height, ColorVal min, ColorVal max, int planes) {
         init(width, height, min, max, planes);
     }
@@ -59,6 +61,10 @@ public:
       height = h;
       minval = min;
       maxval = max;
+      col_begin.clear();
+      col_begin.resize(height,0);
+      col_end.clear();
+      col_end.resize(height,width);
       num = p;
       if (max < 256) depth=8; else depth=16;
       palette=false;
