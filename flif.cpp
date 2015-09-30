@@ -1186,7 +1186,7 @@ void show_help() {
     printf("   Input images should be PNG or PNM (PPM,PGM,PBM) files.\n");
     printf("   Multiple input images (for animated FLIF) must have the same dimensions.\n");
     printf("   -f, --frame-delay=D  delay between animation frames, in ms (default: D=100)\n");
-    printf("   -l, --lookback=L     max lookback between frames (default: L=nb_frames-1)\n");
+    printf("   -l, --lookback=L     max lookback between frames (default: L=1)\n");
     printf("Decode options:\n");
     printf("   -q, --quality=Q      lossy decode quality at Q percent (0..100)\n");
     printf("   -s, --scale=S        lossy downscaled image at scale 1:S (2,4,8,16)\n");
@@ -1220,7 +1220,7 @@ int main(int argc, char **argv)
     int scale = 1;
     int frame_delay = 100;
     int palette_size = 512;
-    int lookback = -1;
+    int lookback = 1;
     if (strcmp(argv[0],"flif") == 0) mode = 0;
     if (strcmp(argv[0],"dflif") == 0) mode = 1;
     if (strcmp(argv[0],"deflif") == 0) mode = 1;
