@@ -15,9 +15,10 @@ public:
     ColorRangesBounds(const std::vector<std::pair<ColorVal, ColorVal> > &boundsIn, const ColorRanges *rangesIn) : bounds(boundsIn), ranges(rangesIn) {}
     bool isStatic() const { return false; }
     int numPlanes() const { return bounds.size(); }
-    ColorVal min(int p) const { return std::max(ranges->min(p), bounds[p].first); }
-    ColorVal max(int p) const { return std::min(ranges->max(p), bounds[p].second); }
+    ColorVal min(int p) const { assert(p<numPlanes()); return std::max(ranges->min(p), bounds[p].first); }
+    ColorVal max(int p) const { assert(p<numPlanes()); return std::min(ranges->max(p), bounds[p].second); }
     void minmax(const int p, const prevPlanes &pp, ColorVal &min, ColorVal &max) const {
+        assert(p<numPlanes());
         if (p==0) { min=bounds[p].first; max=bounds[p].second; return; } // optimization for special case
         ranges->minmax(p, pp, min, max);
         if (min < bounds[p].first) min=bounds[p].first;

@@ -8,6 +8,8 @@
 #include "palette.h"
 #include "palette_A.h"
 #include "frameshape.h"
+#include "framedup.h"
+#include "framecombine.h"
 
 Transform *create_transform(std::string desc)
 {
@@ -23,5 +25,9 @@ Transform *create_transform(std::string desc)
         return new TransformPaletteA();
     if (desc == "FRS")
         return new TransformFrameShape();
+    if (desc == "DUP")
+        return new TransformFrameDup();
+    if (desc == "FRA")
+        return new TransformFrameCombine();
     return NULL;
 }

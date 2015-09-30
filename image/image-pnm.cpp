@@ -92,7 +92,7 @@ bool image_save_pnm(const char *filename, const Image& image)
     }
 
     if (image.numPlanes() >= 3) {
-        if (image.numPlanes() == 4) v_printf(1,"WARNING: image has alpha channel, saving to flat PPM! Save to .PNG if you want to keep the alpha channel!\n");
+        if (image.numPlanes() == 4 && image.uses_alpha()) v_printf(1,"WARNING: image has alpha channel, saving to flat PPM! Save to .PNG if you want to keep the alpha channel!\n");
         ColorVal max = image.max(0);
 
         if (max > 0xffff) {

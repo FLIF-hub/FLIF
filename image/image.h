@@ -10,9 +10,9 @@
 
 typedef int32_t ColorVal;  // used in computations
 
-typedef uint8_t ColorVal_intern_8; // used in representations
-typedef uint16_t ColorVal_intern_16; // used in representations
-typedef int32_t ColorVal_intern_32; // used in representations
+typedef int16_t ColorVal_intern_8;   // used in representations
+typedef int32_t ColorVal_intern_16;  // making them signed and a large enough for big palettes and negative alpha values for frame combination
+typedef int32_t ColorVal_intern_32;
 
 
 template <typename pixel_t> class Plane {
@@ -49,12 +49,12 @@ public:
     bool palette;
     std::vector<uint32_t> col_begin;
     std::vector<uint32_t> col_end;
+    int seen_before;
     Image(uint32_t width, uint32_t height, ColorVal min, ColorVal max, int planes) {
         init(width, height, min, max, planes);
     }
 
     Image() {
-        reset();
     }
     void init(uint32_t w, uint32_t h, ColorVal min, ColorVal max, int p) {
       width = w;
@@ -66,6 +66,7 @@ public:
       col_end.clear();
       col_end.resize(height,width);
       num = p;
+      seen_before = -1;
       if (max < 256) depth=8; else depth=16;
       palette=false;
       assert(min == 0);
@@ -88,7 +89,65 @@ public:
 
 
     void reset() {
+        if (plane_8_1) delete plane_8_1;
+        if (plane_8_2) delete plane_8_2;
+        if (plane_16_1) delete plane_16_1;
+        if (plane_16_2) delete plane_16_2;
+        if (plane_32_1) delete plane_32_1;
+        if (plane_32_2) delete plane_32_2;
         init(0,0,0,0,0);
+    }
+    bool uses_alpha() const {
+        if (num<4) return false;
+        for (uint32_t r=0; r<height; r++)
+           for (uint32_t c=0; c<width; c++)
+              if (operator()(3,r,c) < (1<<depth)-1) return true;
+        return false; // alpha plane is completely opaque, so it is useless
+    }
+    void drop_alpha() {
+        if (num<4) return;
+        assert(num==4);
+        if (depth <= 8) {
+                if (plane_8_2) delete plane_8_2;
+        } else {
+                if (plane_16_2) delete plane_16_2;
+        }
+        num=3;
+    }
+    void ensure_alpha() {
+        switch(num) {
+            case 1:
+              if (depth <= 8) {
+                plane_16_1 = new Plane<ColorVal_intern_16>(width, height); // G,I
+                plane_16_2 = new Plane<ColorVal_intern_16>(width, height); // B,Q
+              } else {
+                plane_32_1 = new Plane<ColorVal_intern_32>(width, height); // G,I
+                plane_32_2 = new Plane<ColorVal_intern_32>(width, height); // B,Q
+              }
+              for (uint32_t r=0; r<height; r++) {
+               for (uint32_t c=0; c<width; c++) {
+//                 set(1,r,c, operator()(0,r,c));
+//                 set(2,r,c, operator()(0,r,c));
+                 set(1,r,c, (1<<depth)-1); // I=0
+                 set(2,r,c, (1<<depth)-1); // Q=0
+               }
+              }
+            case 3:
+              if (depth <= 8) {
+                plane_8_2 = new Plane<ColorVal_intern_8>(width, height); // A
+              } else {
+                plane_16_2 = new Plane<ColorVal_intern_16>(width, height); // A
+              }
+              num=4;
+              for (uint32_t r=0; r<height; r++) {
+               for (uint32_t c=0; c<width; c++) {
+                 set(3,r,c, 1); //(1<<depth)-1);
+               }
+              }
+            case 4: // nothing to be done, we already have an alpha channel
+              break;
+            default: fprintf(stderr,"OOPS: ensure_alpha() problem");
+        }
     }
 
     bool load(const char *name);
@@ -207,6 +266,7 @@ public:
               }
             }
           }
+//          printf("Computed checksum: %X\n", (~crc & 0xFFFFFFFF));
           return (~crc & 0xFFFFFFFF);
     }
 

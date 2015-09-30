@@ -17,8 +17,9 @@ protected:
 
     const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) {
         uint32_t pos=0;
-        for (unsigned int fr=0; fr<images.size(); fr++) {
+        for (unsigned int fr=1; fr<images.size(); fr++) {
             Image& image = images[fr];
+            if (image.seen_before >= 0) continue;
             for (uint32_t r=0; r<image.rows(); r++) {
                assert(pos<nb);
                image.col_begin[r] = b[pos];
@@ -33,24 +34,28 @@ protected:
 
     void load(const ColorRanges *srcRanges, RacIn &rac) {
         SimpleSymbolCoder<FLIFBitChanceMeta, RacIn, 24> coder(rac);
-        for (unsigned int i=0; i<nb; i++) b.push_back(coder.read_int(0,cols));
-        for (unsigned int i=0; i<nb; i++) e.push_back(cols-coder.read_int(0,cols-b[i]));
+        for (unsigned int i=0; i<nb; i+=1) {b.push_back(coder.read_int(0,cols));}
+        for (unsigned int i=0; i<nb; i+=1) {e.push_back(cols-coder.read_int(0,cols-b[i]));}
+//        for (unsigned int i=0; i<nb; i+=1) {e.push_back(coder.read_int(b[i],cols));}
     }
 
     void save(const ColorRanges *srcRanges, RacOut &rac) const {
         SimpleSymbolCoder<FLIFBitChanceMeta, RacOut, 24> coder(rac);
         assert(nb == b.size());
         assert(nb == e.size());
-        for (unsigned int i=0; i<b.size(); i++) coder.write_int(0,cols,b[i]);
-        for (unsigned int i=0; i<e.size(); i++) coder.write_int(0,cols-b[i],cols-e[i]);
+        for (unsigned int i=0; i<nb; i+=1) { coder.write_int(0,cols,b[i]); }
+        for (unsigned int i=0; i<nb; i+=1) { coder.write_int(0,cols-b[i],cols-e[i]); }
+//        for (unsigned int i=0; i<nb; i+=1) { coder.write_int(b[i],cols,e[i]); }
     }
 
     bool process(const ColorRanges *srcRanges, const Images &images) {
         int np=srcRanges->numPlanes();
-        nb = images.size() * images[0].rows();
+        nb = 0;
         cols = images[0].cols();
-        for (unsigned int fr=0; fr<images.size(); fr++) {
+        for (unsigned int fr=1; fr<images.size(); fr++) {
             const Image& image = images[fr];
+            if (image.seen_before >= 0) continue;
+            nb += image.rows();
             for (uint32_t r=0; r<image.rows(); r++) {
                 bool beginfound=false;
                 for (uint32_t c=0; c<image.cols(); c++) {
@@ -72,6 +77,11 @@ protected:
                 if (!endfound) {e.push_back(0); continue;} //shouldn't happen, right?
             }
         }
+        /* does not seem to do much good at all
+        if (nb&1) {b.push_back(b[nb-1]); e.push_back(e[nb-1]);}
+        for (unsigned int i=0; i<nb; i+=2) { b[i]=b[i+1]=std::min(b[i],b[i+1]); }
+        for (unsigned int i=0; i<nb; i+=2) { e[i]=e[i+1]=std::max(e[i],e[i+1]); }
+        */
         return true;
     }
 };

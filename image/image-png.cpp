@@ -177,11 +177,12 @@ int image_save_png(const char *filename, const Image &image) {
 
   png_init_io(png_ptr,fp);
 
-  png_set_filter(png_ptr,0,PNG_FILTER_PAETH);
-  png_set_compression_level(png_ptr,Z_BEST_COMPRESSION);
+//  png_set_filter(png_ptr,0,PNG_FILTER_PAETH);
+//  png_set_compression_level(png_ptr,Z_BEST_COMPRESSION);
 
   int colortype=PNG_COLOR_TYPE_RGB;
   int nbplanes = image.numPlanes();
+  if (nbplanes == 4 && !image.uses_alpha()) nbplanes=3;
   if (nbplanes == 4) colortype=PNG_COLOR_TYPE_RGB_ALPHA;
   if (nbplanes == 1) colortype=PNG_COLOR_TYPE_GRAY;
   int bit_depth = 8, bytes_per_value=1;

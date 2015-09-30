@@ -21,12 +21,6 @@ public:
         if(v>maxv) v=maxv;
         if(v<minv) v=minv;
     }
-    virtual ColorVal reconstruct(const int p, const prevPlanes &pp, ColorVal v) const {
-        return v;
-    }
-    virtual ColorVal position(const int p, const prevPlanes &pp, ColorVal v) const {
-        return v;
-    }
     virtual bool isStatic() const { return true; }
 };
 
@@ -40,8 +34,8 @@ protected:
 public:
     StaticColorRanges(StaticColorRangeList ranges) { this->ranges = ranges; }
     int numPlanes() const { return ranges.size(); }
-    ColorVal min(int p) const { return ranges[p].first; }
-    ColorVal max(int p) const { return ranges[p].second; }
+    ColorVal min(int p) const { assert(p<numPlanes()); return ranges[p].first; }
+    ColorVal max(int p) const { assert(p<numPlanes()); return ranges[p].second; }
 };
 
 const ColorRanges *getRanges(const Image &image);

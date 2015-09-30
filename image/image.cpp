@@ -11,7 +11,7 @@ bool Image::load(const char *filename)
 {
     const char *f = strrchr(filename,'/');
     const char *ext = f ? strrchr(f,'.') : strrchr(filename,'.');
-    v_printf(2,"Loading input file: %s\n",filename);
+    v_printf(2,"Loading input file: %s  ",filename);
     if (ext && !strcasecmp(ext,".png")) {
         return !image_load_png(filename,*this);
     }
@@ -36,7 +36,7 @@ bool Image::save(const char *filename) const
 {
     const char *f = strrchr(filename,'/');
     const char *ext = f ? strrchr(f,'.') : strrchr(filename,'.');
-    v_printf(2,"Saving output file: %s\n",filename);
+    v_printf(2,"Saving output file: %s  ",filename);
     if (ext && !strcasecmp(ext,".png")) {
         return !image_save_png(filename,*this);
     }

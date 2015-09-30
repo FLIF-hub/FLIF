@@ -60,7 +60,7 @@ typedef MultiscaleBitChance<6,SimpleBitChance>  FLIFBitChanceTree;
 
 
 #define MAX_TRANSFORM 8
-const std::vector<std::string> transforms = {"YIQ","BND","ACB","PLT","PLA","FRS","???","???","???"};
+const std::vector<std::string> transforms = {"YIQ","BND","ACB","PLT","PLA","FRS","DUP","FRA","???"};
 template<typename RAC> void static write_name(RAC& rac, std::string desc)
 {
     int nb=0;
@@ -176,13 +176,16 @@ template<typename Coder> void encode_scanlines_inner(std::vector<Coder*> &coders
         pixels_done += images[0].cols()*images[0].rows();
         if (ranges->min(p) >= ranges->max(p)) continue;
         for (uint32_t r = 0; r < images[0].rows(); r++) {
-            for (unsigned int fr=0; fr<images.size(); fr++) {
+            for (int fr=0; fr< (int)images.size(); fr++) {
               const Image& image = images[fr];
+              if (image.seen_before >= 0) continue;
               uint32_t begin=image.col_begin[r], end=image.col_end[r];
               for (uint32_t c = begin; c < end; c++) {
-                if (nump>3 && p<3 && image(3,r,c) == 0) continue;
+                if (nump>3 && p<3 && image(3,r,c) <= 0) continue;
                 ColorVal guess = predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max);
                 ColorVal curr = image(p,r,c);
+                assert(p != 3 || curr >= -fr);
+                if (p==3 && min < -fr) min = -fr;
                 coders[p]->write_int(properties, min - guess, max - guess, curr - guess);
               }
             }
@@ -261,26 +264,34 @@ template<typename Coder> void decode_scanlines_inner(std::vector<Coder*> &coders
         pixels_done += images[0].cols()*images[0].rows();
         if (ranges->min(p) >= ranges->max(p)) continue;
         for (uint32_t r = 0; r < images[0].rows(); r++) {
-            for (unsigned int fr=0; fr<images.size(); fr++) {
+            for (int fr=0; fr< (int)images.size(); fr++) {
               Image& image = images[fr];
               uint32_t begin=image.col_begin[r], end=image.col_end[r];
+              if (image.seen_before >= 0) { for(uint32_t c=0; c<image.cols(); c++) image.set(p,r,c,images[image.seen_before](p,r,c)); continue; }
               if (fr>0) {
                 for (uint32_t c = 0; c < begin; c++)
                    if (nump>3 && p<3 && image(3,r,c) == 0) image.set(p,r,c,predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max));
-                   else image.set(p,r,c,images[fr-1](p,r,c));
+                   else {
+                     int oldframe=fr-1;  image.set(p,r,c,images[oldframe](p,r,c));
+                     while(p == 3 && image(p,r,c) < 0) {oldframe += image(p,r,c); assert(oldframe>=0); image.set(p,r,c,images[oldframe](p,r,c));}
+                   }
               } else {
                 if (nump>3 && p<3) { begin=0; end=image.cols(); }
               }
               for (uint32_t c = begin; c < end; c++) {
                 ColorVal guess = predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max);
-                if (nump>3 && p<3 && image(3,r,c) == 0) { image.set(p,r,c,guess); continue;}
+                if (p==3 && min < -fr) min = -fr;
+                if (nump>3 && p<3 && image(3,r,c) <= 0) { if (image(3,r,c) == 0) image.set(p,r,c,guess); else image.set(p,r,c,images[fr+image(3,r,c)](p,r,c)); continue;}
                 ColorVal curr = coders[p]->read_int(properties, min - guess, max - guess) + guess;
                 image.set(p,r,c, curr);
               }
               if (fr>0) {
                 for (uint32_t c = end; c < image.cols(); c++)
                    if (nump>3 && p<3 && image(3,r,c) == 0) image.set(p,r,c,predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max));
-                   else image.set(p,r,c,images[fr-1](p,r,c));
+                   else {
+                     int oldframe=fr-1;  image.set(p,r,c,images[oldframe](p,r,c));
+                     while(p == 3 && image(p,r,c) < 0) {oldframe += image(p,r,c); assert(oldframe>=0); image.set(p,r,c,images[oldframe](p,r,c));}
+                   }
               }
             }
         }
@@ -476,14 +487,16 @@ template<typename Coder> void encode_FLIF2_inner(std::vector<Coder*> &coders, co
       if (z % 2 == 0) {
         // horizontal: scan the odd rows, output pixel values
           for (uint32_t r = 1; r < images[0].rows(z); r += 2) {
-            for (unsigned int fr=0; fr<images.size(); fr++) {
+            for (int fr=0; fr<(int)images.size(); fr++) {
               const Image& image = images[fr];
+              if (image.seen_before >= 0) { continue; }
               uint32_t begin=(image.col_begin[r*image.zoom_rowpixelsize(z)]/image.zoom_colpixelsize(z)),
                          end=(1+(image.col_end[r*image.zoom_rowpixelsize(z)]-1)/image.zoom_colpixelsize(z));
               for (uint32_t c = begin; c < end; c++) {
-                    if (nump>3 && p<3 && image(3,z,r,c) == 0) continue;
+                    if (nump>3 && p<3 && image(3,z,r,c) <= 0) continue;
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
                     ColorVal curr = image(p,z,r,c);
+                    if (p==3 && min < -fr) min = -fr;
                     assert (curr <= max); assert (curr >= min);
                     coders[p]->write_int(properties, min - guess, max - guess, curr - guess);
               }
@@ -492,16 +505,18 @@ template<typename Coder> void encode_FLIF2_inner(std::vector<Coder*> &coders, co
       } else {
         // vertical: scan the odd columns
           for (uint32_t r = 0; r < images[0].rows(z); r++) {
-            for (unsigned int fr=0; fr<images.size(); fr++) {
+            for (int fr=0; fr<(int)images.size(); fr++) {
               const Image& image = images[fr];
+              if (image.seen_before >= 0) { continue; }
               uint32_t begin=(image.col_begin[r*image.zoom_rowpixelsize(z)]/image.zoom_colpixelsize(z)),
                          end=(1+(image.col_end[r*image.zoom_rowpixelsize(z)]-1)/image.zoom_colpixelsize(z))|1;
               if (begin>1 && ((begin&1) ==0)) begin--;
               if (begin==0) begin=1;
               for (uint32_t c = begin; c < end; c+=2) {
-                    if (nump>3 && p<3 && image(3,z,r,c) == 0) continue;
+                    if (nump>3 && p<3 && image(3,z,r,c) <= 0) continue;
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
                     ColorVal curr = image(p,z,r,c);
+                    if (p==3 && min < -fr) min = -fr;
                     assert (curr <= max); assert (curr >= min);
                     coders[p]->write_int(properties, min - guess, max - guess, curr - guess);
               }
@@ -658,18 +673,26 @@ template<typename Coder> void decode_FLIF2_inner(std::vector<Coder*> &coders, Im
               return;
             }
 #endif
-            for (unsigned int fr=0; fr<images.size(); fr++) {
+            for (int fr=0; fr<(int)images.size(); fr++) {
               Image& image = images[fr];
+              if (image.seen_before >= 0) { for (uint32_t c=0; c<image.cols(z); c++) image.set(p,z,r,c,images[image.seen_before](p,z,r,c)); continue; }
               uint32_t begin=image.col_begin[r*image.zoom_rowpixelsize(z)]/image.zoom_colpixelsize(z), end=1+(image.col_end[r*image.zoom_rowpixelsize(z)]-1)/image.zoom_colpixelsize(z);
               if (fr>0) {
-                for (uint32_t c = 0; c < begin; c++) if (nump>3 && p<3 && image(3,z,r,c) == 0) image.set(p,z,r,c, predict(image,z,p,r,c)); else image.set(p,z,r,c,images[fr-1](p,z,r,c));
-                for (uint32_t c = end; c < image.cols(z); c++) if (nump>3 && p<3 && image(3,z,r,c) == 0) image.set(p,z,r,c, predict(image,z,p,r,c)); else image.set(p,z,r,c,images[fr-1](p,z,r,c));
+                for (uint32_t c = 0; c < begin; c++)
+                            if (nump>3 && p<3 && image(3,z,r,c) == 0) image.set(p,z,r,c, predict(image,z,p,r,c));
+                            else { int oldframe=fr-1;  image.set(p,z,r,c,images[oldframe](p,z,r,c));
+                                   while(p == 3 && image(p,z,r,c) < 0) {oldframe += image(p,z,r,c); assert(oldframe>=0); image.set(p,z,r,c,images[oldframe](p,z,r,c));}}
+                for (uint32_t c = end; c < image.cols(z); c++)
+                            if (nump>3 && p<3 && image(3,z,r,c) == 0) image.set(p,z,r,c, predict(image,z,p,r,c));
+                            else { int oldframe=fr-1;  image.set(p,z,r,c,images[oldframe](p,z,r,c));
+                                   while(p == 3 && image(p,z,r,c) < 0) {oldframe += image(p,z,r,c); assert(oldframe>=0); image.set(p,z,r,c,images[oldframe](p,z,r,c));}}
               } else {
                 if (nump>3 && p<3) { begin=0; end=image.cols(z); }
               }
               for (uint32_t c = begin; c < end; c++) {
-                     if (nump>3 && p<3 && image(3,z,r,c) == 0) {image.set(p,z,r,c, predict(image,z,p,r,c)); continue;}
+                     if (nump>3 && p<3 && image(3,z,r,c) <= 0) { if (image(3,z,r,c) == 0) image.set(p,z,r,c,predict(image,z,p,r,c)); else image.set(p,z,r,c,images[fr+image(3,z,r,c)](p,z,r,c)); continue;}
                      ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
+                     if (p==3 && min < -fr) min = -fr;
                      curr = coders[p]->read_int(properties, min - guess, max - guess) + guess;
                      image.set(p,z,r,c, curr);
               }
@@ -684,25 +707,29 @@ template<typename Coder> void decode_FLIF2_inner(std::vector<Coder*> &coders, Im
               return;
             }
 #endif
-            for (unsigned int fr=0; fr<images.size(); fr++) {
+            for (int fr=0; fr<(int)images.size(); fr++) {
               Image& image = images[fr];
+              if (image.seen_before >= 0) { for (uint32_t c=1; c<image.cols(z); c+=2) image.set(p,z,r,c,images[image.seen_before](p,z,r,c)); continue; }
               uint32_t begin=(image.col_begin[r*image.zoom_rowpixelsize(z)]/image.zoom_colpixelsize(z)),
               end=(1+(image.col_end[r*image.zoom_rowpixelsize(z)]-1)/image.zoom_colpixelsize(z))|1;
               if (begin>1 && ((begin&1) ==0)) begin--;
               if (begin==0) begin=1;
               if (fr>0) {
-                for (uint32_t c = 1; c < begin; c+=2) {
+                for (uint32_t c = 1; c < begin; c+=2)
                      if (nump>3 && p<3 && image(3,z,r,c) == 0) image.set(p,z,r,c, predict(image,z,p,r,c));
-                     else image.set(p,z,r,c,images[fr-1](p,z,r,c)); }
-                for (uint32_t c = end; c < image.cols(z); c+=2) {
+                     else { int oldframe=fr-1;  image.set(p,z,r,c,images[oldframe](p,z,r,c));
+                            while(p == 3 && image(p,z,r,c) < 0) {oldframe += image(p,z,r,c); assert(oldframe>=0); image.set(p,z,r,c,images[oldframe](p,z,r,c));}}
+                for (uint32_t c = end; c < image.cols(z); c+=2)
                      if (nump>3 && p<3 && image(3,z,r,c) == 0) image.set(p,z,r,c, predict(image,z,p,r,c));
-                     else image.set(p,z,r,c,images[fr-1](p,z,r,c)); }
+                     else { int oldframe=fr-1;  image.set(p,z,r,c,images[oldframe](p,z,r,c));
+                            while(p == 3 && image(p,z,r,c) < 0) {oldframe += image(p,z,r,c); assert(oldframe>=0); image.set(p,z,r,c,images[oldframe](p,z,r,c));}}
               } else {
                 if (nump>3 && p<3) { begin=1; end=image.cols(z); }
               }
               for (uint32_t c = begin; c < end; c+=2) {
-                     if (nump>3 && p<3 && image(3,z,r,c) == 0) {image.set(p,z,r,c, predict(image,z,p,r,c)); continue;}
+                     if (nump>3 && p<3 && image(3,z,r,c) <= 0) { if (image(3,z,r,c) == 0) image.set(p,z,r,c,predict(image,z,p,r,c)); else image.set(p,z,r,c,images[fr+image(3,z,r,c)](p,z,r,c)); continue;}
                      ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
+                     if (p==3 && min < -fr) min = -fr;
                      curr = coders[p]->read_int(properties, min - guess, max - guess) + guess;
                      image.set(p,z,r,c, curr);
               }
@@ -772,8 +799,7 @@ template<typename BitChance, typename Rac> void decode_tree(Rac &rac, const Colo
 }
 
 
-bool encode(const char* filename, Images &images, std::vector<std::string> transDesc, int encoding, int learn_repeats, int acb, int frame_delay)
-{
+bool encode(const char* filename, Images &images, std::vector<std::string> transDesc, int encoding, int learn_repeats, int acb, int frame_delay, int palette_size, int lookback) {
     if (encoding < 1 || encoding > 2) { fprintf(stderr,"Unknown encoding: %i\n", encoding); return false;}
     f = fopen(filename,"w");
     fputs("FLIF",f);
@@ -834,6 +860,8 @@ bool encode(const char* filename, Images &images, std::vector<std::string> trans
     v_printf(4,"Transforms: ");
     for (unsigned int i=0; i<transDesc.size(); i++) {
         Transform *trans = create_transform(transDesc[i]);
+        if (transDesc[i] == "PLT" || transDesc[i] == "PLA") trans->configure(palette_size);
+        if (transDesc[i] == "FRA") trans->configure(lookback);
         if (!trans->init(rangesList.back()) || 
             (!trans->process(rangesList.back(), images)
               && !(acb==1 && transDesc[i] == "ACB" && printf(", forced_") && (tcount=0)==0))) {
@@ -856,6 +884,10 @@ bool encode(const char* filename, Images &images, std::vector<std::string> trans
     grey.clear();
     for (int p = 0; p < ranges->numPlanes(); p++) grey.push_back((ranges->min(p)+ranges->max(p))/2);
 
+    for (int p = 0; p < ranges->numPlanes(); p++) {
+      v_printf(7,"Plane %i: %i..%i\n",p,ranges->min(p),ranges->max(p));
+    }
+
     int mbits = 0;
     for (int p = 0; p < ranges->numPlanes(); p++) {
         if (ranges->max(p) > ranges->min(p)) {
@@ -867,7 +899,7 @@ bool encode(const char* filename, Images &images, std::vector<std::string> trans
     if (mbits >10) bits=18;
     if (mbits > bits) { printf("OOPS: %i > %i\n",mbits,bits); return false;}
 
-    pixels_todo = image.rows()*image.cols()*image.numPlanes()*(learn_repeats+1);
+    pixels_todo = image.rows()*image.cols()*ranges->numPlanes()*(learn_repeats+1);
 
     // two passes
     std::vector<Tree> forest(ranges->numPlanes(), Tree());
@@ -977,7 +1009,6 @@ bool decode(const char* filename, Images &images, int quality, int scale)
     width += fgetc(f);
     int height=fgetc(f) << 8;
     height += fgetc(f);
-    pixels_todo = width*height*numPlanes/scale/scale;
     // TODO: implement downscaled decoding without allocating a fullscale image buffer!
 
     RacIn rac(f);
@@ -1030,7 +1061,11 @@ bool decode(const char* filename, Images &images, int quality, int scale)
         }
         if (tcount++ > 0) v_printf(4,", ");
         v_printf(4,"%s", desc.c_str());
-        if (desc == "FRS") { trans->configure(images.size()*images[0].rows()); trans->configure(images[0].cols()); }
+        if (desc == "FRS") {
+                int unique_frames=images.size()-1; // not considering first frame
+                for (Image& i : images) if (i.seen_before >= 0) unique_frames--;
+                trans->configure(unique_frames*images[0].rows()); trans->configure(images[0].cols()); }
+        if (desc == "DUP") { trans->configure(images.size()); }
         trans->load(rangesList.back(), rac);
         rangesList.push_back(trans->meta(images, rangesList.back()));
         transforms.push_back(trans);
@@ -1040,7 +1075,13 @@ bool decode(const char* filename, Images &images, int quality, int scale)
     grey.clear();
     for (int p = 0; p < ranges->numPlanes(); p++) grey.push_back((ranges->min(p)+ranges->max(p))/2);
 
-    for (int p = 0; p < numPlanes; p++) {
+    pixels_todo = width*height*ranges->numPlanes()/scale/scale;
+
+    for (int p = 0; p < ranges->numPlanes(); p++) {
+      v_printf(7,"Plane %i: %i..%i\n",p,ranges->min(p),ranges->max(p));
+    }
+
+    for (int p = 0; p < ranges->numPlanes(); p++) {
         if (ranges->min(p) >= ranges->max(p)) {
              v_printf(4,"Constant plane %i at color value %i\n",p,ranges->min(p));
              //for (ColorVal_intern& x : image(p).data) x=ranges->min(p);
@@ -1100,11 +1141,11 @@ bool decode(const char* filename, Images &images, int quality, int scale)
 
     if (quality==100 && scale==1) {
       uint32_t checksum = images[0].checksum();
-//      v_printf(2,"Computed checksum: %X\n", checksum);
+      v_printf(8,"Computed checksum: %X\n", checksum);
       uint32_t checksum2 = metaCoder.read_int(0, 0xFFFF);
       checksum2 *= 0x10000;
       checksum2 += metaCoder.read_int(0, 0xFFFF);
-//      v_printf(2,"Read checksum: %X\n", checksum2);
+      v_printf(8,"Read checksum: %X\n", checksum2);
       if (checksum != checksum2) v_printf(1,"\nCORRUPTION DETECTED! (partial file?)\n\n");
       else v_printf(2,"Image decoded, checksum verified.\n");
     } else {
@@ -1140,10 +1181,12 @@ void show_help() {
     printf("   -n, --no-interlace   force no interlacing\n");
     printf("   -a, --acb            force auto color buckets (ACB)\n");
     printf("   -b, --no-acb         force no auto color buckets\n");
+    printf("   -p, --palette=P      max palette size=P (default: P=512)\n");
     printf("   -r, --repeats=N      N repeats for MANIAC learning (default: N=%i)\n",TREE_LEARN_REPEATS);
-    printf("   -f, --frame-delay=D  delay between animation frames, in ms (default: D=100)\n");
     printf("   Input images should be PNG or PNM (PPM,PGM,PBM) files.\n");
     printf("   Multiple input images (for animated FLIF) must have the same dimensions.\n");
+    printf("   -f, --frame-delay=D  delay between animation frames, in ms (default: D=100)\n");
+    printf("   -l, --lookback=L     max lookback between frames (default: L=nb_frames-1)\n");
     printf("Decode options:\n");
     printf("   -q, --quality=Q      lossy decode quality at Q percent (0..100)\n");
     printf("   -s, --scale=S        lossy downscaled image at scale 1:S (2,4,8,16)\n");
@@ -1176,51 +1219,62 @@ int main(int argc, char **argv)
     int acb = -1; // try auto color buckets
     int scale = 1;
     int frame_delay = 100;
+    int palette_size = 512;
+    int lookback = -1;
     if (strcmp(argv[0],"flif") == 0) mode = 0;
     if (strcmp(argv[0],"dflif") == 0) mode = 1;
     if (strcmp(argv[0],"deflif") == 0) mode = 1;
     if (strcmp(argv[0],"decflif") == 0) mode = 1;
     static struct option optlist[] = {
-	{"help", 0, NULL, 'h'},
-	{"encode", 0, NULL, 'e'},
-	{"decode", 0, NULL, 'd'},
-	{"first", 1, NULL, 'f'},
-	{"verbose", 0, NULL, 'v'},
-	{"interlace", 0, NULL, 'i'},
-	{"no-interlace", 0, NULL, 'n'},
-	{"acb", 0, NULL, 'a'},
-	{"no-acb", 0, NULL, 'b'},
-	{"quality", 1, NULL, 'q'},
-	{"scale", 1, NULL, 's'},
-	{"repeats", 1, NULL, 'r'},
-	{"frame-delay", 1, NULL, 'f'},
-	{0, 0, 0, 0}
+        {"help", 0, NULL, 'h'},
+        {"encode", 0, NULL, 'e'},
+        {"decode", 0, NULL, 'd'},
+        {"first", 1, NULL, 'f'},
+        {"verbose", 0, NULL, 'v'},
+        {"interlace", 0, NULL, 'i'},
+        {"no-interlace", 0, NULL, 'n'},
+        {"acb", 0, NULL, 'a'},
+        {"no-acb", 0, NULL, 'b'},
+        {"quality", 1, NULL, 'q'},
+        {"scale", 1, NULL, 's'},
+        {"palette", 1, NULL, 'p'},
+        {"repeats", 1, NULL, 'r'},
+        {"frame-delay", 1, NULL, 'f'},
+        {"lookback", 1, NULL, 'l'},
+        {0, 0, 0, 0}
     };
     int i,c;
-    while ((c = getopt_long (argc, argv, "hedvinabq:s:r:f:", optlist, &i)) != -1) {
-	switch (c) {
-	case 'e': mode=0; break;
-	case 'd': mode=1; break;
-	case 'v': verbosity++; break;
-	case 'i': if (method==0) method=2; break;
-	case 'n': method=1; break;
-	case 'a': acb=1; break;
-	case 'b': acb=0; break;
-	case 'q': quality=atoi(optarg);
-	          if (quality < -1 || quality > 100) {fprintf(stderr,"Not a sensible number for option -q\n"); return 1; }
-	          break;
-	case 's': scale=atoi(optarg);
-	          if (scale < 1 || scale > 128) {fprintf(stderr,"Not a sensible number for option -s\n"); return 1; }
-	          break;
-	case 'r': learn_repeats=atoi(optarg);
-	          if (learn_repeats < 0 || learn_repeats > 1000) {fprintf(stderr,"Not a sensible number for option -r\n"); return 1; }
-	          break;
-	case 'f': frame_delay=atoi(optarg);
-	          if (frame_delay < 0 || frame_delay > 60000) {fprintf(stderr,"Not a sensible number for option -f\n"); return 1; }
-	          break;
-	case 'h':
-	default: show_help(); return 0;
-	}
+    while ((c = getopt_long (argc, argv, "hedvinabq:s:p:r:f:l:", optlist, &i)) != -1) {
+        switch (c) {
+        case 'e': mode=0; break;
+        case 'd': mode=1; break;
+        case 'v': verbosity++; break;
+        case 'i': if (method==0) method=2; break;
+        case 'n': method=1; break;
+        case 'a': acb=1; break;
+        case 'b': acb=0; break;
+        case 'p': palette_size=atoi(optarg);
+                  if (palette_size < -1 || palette_size > 30000) {fprintf(stderr,"Not a sensible number for option -p\n"); return 1; }
+                  if (palette_size == 0) {v_printf(2,"Palette disabled\n"); }
+                  break;
+        case 'q': quality=atoi(optarg);
+                  if (quality < -1 || quality > 100) {fprintf(stderr,"Not a sensible number for option -q\n"); return 1; }
+                  break;
+        case 's': scale=atoi(optarg);
+                  if (scale < 1 || scale > 128) {fprintf(stderr,"Not a sensible number for option -s\n"); return 1; }
+                  break;
+        case 'r': learn_repeats=atoi(optarg);
+                  if (learn_repeats < 0 || learn_repeats > 1000) {fprintf(stderr,"Not a sensible number for option -r\n"); return 1; }
+                  break;
+        case 'f': frame_delay=atoi(optarg);
+                  if (frame_delay < 0 || frame_delay > 60000) {fprintf(stderr,"Not a sensible number for option -f\n"); return 1; }
+                  break;
+        case 'l': lookback=atoi(optarg);
+                  if (lookback < -1 || lookback > 256) {fprintf(stderr,"Not a sensible number for option -l\n"); return 1; }
+                  break;
+        case 'h':
+        default: show_help(); return 0;
+        }
     }
     argc -= optind;
     argv += optind;
@@ -1252,7 +1306,7 @@ int main(int argc, char **argv)
 
 
     v_printf(3,"  _____  __  (__) _____");
-  v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1 [24 September 2015]");
+  v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1 [30 September 2015]");
   v_printf(3,"\n  (__  ||  |_|__||  __)    Free Lossless Image Format");
   v_printf(3,"\n    (__||______) |__)      (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
   v_printf(3,"\n");
@@ -1268,8 +1322,10 @@ int main(int argc, char **argv)
   }
 
   if (mode == 0) {
+        int nb_input_images = argc-1;
         while(argc>1) {
           Image image;
+          v_printf(2,"\r");
           if (!image.load(argv[0])) {
             fprintf(stderr,"Could not read input file: %s\n", argv[0]);
             return 2;
@@ -1282,15 +1338,23 @@ int main(int argc, char **argv)
             return 2;
           }
           argc--; argv++;
+          if (nb_input_images>1) {v_printf(2,"    (%i/%i)         ",(int)images.size(),nb_input_images); v_printf(4,"\n");}
+        }
+        v_printf(2,"\n");
+        bool flat=true;
+        for (Image &image : images) if (image.uses_alpha()) flat=false;
+        if (flat && images[0].numPlanes() == 4) {
+              v_printf(2,"Alpha channel not actually used, dropping it.\n");
+              for (Image &image : images) image.drop_alpha();
         }
         uint64_t nb_pixels = (uint64_t)images[0].rows() * images[0].cols();
         std::vector<std::string> desc;
         desc.push_back("YIQ");  // convert RGB(A) to YIQ(A)
         desc.push_back("BND");  // get the bounds of the color spaces
-        desc.push_back("PLA");  // try palette (including alpha)
-        desc.push_back("PLT");  // try palette (without alpha)
-        if (images.size() > 1)
-        desc.push_back("FRS");  // get the shapes of the frames
+        if (palette_size > 0)
+          desc.push_back("PLA");  // try palette (including alpha)
+        if (palette_size > 0)
+          desc.push_back("PLT");  // try palette (without alpha)
         if (acb == -1) {
           // not specified if ACB should be used
           if (nb_pixels > 10000) desc.push_back("ACB");  // try auto color buckets on large images
@@ -1300,13 +1364,18 @@ int main(int argc, char **argv)
           if (nb_pixels < 10000) method=1; // if the image is small, not much point in doing interlacing
           else method=2; // default method: interlacing
         }
+        if (images.size() > 1) {
+          desc.push_back("DUP");  // find duplicate frames
+          desc.push_back("FRS");  // get the shapes of the frames
+          if (lookback != 0) desc.push_back("FRA");  // make a "deep" alpha channel (negative values are transparent to some previous frame)
+        }
         if (learn_repeats < 0) {
           // no number of repeats specified, pick a number heuristically
           learn_repeats = TREE_LEARN_REPEATS;
           if (nb_pixels < 5000) learn_repeats--;        // avoid large trees for small images
           if (learn_repeats < 0) learn_repeats=0;
         }
-        encode(argv[0], images, desc, method, learn_repeats, acb, frame_delay);
+        encode(argv[0], images, desc, method, learn_repeats, acb, frame_delay, palette_size, lookback);
   } else {
         char *ext = strrchr(argv[1],'.');
         if (ext && ( !strcasecmp(ext,".png") ||  !strcasecmp(ext,".pnm") ||  !strcasecmp(ext,".ppm")  ||  !strcasecmp(ext,".pgm") ||  !strcasecmp(ext,".pbm"))) {
@@ -1319,8 +1388,7 @@ int main(int argc, char **argv)
         if (scale>1)
           v_printf(3,"Downscaling output: %ux%u -> %ux%u\n",images[0].cols(),images[0].rows(),images[0].cols()/scale,images[0].rows()/scale);
         if (images.size() == 1) {
-          if (images[0].save(argv[1],scale)) return 0;
-          else return 2;
+          if (!images[0].save(argv[1],scale)) return 2;
         } else {
           int counter=0;
           char filename[strlen(argv[1])+6];
@@ -1329,8 +1397,10 @@ int main(int argc, char **argv)
           for (Image& image : images) {
              sprintf(a_ext,"-%03d%s",counter++,ext);
              if (!image.save(filename,scale)) return 2;
+             v_printf(2,"    (%i/%i)         \r",counter,(int)images.size()); v_printf(4,"\n");
           }
         }
+        v_printf(2,"\n");
   }
   return 0;
 }

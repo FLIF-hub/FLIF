@@ -9,8 +9,8 @@ OUTPUTPREFIX="output/"
 DO_FLIF="yes"
 DO_FLIF_NI="yes"
 # make sure convert, pngcrush and pngout are available
-PNG="yes"
-PNGADAM7="yes"
+#PNG="yes"
+#PNGADAM7="yes"
 # make sure cwebp and dwebp are installed if you want to include WebP
 #WEBP="yes"
 JP2="yes"
