@@ -59,7 +59,7 @@ protected:
         for (int p=0; p<nump; p++) pixel_cost *= (1 + srcRanges->max(p) - srcRanges->min(p));
         // pixel_cost is roughly the cost per pixel (number of different values a pixel can take)
         if (pixel_cost < 16) return false; // pixels are too cheap, no point in trying to save stuff
-        uint64_t found_pixels[images.size()] {};
+        std::vector<uint64_t> found_pixels(images.size(), 0);
         uint64_t new_pixels=0;
         max_lookback=1;
         if (user_max_lookback == -1) user_max_lookback = images.size()-1;
