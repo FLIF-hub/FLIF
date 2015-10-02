@@ -280,7 +280,7 @@ class TransformCB : public Transform {
 protected:
     ColorBuckets *cb;
 
-    const ColorRanges* meta(Image& image, const ColorRanges *srcRanges) {
+    const ColorRanges* meta(Images& images, const ColorRanges *srcRanges) {
 //        cb->print();
         // in the I buckets, some discrete buckets may have become continuous to keep the colorbucket info small
         // this means some Q buckets are empty, which means that some values from the I buckets can be eliminated
