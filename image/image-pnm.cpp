@@ -5,6 +5,7 @@
 
 #include "image.h"
 #include "image-pnm.h"
+#include "image-pam.h"
 #include "../flif.h"
 
 #define PPMREADBUFLEN 256
@@ -24,8 +25,9 @@ bool image_load_pnm(const char *filename, Image& image)
     if ( (!strncmp(buf, "P4\n", 3)) ) type=4;
     if ( (!strncmp(buf, "P5\n", 3)) ) type=5;
     if ( (!strncmp(buf, "P6\n", 3)) ) type=6;
+    if ( (!strncmp(buf, "P7\n", 3)) ) {fclose(fp); image_load_pam(filename, image);}
     if (type==0) {
-        fprintf(stderr,"PPM file is not of type P4, P5 or P6, cannot read other types.\n");
+        fprintf(stderr,"PNM file is not of type P4, P5 or P6, cannot read other types.\n");
         fclose(fp);
         return false;
     }
@@ -44,7 +46,7 @@ bool image_load_pnm(const char *filename, Image& image)
     char bla;
     r = fscanf(fp, "%u%c", &maxval, &bla);
     if ( (r < 2) || maxval<1 || maxval > 0xffff ) {
-        fprintf(stderr,"Invalid PPM file.\n");
+        fprintf(stderr,"Invalid PNM file.\n");
         fclose(fp);
         return 2;
     }
@@ -92,11 +94,12 @@ bool image_save_pnm(const char *filename, const Image& image)
     }
 
     if (image.numPlanes() >= 3) {
-        if (image.numPlanes() == 4 && image.uses_alpha()) v_printf(1,"WARNING: image has alpha channel, saving to flat PPM! Save to .PNG if you want to keep the alpha channel!\n");
+        if (image.numPlanes() == 4 && image.uses_alpha())
+            v_printf(1,"WARNING: image has alpha channel, saving to flat PPM! Use .png or .pam if you want to keep the alpha channel!\n");
         ColorVal max = image.max(0);
 
         if (max > 0xffff) {
-            fprintf(stderr,"Cannot store as PPM. Find out why.\n");
+            fprintf(stderr,"Cannot store as PNM. Find out why.\n");
             fclose(fp);
             return false;
         }
@@ -117,7 +120,7 @@ bool image_save_pnm(const char *filename, const Image& image)
         ColorVal max = image.max(0);
 
         if (max > 0xffff) {
-            fprintf(stderr,"Cannot store as PPM. Find out why.\n");
+            fprintf(stderr,"Cannot store as PNM. Find out why.\n");
             fclose(fp);
             return false;
         }
@@ -131,7 +134,7 @@ bool image_save_pnm(const char *filename, const Image& image)
             }
         }
     } else {
-        fprintf(stderr,"Cannot store as PPM. Find out why.\n");
+        fprintf(stderr,"Cannot store as PNM. Find out why.\n");
         fclose(fp);
         return false;
     }

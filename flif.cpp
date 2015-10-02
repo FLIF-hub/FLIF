@@ -1172,7 +1172,7 @@ bool decode(const char* filename, Images &images, int quality, int scale)
 void show_help() {
     printf("Usage: (encoding)\n");
     printf("   flif [encode options] <input image(s)> <output.flif>\n");
-    printf("   flif [-d] [decode options] <input.flif> <output.pnm | output.png>\n");
+    printf("   flif [-d] [decode options] <input.flif> <output.pnm | output.pam | output.png>\n");
     printf("General Options:\n");
     printf("   -h, --help           show help\n");
     printf("   -v, --verbose        increase verbosity (multiple -v for more output)\n");
@@ -1183,7 +1183,7 @@ void show_help() {
     printf("   -b, --no-acb         force no auto color buckets\n");
     printf("   -p, --palette=P      max palette size=P (default: P=512)\n");
     printf("   -r, --repeats=N      N repeats for MANIAC learning (default: N=%i)\n",TREE_LEARN_REPEATS);
-    printf("   Input images should be PNG or PNM (PPM,PGM,PBM) files.\n");
+    printf("   Input images should be PNG, PNM (PPM,PGM,PBM) or PAM files.\n");
     printf("   Multiple input images (for animated FLIF) must have the same dimensions.\n");
     printf("   -f, --frame-delay=D  delay between animation frames, in ms (default: D=100)\n");
     printf("   -l, --lookback=L     max lookback between frames (default: L=1)\n");
@@ -1287,13 +1287,13 @@ int main(int argc, char **argv)
             char *f = strrchr(argv[0],'/');
             char *ext = f ? strrchr(f,'.') : strrchr(argv[0],'.');
             if (mode == 0) {
-                    if (ext && ( !strcasecmp(ext,".png") ||  !strcasecmp(ext,".pnm") ||  !strcasecmp(ext,".ppm")  ||  !strcasecmp(ext,".pgm") ||  !strcasecmp(ext,".pbm"))) {
+                    if (ext && ( !strcasecmp(ext,".png") ||  !strcasecmp(ext,".pnm") ||  !strcasecmp(ext,".ppm")  ||  !strcasecmp(ext,".pgm") ||  !strcasecmp(ext,".pbm") ||  !strcasecmp(ext,".pam"))) {
                           // ok
                     } else {
                           fprintf(stderr,"Warning: expected \".png\" or \".pnm\" file name extension for input file, trying anyway...\n");
                     }
             } else {
-                    if (ext && ( !strcasecmp(ext,".flif"))) {
+                    if (ext && ( !strcasecmp(ext,".flif")  || ( !strcasecmp(ext,".flf") ))) {
                           // ok
                     } else {
                           fprintf(stderr,"Warning: expected file name extension \".flif\" for input file, trying anyway...\n");
@@ -1306,7 +1306,7 @@ int main(int argc, char **argv)
 
 
     v_printf(3,"  _____  __  (__) _____");
-  v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1 [30 September 2015]");
+  v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1 [2 October 2015]");
   v_printf(3,"\n  (__  ||  |_|__||  __)    Free Lossless Image Format");
   v_printf(3,"\n    (__||______) |__)      (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
   v_printf(3,"\n");
@@ -1378,10 +1378,10 @@ int main(int argc, char **argv)
         encode(argv[0], images, desc, method, learn_repeats, acb, frame_delay, palette_size, lookback);
   } else {
         char *ext = strrchr(argv[1],'.');
-        if (ext && ( !strcasecmp(ext,".png") ||  !strcasecmp(ext,".pnm") ||  !strcasecmp(ext,".ppm")  ||  !strcasecmp(ext,".pgm") ||  !strcasecmp(ext,".pbm"))) {
+        if (ext && ( !strcasecmp(ext,".png") ||  !strcasecmp(ext,".pnm") ||  !strcasecmp(ext,".ppm")  ||  !strcasecmp(ext,".pgm") ||  !strcasecmp(ext,".pbm") ||  !strcasecmp(ext,".pam"))) {
                  // ok
         } else {
-           fprintf(stderr,"Error: expected \".png\" or \".pnm\" file name extension for output file\n");
+           fprintf(stderr,"Error: expected \".png\", \".pnm\" or \".pam\" file name extension for output file\n");
            return 1;
         }
         if (!decode(argv[0], images, quality, scale)) return 3;
