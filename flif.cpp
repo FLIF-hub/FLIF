@@ -35,7 +35,7 @@
 
 #include "flif_config.h"
 
-#include "getopt.h"
+#include "getopt/getopt.h"
 #include <stdarg.h>
 
 
