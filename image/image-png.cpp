@@ -3,13 +3,60 @@
 #include <string.h>
 #include <stdint.h>
 
+#ifdef FLIF_USE_STB_IMAGE
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+enum {
+  PNG_COLOR_TYPE_GRAY = 1,
+  PNG_COLOR_TYPE_GRAY_ALPHA = 2,
+  PNG_COLOR_TYPE_RGB = 3,
+  PNG_COLOR_TYPE_RGB_ALPHA = 4,
+};
+#else
 #include <png.h>
 #include <zlib.h>
+#endif
 
 #include "image.h"
 #include "image-png.h"
 
+
 int image_load_png(const char *filename, Image &image) {
+#ifdef FLIF_USE_STB_IMAGE
+
+  int x,y,n;
+  unsigned char *data = stbi_load(filename, &x, &y, &n, 4);
+  if(!data) {
+    return 1;
+  }
+
+  size_t width = x;
+  size_t height = y;
+  int bit_depth = 8;
+  int color_type = n;
+
+  unsigned int nbplanes;
+  if (color_type == PNG_COLOR_TYPE_GRAY) nbplanes=1;
+  else if (color_type == PNG_COLOR_TYPE_RGB) nbplanes=3;
+  else if (color_type == PNG_COLOR_TYPE_RGB_ALPHA || color_type == PNG_COLOR_TYPE_GRAY_ALPHA) nbplanes=4;
+  else { printf("Unsupported PNG color type\n"); return 5; }
+  image.init(width, height, 0, (1 << bit_depth) - 1, nbplanes);
+
+  for (size_t r = 0; r < height; r++) {
+    unsigned char *row = &data[ r * width * 4 ];
+    for (size_t c = 0; c < width; c++) {
+      image.set(0,r,c, (uint8_t) row[c * 4 + 0]);
+      image.set(1,r,c, (uint8_t) row[c * 4 + 1]);
+      image.set(2,r,c, (uint8_t) row[c * 4 + 2]);
+      image.set(3,r,c, (uint8_t) row[c * 4 + 3]);
+    }
+  }
+
+  stbi_image_free(data);
+  return 0;
+#else
   FILE *fp = fopen(filename,"rb");
   if (!fp) {
     return 1;
@@ -154,10 +201,47 @@ int image_load_png(const char *filename, Image &image) {
   fclose(fp);
 
   return 0;
+#endif
 }
 
 
 int image_save_png(const char *filename, const Image &image) {
+#ifdef FLIF_USE_STB_IMAGE
+
+  int nbplanes = image.numPlanes();
+  if (nbplanes == 4 && !image.uses_alpha()) nbplanes=3;
+  int bit_depth = 8, bytes_per_value=1;
+  if (image.max(0) > 255) {bit_depth = 16; bytes_per_value=2;}
+
+  unsigned w = image.cols();
+  unsigned h = image.rows();
+
+  unsigned char *row = (unsigned char *)malloc(nbplanes * bytes_per_value * image.cols());
+  if( !row ) {
+    return 1;
+  }
+
+  for (size_t r = 0; r < (size_t) image.rows(); r++) {
+    if (bytes_per_value == 1) {
+     for (size_t c = 0; c < (size_t) image.cols(); c++) {
+      for (int p=0; p<nbplanes; p++) {
+        row[c * nbplanes + p] = (unsigned char) (image(p,r,c));
+      }
+     }
+    } else {
+     for (size_t c = 0; c < (size_t) image.cols(); c++) {
+      for (int p=0; p<nbplanes; p++) {
+        row[c * nbplanes * 2 + 2*p] = (unsigned char) (image(p,r,c) >> 8);
+        row[c * nbplanes * 2 + 2*p + 1] = (unsigned char) (image(p,r,c) & 0xff);
+      }
+     }
+    }
+  }
+
+  stbi_write_png( filename, w, h, bit_depth == 8 ? 3 : 4, row, image.cols() * bytes_per_value );
+  free( row );
+  return 0;
+#else
   FILE *fp = fopen(filename,"wb");
   if (!fp) {
     return (1);
@@ -218,4 +302,5 @@ int image_save_png(const char *filename, const Image &image) {
   png_destroy_write_struct(&png_ptr,&info_ptr);
   fclose(fp);
   return 0;
+#endif
 }
