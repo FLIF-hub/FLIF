@@ -1279,6 +1279,22 @@ int main(int argc, char **argv)
     argc -= optind;
     argv += optind;
 
+  v_printf(3,"  _____  __  (__) _____");
+  v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1 [2 October 2015]");
+  v_printf(3,"\n  (__  ||  |_|__||  __)    Free Lossless Image Format");
+  v_printf(3,"\n    (__||______) |__)      (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
+  v_printf(3,"\n");
+  if (argc == 0) {
+        //fprintf(stderr,"Input file missing.\n");
+        if (verbosity == 1) show_help();
+        return 1;
+  }
+  if (argc == 1) {
+        fprintf(stderr,"Output file missing.\n");
+        show_help();
+        return 1;
+  }
+
     if (file_exists(argv[0])) {
             if (mode == 0 && file_is_flif(argv[0])) {
               v_printf(2,"Input file is a FLIF file, adding implicit -d\n");
@@ -1304,22 +1320,6 @@ int main(int argc, char **argv)
           return 1;
     }
 
-
-    v_printf(3,"  _____  __  (__) _____");
-  v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1 [2 October 2015]");
-  v_printf(3,"\n  (__  ||  |_|__||  __)    Free Lossless Image Format");
-  v_printf(3,"\n    (__||______) |__)      (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
-  v_printf(3,"\n");
-  if (argc == 0) {
-        //fprintf(stderr,"Input file missing.\n");
-        if (verbosity == 1) show_help();
-        return 1;
-  }
-  if (argc == 1) {
-        fprintf(stderr,"Output file missing.\n");
-        show_help();
-        return 1;
-  }
 
   if (mode == 0) {
         int nb_input_images = argc-1;
