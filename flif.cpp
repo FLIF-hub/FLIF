@@ -39,6 +39,10 @@
 #include <stdarg.h>
 
 
+#ifdef _MSC_VER
+#define strcasecmp stricmp
+#endif
+
 static FILE *f;  // the compressed file
 
 static std::vector<ColorVal> grey; // a pixel with values in the middle of the bounds
@@ -1391,7 +1395,8 @@ int main(int argc, char **argv)
           if (!images[0].save(argv[1],scale)) return 2;
         } else {
           int counter=0;
-          char filename[strlen(argv[1])+6];
+          std::vector<char> vfilename(strlen(argv[1])+6);
+          char *filename = &vfilename[0];
           strcpy(filename,argv[1]);
           char *a_ext = strrchr(filename,'.');
           for (Image& image : images) {

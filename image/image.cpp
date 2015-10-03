@@ -7,6 +7,9 @@
 #include "image-pam.h"
 #include "../flif.h"
 
+#ifdef _MSC_VER
+#define strcasecmp stricmp
+#endif
 
 bool Image::load(const char *filename)
 {
