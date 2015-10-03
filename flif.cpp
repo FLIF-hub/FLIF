@@ -877,6 +877,7 @@ bool encode(const char* filename, Images &images, std::vector<std::string> trans
             rangesList.push_back(trans->meta(images, rangesList.back()));
             trans->data(images);
         }
+        delete trans;
     }
     if (tcount==0) v_printf(4,"none\n"); else v_printf(4,"\n");
     rac.write(false);
@@ -1402,5 +1403,6 @@ int main(int argc, char **argv)
         }
         v_printf(2,"\n");
   }
+  for (Image &image : images) image.clear();
   return 0;
 }
