@@ -48,7 +48,7 @@ bool image_load_pnm(const char *filename, Image& image)
     if ( (r < 2) || maxval<1 || maxval > 0xffff ) {
         fprintf(stderr,"Invalid PNM file.\n");
         fclose(fp);
-        return 2;
+        return false;
     }
     } else maxval=1;
     unsigned int nbplanes=(type==6?3:1);
