@@ -19,6 +19,8 @@ enum {
 #include <zlib.h>
 #endif
 
+#include <vector>
+
 #include "image.h"
 #include "image-png.h"
 
@@ -213,33 +215,25 @@ int image_save_png(const char *filename, const Image &image) {
   int bit_depth = 8, bytes_per_value=1;
   if (image.max(0) > 255) {bit_depth = 16; bytes_per_value=2;}
 
-  unsigned w = image.cols();
-  unsigned h = image.rows();
-
-  unsigned char *row = (unsigned char *)malloc(nbplanes * bytes_per_value * image.cols());
-  if( !row ) {
+  if (bit_depth != 8) {
     return 1;
   }
 
-  for (size_t r = 0; r < (size_t) image.rows(); r++) {
-    if (bytes_per_value == 1) {
-     for (size_t c = 0; c < (size_t) image.cols(); c++) {
-      for (int p=0; p<nbplanes; p++) {
-        row[c * nbplanes + p] = (unsigned char) (image(p,r,c));
-      }
+  size_t w = image.cols();
+  size_t h = image.rows();
+ 
+  std::vector<unsigned char> data( w * h * nbplanes * bytes_per_value );
+  unsigned char *row = data.data();
+
+  for (size_t r = 0; r < h; r++) {
+     for (size_t c = 0; c < w; c++) {
+        for (int p=0; p<nbplanes; p++) {
+           row[(c + r * w) * nbplanes + p] = (unsigned char) (image(p,r,c));
+        }
      }
-    } else {
-     for (size_t c = 0; c < (size_t) image.cols(); c++) {
-      for (int p=0; p<nbplanes; p++) {
-        row[c * nbplanes * 2 + 2*p] = (unsigned char) (image(p,r,c) >> 8);
-        row[c * nbplanes * 2 + 2*p + 1] = (unsigned char) (image(p,r,c) & 0xff);
-      }
-     }
-    }
   }
 
-  stbi_write_png( filename, w, h, bit_depth == 8 ? 3 : 4, row, image.cols() * bytes_per_value );
-  free( row );
+  stbi_write_png( filename, w, h, nbplanes, row, w * nbplanes * bytes_per_value );
   return 0;
 #else
   FILE *fp = fopen(filename,"wb");
