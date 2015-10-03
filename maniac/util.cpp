@@ -1,5 +1,6 @@
 #include "util.h"
 #include <stdio.h>
+#include <stdint.h>
 
 // table for integer 2-logs
 const uint8_t log2_tab[1024] = {0,0,1,1,2,2,2,2,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5,
