@@ -277,6 +277,14 @@ public:
 
 
 class TransformCB : public Transform {
+public:
+    TransformCB() {
+        cb = NULL;
+    }
+    ~TransformCB() {
+        delete cb;
+    }
+
 protected:
     ColorBuckets *cb;
 

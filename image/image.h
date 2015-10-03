@@ -72,14 +72,15 @@ public:
       assert(min == 0);
       assert(max < (1<<depth));
       assert(p <= 4);
+      plane_8_1 = plane_8_2 = NULL;
+      plane_16_1 = plane_16_2 = NULL;
+      plane_32_1 = plane_32_2 = NULL;
       if (depth <= 8) {
         if (p>0) plane_8_1 = new Plane<ColorVal_intern_8>(width, height); // R,Y
         if (p>1) plane_16_1 = new Plane<ColorVal_intern_16>(width, height); // G,I
         if (p>2) plane_16_2 = new Plane<ColorVal_intern_16>(width, height); // B,Q
         if (p>3) plane_8_2 = new Plane<ColorVal_intern_8>(width, height); // A
-        plane_32_1 = plane_32_2 = NULL;
       } else {
-        plane_8_1 = plane_8_2 = NULL;
         if (p>0) plane_16_1 = new Plane<ColorVal_intern_16>(width, height); // R,Y
         if (p>1) plane_32_1 = new Plane<ColorVal_intern_32>(width, height); // G,I
         if (p>2) plane_32_2 = new Plane<ColorVal_intern_32>(width, height); // B,Q
@@ -87,14 +88,17 @@ public:
       }
     }
 
+    void clear() {
+        delete plane_8_1;
+        delete plane_8_2;
+        delete plane_16_1;
+        delete plane_16_2;
+        delete plane_32_1;
+        delete plane_32_2;
+    }
 
     void reset() {
-        if (plane_8_1) delete plane_8_1;
-        if (plane_8_2) delete plane_8_2;
-        if (plane_16_1) delete plane_16_1;
-        if (plane_16_2) delete plane_16_2;
-        if (plane_32_1) delete plane_32_1;
-        if (plane_32_2) delete plane_32_2;
+        clear();
         init(0,0,0,0,0);
     }
     bool uses_alpha() const {
