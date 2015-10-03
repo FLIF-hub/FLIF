@@ -801,7 +801,7 @@ template<typename BitChance, typename Rac> void decode_tree(Rac &rac, const Colo
 
 bool encode(const char* filename, Images &images, std::vector<std::string> transDesc, int encoding, int learn_repeats, int acb, int frame_delay, int palette_size, int lookback) {
     if (encoding < 1 || encoding > 2) { fprintf(stderr,"Unknown encoding: %i\n", encoding); return false;}
-    f = fopen(filename,"w");
+    f = fopen(filename,"wb");
     fputs("FLIF",f);
     int numPlanes = images[0].numPlanes();
     int numFrames = images.size();
@@ -988,7 +988,7 @@ bool decode(const char* filename, Images &images, int quality, int scale)
                 return false;
     }
 
-    f = fopen(filename,"r");
+    f = fopen(filename,"rb");
     if (!f) { fprintf(stderr,"Could not open file: %s\n",filename); return false; }
     char buff[5];
     if (!fgets(buff,5,f)) { fprintf(stderr,"Could not read header from file: %s\n",filename); return false; }
@@ -1193,13 +1193,13 @@ void show_help() {
 }
 
 bool file_exists(const char * filename){
-        FILE * file = fopen(filename, "r");
+        FILE * file = fopen(filename, "rb");
         if (!file) return false;
         fclose(file);
         return true;
 }
 bool file_is_flif(const char * filename){
-        FILE * file = fopen(filename, "r");
+        FILE * file = fopen(filename, "rb");
         if (!file) return false;
         char buff[5];
         bool result=true;
