@@ -35,9 +35,13 @@
 
 #include "flif_config.h"
 
-#include "getopt.h"
+#include "getopt/getopt.h"
 #include <stdarg.h>
 
+
+#ifdef _MSC_VER
+#define strcasecmp stricmp
+#endif
 
 static FILE *f;  // the compressed file
 
@@ -801,7 +805,7 @@ template<typename BitChance, typename Rac> void decode_tree(Rac &rac, const Colo
 
 bool encode(const char* filename, Images &images, std::vector<std::string> transDesc, int encoding, int learn_repeats, int acb, int frame_delay, int palette_size, int lookback) {
     if (encoding < 1 || encoding > 2) { fprintf(stderr,"Unknown encoding: %i\n", encoding); return false;}
-    f = fopen(filename,"w");
+    f = fopen(filename,"wb");
     fputs("FLIF",f);
     int numPlanes = images[0].numPlanes();
     int numFrames = images.size();
@@ -988,7 +992,7 @@ bool decode(const char* filename, Images &images, int quality, int scale)
                 return false;
     }
 
-    f = fopen(filename,"r");
+    f = fopen(filename,"rb");
     if (!f) { fprintf(stderr,"Could not open file: %s\n",filename); return false; }
     char buff[5];
     if (!fgets(buff,5,f)) { fprintf(stderr,"Could not read header from file: %s\n",filename); return false; }
@@ -1193,13 +1197,13 @@ void show_help() {
 }
 
 bool file_exists(const char * filename){
-        FILE * file = fopen(filename, "r");
+        FILE * file = fopen(filename, "rb");
         if (!file) return false;
         fclose(file);
         return true;
 }
 bool file_is_flif(const char * filename){
-        FILE * file = fopen(filename, "r");
+        FILE * file = fopen(filename, "rb");
         if (!file) return false;
         char buff[5];
         bool result=true;
@@ -1279,6 +1283,22 @@ int main(int argc, char **argv)
     argc -= optind;
     argv += optind;
 
+  v_printf(3,"  _____  __  (__) _____");
+  v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1 [2 October 2015]");
+  v_printf(3,"\n  (__  ||  |_|__||  __)    Free Lossless Image Format");
+  v_printf(3,"\n    (__||______) |__)      (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
+  v_printf(3,"\n");
+  if (argc == 0) {
+        //fprintf(stderr,"Input file missing.\n");
+        if (verbosity == 1) show_help();
+        return 1;
+  }
+  if (argc == 1) {
+        fprintf(stderr,"Output file missing.\n");
+        show_help();
+        return 1;
+  }
+
     if (file_exists(argv[0])) {
             if (mode == 0 && file_is_flif(argv[0])) {
               v_printf(2,"Input file is a FLIF file, adding implicit -d\n");
@@ -1304,22 +1324,6 @@ int main(int argc, char **argv)
           return 1;
     }
 
-
-    v_printf(3,"  _____  __  (__) _____");
-  v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1 [2 October 2015]");
-  v_printf(3,"\n  (__  ||  |_|__||  __)    Free Lossless Image Format");
-  v_printf(3,"\n    (__||______) |__)      (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
-  v_printf(3,"\n");
-  if (argc == 0) {
-        //fprintf(stderr,"Input file missing.\n");
-        if (verbosity == 1) show_help();
-        return 1;
-  }
-  if (argc == 1) {
-        fprintf(stderr,"Output file missing.\n");
-        show_help();
-        return 1;
-  }
 
   if (mode == 0) {
         int nb_input_images = argc-1;
@@ -1391,7 +1395,8 @@ int main(int argc, char **argv)
           if (!images[0].save(argv[1],scale)) return 2;
         } else {
           int counter=0;
-          char filename[strlen(argv[1])+6];
+          std::vector<char> vfilename(strlen(argv[1])+6);
+          char *filename = &vfilename[0];
           strcpy(filename,argv[1]);
           char *a_ext = strrchr(filename,'.');
           for (Image& image : images) {

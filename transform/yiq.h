@@ -4,6 +4,7 @@
 #include "../image/image.h"
 #include "../image/color_range.h"
 #include "transform.h"
+#include <algorithm>
 
 #define clip(x,l,u)   if (x < l) x=l; if (x > u) x=u
 
@@ -71,7 +72,7 @@ ColorVal static inline get_max_q(int par, ColorVal y, ColorVal i) {
     } else if (y>=3*par) {
       return 4*par-1+2*(4*par-1-y)-((1+abs(i-4*par+1))/2)*2;
     } else {
-      return std::min(6*par-2+(y-par+1)*2, 6*par-1+(3*par-1-y)*2-((1+abs(i-4*par+1))/2)*2);
+      return (std::min)(6*par-2+(y-par+1)*2, 6*par-1+(3*par-1-y)*2-((1+abs(i-4*par+1))/2)*2);
     }
 }
 
