@@ -5,7 +5,6 @@
 
 bool encode(const char* filename, Image &image, std::vector<std::string> transDesc, int encoding, int learn_repeats);
 bool decode(const char* filename, Image &image, int quality, int scale);
-void v_printf(const int v, const char *format, ...);
 
 #endif
 

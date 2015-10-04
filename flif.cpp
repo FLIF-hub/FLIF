@@ -51,16 +51,9 @@
 #define strcasecmp stricmp
 #endif
 
-static int verbosity = 1;
 
-void v_printf(const int v, const char *format, ...) {
-    if (verbosity < v) return;
-    va_list args;
-    va_start(args, format);
-    vfprintf(stdout, format, args);
-    fflush(stdout);
-    va_end(args);
-}
+
+
 
 // planes:
 // 0    Y channel (luminance)
@@ -157,7 +150,7 @@ int main(int argc, char **argv)
         switch (c) {
         case 'e': mode=0; break;
         case 'd': mode=1; break;
-        case 'v': verbosity++; break;
+        case 'v': increase_verbosity(); break;
         case 'i': if (method==0) method=2; break;
         case 'n': method=1; break;
         case 'a': acb=1; break;
@@ -195,7 +188,7 @@ int main(int argc, char **argv)
   v_printf(3,"\n");
   if (argc == 0) {
         //fprintf(stderr,"Input file missing.\n");
-        if (verbosity == 1) show_help();
+        if (get_verbosity() == 1) show_help();
         return 1;
   }
   if (argc == 1) {
