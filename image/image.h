@@ -113,8 +113,10 @@ public:
         assert(num==4);
         if (depth <= 8) {
                 if (plane_8_2) delete plane_8_2;
+                plane_8_2 = NULL;
         } else {
                 if (plane_16_2) delete plane_16_2;
+                plane_16_2 = NULL;
         }
         num=3;
     }
