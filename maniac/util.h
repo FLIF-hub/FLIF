@@ -5,8 +5,11 @@
 namespace maniac {
 namespace util {
 
-extern const uint8_t log2_tab[1024];
-int ilog2(uint32_t l);
+static inline int ilog2(uint32_t l) {
+    if (l == 0) { return 0; }
+    return sizeof(unsigned int) * 8 - __builtin_clz(l) - 1;
+}
+
 void indent(int n);
 
 template<typename I> void static swap(I& a, I& b)
