@@ -9,3 +9,18 @@ flif.prof: maniac/*.h maniac/*.cpp image/*.h image/*.cpp transform/*.h transform
 
 flif.dbg: maniac/*.h maniac/*.cpp image/*.h image/*.cpp transform/*.h transform/*.cpp flif.cpp flif.h flif_config.h
 	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LDFLAGS) -O0 -ggdb3 -Wall maniac/util.cpp maniac/chance.cpp image/crc32k.cpp image/image.cpp image/image-png.cpp image/image-pnm.cpp image/image-pam.cpp image/color_range.cpp transform/factory.cpp flif.cpp -lpng -o flif.dbg
+
+test: flif
+	mkdir -p testFiles
+	IN=benchmark/input/webp_gallery/2_webp_ll.png;		\
+	OUTF=testFiles/2_webp_ll.flif;				\
+	OUTP=testFiles/decoded_2_webp_ll.png;			\
+	./flif "$${IN}" "$${OUTF}";				\
+	./flif -d $${OUTF} $${OUTP};				\
+	test "`compare -metric AE $${IN} $${OUTP} null 2>&1`" = "0"
+	IN=benchmark/input/kodak/kodim01.png ;		\
+	OUTF=testFiles/kodim01.flif;				\
+	OUTP=testFiles/decoded_kodim01.png;			\
+	./flif "$${IN}" "$${OUTF}";				\
+	./flif -d $${OUTF} $${OUTP};				\
+	test "`compare -metric AE $${IN} $${OUTP} null 2>&1`" = "0"
