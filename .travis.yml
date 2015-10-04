@@ -1,5 +1,5 @@
  language: c++
- script: "make"
+ script: "make test"
  sudo: false
  addons:
   apt:
@@ -8,5 +8,6 @@
    packages:
     - g++-4.8
     - libpng12-dev
+    - imagemagick
  install:
   - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
