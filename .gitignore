@@ -2,3 +2,6 @@
 *.flif
 
 *.png
+*.xcworkspace/*
+*.xcworkspace
+*.xcodeproj

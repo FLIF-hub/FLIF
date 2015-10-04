@@ -38,7 +38,7 @@
 #ifdef _MSC_VER
 #include "getopt/getopt.h"
 #else
-#include "getopt.h"
+#include <getopt.h>
 #endif
 
 #include <stdarg.h>
