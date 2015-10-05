@@ -1,5 +1,5 @@
-#ifndef  __COMMMON_H__
-#define __COMMMON_H__
+#ifndef FLIF_COMMON_H
+#define FLIF_COMMON_H
 
 #include <string>
 #include <string.h>

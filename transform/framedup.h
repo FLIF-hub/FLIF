@@ -1,5 +1,5 @@
-#ifndef _FRAMEDUP_H_
-#define _FRAMEDUP_H_ 1
+#ifndef FLIF_FRAMEDUP_H
+#define FLIF_FRAMEDUP_H 1
 
 #include <vector>
 

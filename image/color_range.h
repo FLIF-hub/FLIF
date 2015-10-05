@@ -1,5 +1,5 @@
-#ifndef _COLOR_RANGE_H_
-#define _COLOR_RANGE_H_ 1
+#ifndef FLIF_COLOR_RANGE_H
+#define FLIF_COLOR_RANGE_H 1
 
 #include <vector>
 

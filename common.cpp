@@ -29,8 +29,7 @@ void v_printf(const int v, const char *format, ...) {
     va_end(args);
 }
 
-void initPropRanges_scanlines(Ranges &propRanges, const ColorRanges &ranges, int p)
-{   
+void initPropRanges_scanlines(Ranges &propRanges, const ColorRanges &ranges, int p) {
     propRanges.clear();
     int min = ranges.min(p);
     int max = ranges.max(p);
@@ -90,8 +89,7 @@ ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRang
 const int NB_PROPERTIES[] = {8,7,8,8};
 const int NB_PROPERTIESA[] = {9,8,9,8};
 
-void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p)
-{
+void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p) {
     propRanges.clear();
     int min = ranges.min(p);
     int max = ranges.max(p);
@@ -122,10 +120,10 @@ ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges
     int index = 0;
 
     if (p != 3) {
-    for (int pp = 0; pp < p; pp++) {
+      for (int pp = 0; pp < p; pp++) {
         properties[index++] = image(pp,z,r,c);
-    }
-    if (image.numPlanes()>3) properties[index++] = image(3,z,r,c);
+      }
+      if (image.numPlanes()>3) properties[index++] = image(3,z,r,c);
     }
     ColorVal left;
     ColorVal top;

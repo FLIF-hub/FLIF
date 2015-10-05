@@ -1,5 +1,5 @@
-#ifndef _PALETTEA_H_
-#define _PALETTEA_H_ 1
+#ifndef FLIF_PALETTEA_H
+#define FLIF_PALETTEA_H 1
 
 #include "../image/image.h"
 #include "../image/color_range.h"

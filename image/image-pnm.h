@@ -1,5 +1,5 @@
-#ifndef _IMAGE_PNM_H_
-#define _IMAGE_PNM_H_ 1
+#ifndef FLIF_IMAGE_PNM_H
+#define FLIF_IMAGE_PNM_H 1
 
 #include "image.h"
 

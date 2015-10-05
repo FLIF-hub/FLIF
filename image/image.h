@@ -1,5 +1,5 @@
-#ifndef _IMAGE_H_
-#define _IMAGE_H_ 1
+#ifndef FLIF_IMAGE_H
+#define FLIF_IMAGE_H 1
 
 #include <vector>
 #include <assert.h>

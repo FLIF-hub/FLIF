@@ -1,5 +1,5 @@
-#ifndef _TRANSFORM_FACTORY_H_
-#define _TRANSFORM_FACTORY_H_
+#ifndef FLIF_TRANSFORM_FACTORY_H
+#define FLIF_TRANSFORM_FACTORY_H
 
 #include "transform.h"
 #include <string>

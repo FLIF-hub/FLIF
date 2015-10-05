@@ -1,5 +1,5 @@
-#ifndef _RAC_COMPOUND_H_
-#define _RAC_COMPOUND_H_ 1
+#ifndef FLIF_RAC_COMPOUND_H
+#define FLIF_RAC_COMPOUND_H 1
 
 #include <vector>
 #include <math.h>

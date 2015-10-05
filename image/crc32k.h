@@ -1,5 +1,5 @@
-#ifndef CRC32K_H_
-#define CRC32K_H_ 1
+#ifndef FLIF_CRC32K_H
+#define FLIF_CRC32K_H 1
 
 #include <stdint.h>
 

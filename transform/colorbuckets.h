@@ -1,5 +1,5 @@
-#ifndef _CB_H_
-#define _CB_H_ 1
+#ifndef FLIF_CB_H
+#define FLIF_CB_H 1
 
 #include <vector>
 

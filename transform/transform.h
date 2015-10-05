@@ -1,5 +1,5 @@
-#ifndef _TRANSFORM_H_
-#define _TRANSFORM_H_
+#ifndef FLIF_TRANSFORM_H
+#define FLIF_TRANSFORM_H
 
 #include "../image/image.h"
 #include "../image/color_range.h"

@@ -19,7 +19,7 @@ template<typename RAC> std::string static read_name(RAC& rac)
     return transforms[nb];
 }
 
-template<typename Coder> void decode_scanlines_inner(std::vector<Coder*> &coders, Images &images, const ColorRanges *ranges)
+template<typename Coder> void flif_decode_scanlines_inner(std::vector<Coder*> &coders, Images &images, const ColorRanges *ranges)
 {
 
     ColorVal min,max;
@@ -66,7 +66,7 @@ template<typename Coder> void decode_scanlines_inner(std::vector<Coder*> &coders
     }
 }
 
-template<typename Rac, typename Coder> void decode_scanlines_pass(Rac &rac, Images &images, const ColorRanges *ranges, std::vector<Tree> &forest)
+template<typename Rac, typename Coder> void flif_decode_scanlines_pass(Rac &rac, Images &images, const ColorRanges *ranges, std::vector<Tree> &forest)
 {
     std::vector<Coder*> coders;
     for (int p = 0; p < images[0].numPlanes(); p++) {
@@ -74,7 +74,7 @@ template<typename Rac, typename Coder> void decode_scanlines_pass(Rac &rac, Imag
         initPropRanges_scanlines(propRanges, *ranges, p);
         coders.push_back(new Coder(rac, propRanges, forest[p]));
     }
-    decode_scanlines_inner(coders, images, ranges);
+    flif_decode_scanlines_inner(coders, images, ranges);
     for (int p = 0; p < images[0].numPlanes(); p++) {
         delete coders[p];
     }
@@ -82,7 +82,7 @@ template<typename Rac, typename Coder> void decode_scanlines_pass(Rac &rac, Imag
 
 // interpolate rest of the image
 // used when decoding lossy
-void decode_FLIF2_inner_interpol(Images &images, const ColorRanges *ranges, const int I, const int beginZL, const int endZL, const uint32_t R, const int scale)
+void flif_decode_FLIF2_inner_interpol(Images &images, const ColorRanges *ranges, const int I, const int beginZL, const int endZL, const uint32_t R, const int scale)
 {
     for (int i = I; i < plane_zoomlevels(images[0], beginZL, endZL); i++) {
       std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i);
@@ -128,20 +128,20 @@ void decode_FLIF2_inner_interpol(Images &images, const ColorRanges *ranges, cons
     v_printf(2,"\n");
 }
 
-template<typename Rac, typename Coder> void decode_FLIF2_inner(Rac &rac, std::vector<Coder*> &coders, Images &images, const ColorRanges *ranges, const int beginZL, const int endZL, int quality, int scale)
+template<typename Rac, typename Coder> void flif_decode_FLIF2_inner(Rac &rac, std::vector<Coder*> &coders, Images &images, const ColorRanges *ranges, const int beginZL, const int endZL, int quality, int scale)
 {
     ColorVal min,max;
     int nump = images[0].numPlanes();
 //    if (quality >= 0) {
 //      quality = plane_zoomlevels(image, beginZL, endZL) * quality / 100;
 //    }
-    // decode
+    // flif_decode
     for (int i = 0; i < plane_zoomlevels(images[0], beginZL, endZL); i++) {
       std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i);
       int p = pzl.first;
       int z = pzl.second;
       if ((100*pixels_done > quality*pixels_todo) ||  1<<(z/2) < scale) {
-              decode_FLIF2_inner_interpol(images, ranges, i, beginZL, endZL, (z%2 == 0 ?1:0), scale);
+              flif_decode_FLIF2_inner_interpol(images, ranges, i, beginZL, endZL, (z%2 == 0 ?1:0), scale);
               return;
       }
       if (endZL == 0) v_printf(2,"\r%i%% done [%i/%i] DEC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
@@ -154,7 +154,7 @@ template<typename Rac, typename Coder> void decode_FLIF2_inner(Rac &rac, std::ve
 #ifdef CHECK_FOR_BROKENFILES
             if (rac.isEOF()) {
               v_printf(1,"Row %i: Unexpected file end. Interpolation from now on.\n",r);
-              decode_FLIF2_inner_interpol(images, ranges, i, beginZL, endZL, (r>1?r-2:r), scale);
+              flif_decode_FLIF2_inner_interpol(images, ranges, i, beginZL, endZL, (r>1?r-2:r), scale);
               return;
             }
 #endif
@@ -188,7 +188,7 @@ template<typename Rac, typename Coder> void decode_FLIF2_inner(Rac &rac, std::ve
 #ifdef CHECK_FOR_BROKENFILES
             if (rac.isEOF()) {
               v_printf(1,"Row %i: Unexpected file end. Interpolation from now on.\n", r);
-              decode_FLIF2_inner_interpol(images, ranges, i, beginZL, endZL, (r>0?r-1:r), scale);
+              flif_decode_FLIF2_inner_interpol(images, ranges, i, beginZL, endZL, (r>0?r-1:r), scale);
               return;
             }
 #endif
@@ -228,7 +228,7 @@ template<typename Rac, typename Coder> void decode_FLIF2_inner(Rac &rac, std::ve
     }
 }
 
-template<typename Rac, typename Coder> void decode_FLIF2_pass(Rac &rac, Images &images, const ColorRanges *ranges, std::vector<Tree> &forest, const int beginZL, const int endZL, int quality, int scale)
+template<typename Rac, typename Coder> void flif_decode_FLIF2_pass(Rac &rac, Images &images, const ColorRanges *ranges, std::vector<Tree> &forest, const int beginZL, const int endZL, int quality, int scale)
 {
     std::vector<Coder*> coders;
     for (int p = 0; p < images[0].numPlanes(); p++) {
@@ -246,7 +246,7 @@ template<typename Rac, typename Coder> void decode_FLIF2_pass(Rac &rac, Images &
       }
     }
 
-    decode_FLIF2_inner(rac, coders, images, ranges, beginZL, endZL, quality, scale);
+    flif_decode_FLIF2_inner(rac, coders, images, ranges, beginZL, endZL, quality, scale);
 
     for (int p = 0; p < images[0].numPlanes(); p++) {
         delete coders[p];
@@ -255,7 +255,7 @@ template<typename Rac, typename Coder> void decode_FLIF2_pass(Rac &rac, Images &
 
 
 
-template<typename BitChance, typename Rac> void decode_tree(Rac &rac, const ColorRanges *ranges, std::vector<Tree> &forest, const int encoding)
+template<typename BitChance, typename Rac> void flif_decode_tree(Rac &rac, const ColorRanges *ranges, std::vector<Tree> &forest, const int encoding)
 {
     for (int p = 0; p < ranges->numPlanes(); p++) {
         Ranges propRanges;
@@ -270,7 +270,7 @@ template<typename BitChance, typename Rac> void decode_tree(Rac &rac, const Colo
 
 
 
-bool decode(const char* filename, Images &images, int quality, int scale)
+bool flif_decode(const char* filename, Images &images, int quality, int scale)
 {
     if (scale != 1 && scale != 2 && scale != 4 && scale != 8 && scale != 16 && scale != 32 && scale != 64 && scale != 128) {
                 fprintf(stderr,"Invalid scale down factor: %i\n", scale);
@@ -401,24 +401,24 @@ bool decode(const char* filename, Images &images, int quality, int scale)
       roughZL = images[0].zooms() - NB_NOLEARN_ZOOMS-1;
       if (roughZL < 0) roughZL = 0;
 //      v_printf(2,"Decoding rough data\n");
-      if (bits==10) decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 10> >(rac, images, ranges, forest, images[0].zooms(), roughZL+1, 100, scale);
-      else decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 18> >(rac, images, ranges, forest, images[0].zooms(), roughZL+1, 100, scale);
+      if (bits==10) flif_decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 10> >(rac, images, ranges, forest, images[0].zooms(), roughZL+1, 100, scale);
+      else flif_decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 18> >(rac, images, ranges, forest, images[0].zooms(), roughZL+1, 100, scale);
     }
     if (encoding == 2 && quality <= 0) {
       v_printf(3,"Not decoding MANIAC tree\n");
     } else {
       v_printf(3,"Decoded header + rough data. Decoding MANIAC tree.\n");
-      decode_tree<FLIFBitChanceTree, RacIn>(rac, ranges, forest, encoding);
+      flif_decode_tree<FLIFBitChanceTree, RacIn>(rac, ranges, forest, encoding);
     }
 //    if (encoding == 1 || quality > 0) {
       switch(encoding) {
         case 1: v_printf(3,"Decoding data (scanlines)\n");
-                if (bits==10) decode_scanlines_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 10> >(rac, images, ranges, forest);
-                else decode_scanlines_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 18> >(rac, images, ranges, forest);
+                if (bits==10) flif_decode_scanlines_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 10> >(rac, images, ranges, forest);
+                else flif_decode_scanlines_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 18> >(rac, images, ranges, forest);
                 break;
         case 2: v_printf(3,"Decoding data (FLIF2)\n");
-                if (bits==10) decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 10> >(rac, images, ranges, forest, roughZL, 0, quality, scale);
-                else decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 18> >(rac, images, ranges, forest, roughZL, 0, quality, scale);
+                if (bits==10) flif_decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 10> >(rac, images, ranges, forest, roughZL, 0, quality, scale);
+                else flif_decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 18> >(rac, images, ranges, forest, roughZL, 0, quality, scale);
                 break;
       }
 //    }

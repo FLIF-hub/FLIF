@@ -1,5 +1,5 @@
-#ifndef _FRAMESHAPE_H_
-#define _FRAMESHAPE_H_ 1
+#ifndef FLIF_FRAMESHAPE_H
+#define FLIF_FRAMESHAPE_H 1
 
 #include <vector>
 
@@ -49,6 +49,7 @@ protected:
     }
 
     bool process(const ColorRanges *srcRanges, const Images &images) {
+        if (images.size()<2) return false;
         int np=srcRanges->numPlanes();
         nb = 0;
         cols = images[0].cols();

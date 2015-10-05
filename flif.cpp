@@ -307,7 +307,7 @@ bool handle_encode_arguments(int argc, char **argv, Images &images, int palette_
         if (nb_pixels < 5000) learn_repeats--;        // avoid large trees for small images
         if (learn_repeats < 0) learn_repeats=0;
     }
-    return encode(argv[0], images, desc, method, learn_repeats, acb, frame_delay, palette_size, lookback);
+    return flif_encode(argv[0], images, desc, method, learn_repeats, acb, frame_delay, palette_size, lookback);
 }
 
 int handle_decode_arguments(char **argv, Images &images, int quality, int scale) {
@@ -317,7 +317,7 @@ int handle_decode_arguments(char **argv, Images &images, int quality, int scale)
         fprintf(stderr,"Error: expected \".png\", \".pnm\" or \".pam\" file name extension for output file\n");
         return 1;
     }
-    if (!decode(argv[0], images, quality, scale)) return 3;
+    if (!flif_decode(argv[0], images, quality, scale)) return 3;
     if (scale>1)
         v_printf(3,"Downscaling output: %ux%u -> %ux%u\n",images[0].cols(),images[0].rows(),images[0].cols()/scale,images[0].rows()/scale);
     if (images.size() == 1) {

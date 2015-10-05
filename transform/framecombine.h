@@ -1,5 +1,5 @@
-#ifndef _FRAMECOMBINE_H_
-#define _FRAMECOMBINE_H_ 1
+#ifndef FLIF_FRAMECOMBINE_H
+#define FLIF_FRAMECOMBINE_H 1
 
 #include <vector>
 
@@ -54,6 +54,7 @@ protected:
 
 // a heuristic to figure out if this is going to help (it won't help if we introduce more entropy than what is eliminated)
     bool process(const ColorRanges *srcRanges, const Images &images) {
+        if (images.size() < 2) return false;
         int nump=images[0].numPlanes();
         int pixel_cost = 1;
         for (int p=0; p<nump; p++) pixel_cost *= (1 + srcRanges->max(p) - srcRanges->min(p));

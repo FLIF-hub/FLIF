@@ -1,5 +1,5 @@
-#ifndef _YIQ_H_
-#define _YIQ_H_ 1
+#ifndef FLIF_YIQ_H
+#define FLIF_YIQ_H 1
 
 #include "../image/image.h"
 #include "../image/color_range.h"

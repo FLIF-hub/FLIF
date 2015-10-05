@@ -1,5 +1,5 @@
-#ifndef _IMAGE_PNG_H_
-#define _IMAGE_PNG_H_ 1
+#ifndef FLIF_IMAGE_PNG_H
+#define FLIF_IMAGE_PNG_H 1
 
 #include "image.h"
 

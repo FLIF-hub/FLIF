@@ -1,5 +1,5 @@
-#ifndef _UTIL_H_
-#define _UTIL_H_ 1
+#ifndef FLIF_UTIL_H
+#define FLIF_UTIL_H 1
 
 #include <stdint.h>
 

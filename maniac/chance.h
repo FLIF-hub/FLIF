@@ -1,5 +1,5 @@
-#ifndef _RAC_CHANCE_H_
-#define _RAC_CHANCE_H_ 1
+#ifndef FLIF_RAC_CHANCE_H
+#define FLIF_RAC_CHANCE_H 1
 
 #include <vector>
 #include <math.h>

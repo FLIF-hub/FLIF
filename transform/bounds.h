@@ -1,5 +1,5 @@
-#ifndef _BOUNDS_H_
-#define _BOUNDS_H_ 1
+#ifndef FLIF_BOUNDS_H
+#define FLIF_BOUNDS_H 1
 
 #include <vector>
 

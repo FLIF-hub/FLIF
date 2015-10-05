@@ -1,5 +1,5 @@
-#ifndef _RAC_H_
-#define _RAC_H_ 1
+#ifndef FLIF_RAC_H
+#define FLIF_RAC_H 1
 
 #include <stdio.h>
 #include <stdint.h>
