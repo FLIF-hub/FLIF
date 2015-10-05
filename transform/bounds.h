@@ -27,7 +27,8 @@ public:
 };
 
 
-class TransformBounds : public Transform {
+template <typename IO>
+class TransformBounds : public Transform<IO> {
 protected:
     std::vector<std::pair<ColorVal, ColorVal> > bounds;
 
@@ -39,8 +40,8 @@ protected:
         }
     }
 
-    void load(const ColorRanges *srcRanges, RacIn &rac) {
-        SimpleSymbolCoder<SimpleBitChance, RacIn, 24> coder(rac);
+    void load(const ColorRanges *srcRanges, RacIn<IO> &rac) {
+        SimpleSymbolCoder<SimpleBitChance, RacIn<IO>, 24> coder(rac);
         bounds.clear();
         for (int p=0; p<srcRanges->numPlanes(); p++) {
 //            ColorVal min = coder.read_int(0, srcRanges->max(p) - srcRanges->min(p)) + srcRanges->min(p);
@@ -52,8 +53,8 @@ protected:
         }
     }
 
-    void save(const ColorRanges *srcRanges, RacOut &rac) const {
-        SimpleSymbolCoder<SimpleBitChance, RacOut, 24> coder(rac);
+    void save(const ColorRanges *srcRanges, RacOut<IO> &rac) const {
+        SimpleSymbolCoder<SimpleBitChance, RacOut<IO>, 24> coder(rac);
         for (int p=0; p<srcRanges->numPlanes(); p++) {
             ColorVal min = bounds[p].first;
             ColorVal max = bounds[p].second;

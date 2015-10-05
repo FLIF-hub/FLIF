@@ -8,7 +8,8 @@
 
 
 
-class TransformFrameDup : public Transform {
+template <typename IO>
+class TransformFrameDup : public Transform<IO> {
 protected:
     std::vector<int> seen_before;
     uint32_t nb;
@@ -23,16 +24,16 @@ protected:
 
     void configure(const int setting) { nb=setting; }
 
-    void load(const ColorRanges *srcRanges, RacIn &rac) {
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn, 24> coder(rac);
+    void load(const ColorRanges *srcRanges, RacIn<IO> &rac) {
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> coder(rac);
         seen_before.clear();
         seen_before.push_back(-1);
         for (unsigned int i=1; i<nb; i++) seen_before.push_back(coder.read_int(-1,nb-2));
         int count=0; for(int i : seen_before) { if(i>=0) count++; } v_printf(5,"[%i]",count);
     }
 
-    void save(const ColorRanges *srcRanges, RacOut &rac) const {
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut, 24> coder(rac);
+    void save(const ColorRanges *srcRanges, RacOut<IO> &rac) const {
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> coder(rac);
         assert(nb == seen_before.size());
         for (unsigned int i=1; i<seen_before.size(); i++) coder.write_int(-1,nb-2,seen_before[i]);
         int count=0; for(int i : seen_before) { if(i>=0) count++; } v_printf(5,"[%i]",count);

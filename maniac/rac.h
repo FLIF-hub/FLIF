@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <assert.h>
 
-
 /* RAC configuration for 40-bit RAC */
 class RacConfig40
 {
@@ -91,9 +90,15 @@ public:
     int ftell() {
       return io.ftell();
     }
+    char getc() {
+      return io.getc();
+    }
+    char * gets(char *buf, int n) {
+      return io.gets(buf, n);
+    }
 };
 
-template <class Config, class IO> class RacOutput
+template <class Config, typename IO> class RacOutput
 {
 public:
     typedef typename Config::data_t rac_t;
@@ -198,53 +203,28 @@ public:
     }
 };
 
-
-class RacFileIO
+template <typename IO> class RacInput40 : public RacInput<RacConfig40, IO>
 {
-private:
-    FILE *file;
 public:
-    RacFileIO(FILE* fil) : file(fil) { }
-    int read() {
-        int r = fgetc(file);
-        if (r < 0) return 0;
-        return r;
-    }
-    void write(int byte) {
-        fputc(byte, file);
-    }
-    void flush() {
-    }
-    bool isEOF() {
-      return feof(file);
-    }
-    int ftell() {
-      return ::ftell(file);
-    }
+    RacInput40(IO io) : RacInput<RacConfig40, IO>(io) { }
 };
 
-class RacInput40 : public RacInput<RacConfig40, RacFileIO>
+template <typename IO> class RacOutput40 : public RacOutput<RacConfig40, IO>
 {
 public:
-    RacInput40(FILE *file) : RacInput<RacConfig40, RacFileIO>(RacFileIO(file)) { }
+    RacOutput40(IO io) : RacOutput<RacConfig40, IO>(io) { }
 };
 
-class RacOutput40 : public RacOutput<RacConfig40, RacFileIO>
+template <typename IO> class RacInput24 : public RacInput<RacConfig24, IO>
 {
 public:
-    RacOutput40(FILE *file) : RacOutput<RacConfig40, RacFileIO>(RacFileIO(file)) { }
+    RacInput24(IO io) : RacInput<RacConfig24, IO>(io) { }
 };
 
-class RacInput24 : public RacInput<RacConfig24, RacFileIO>
+template <typename IO> class RacOutput24 : public RacOutput<RacConfig24, IO>
 {
 public:
-    RacInput24(FILE *file) : RacInput<RacConfig24, RacFileIO>(RacFileIO(file)) { }
-};
-
-class RacOutput24 : public RacOutput<RacConfig24, RacFileIO>
-{
-public:
-    RacOutput24(FILE *file) : RacOutput<RacConfig24, RacFileIO>(RacFileIO(file)) { }
+    RacOutput24(IO io) : RacOutput<RacConfig24, IO>(io) { }
 };
 
 #endif

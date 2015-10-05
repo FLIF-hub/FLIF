@@ -4,6 +4,7 @@
 #include "transform.h"
 #include <string>
 
-Transform *create_transform(std::string desc);
+template <typename IO>
+Transform<IO> *create_transform(std::string desc);
 
 #endif

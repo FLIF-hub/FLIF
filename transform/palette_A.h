@@ -38,7 +38,8 @@ public:
 };
 
 
-class TransformPaletteA : public Transform {
+template <typename IO>
+class TransformPaletteA : public Transform<IO> {
 protected:
     typedef std::tuple<ColorVal,ColorVal,ColorVal,ColorVal> Color;
     std::set<Color> Palette;
@@ -104,12 +105,12 @@ public:
           image.palette=false;
         }
     }
-    void save(const ColorRanges *srcRanges, RacOut &rac) const {
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut, 24> coder(rac);
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut, 24> coderY(rac);
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut, 24> coderI(rac);
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut, 24> coderQ(rac);
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut, 24> coderA(rac);
+    void save(const ColorRanges *srcRanges, RacOut<IO> &rac) const {
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> coder(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> coderY(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> coderI(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> coderQ(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> coderA(rac);
         Color min(srcRanges->min(3), srcRanges->min(0), srcRanges->min(1), srcRanges->min(2));
         Color max(srcRanges->max(3), srcRanges->max(0), srcRanges->max(1), srcRanges->max(2));
         coder.write_int(1, MAX_PALETTE_SIZE, Palette_vector.size());
@@ -135,12 +136,12 @@ public:
 //        printf("\nSaved palette of size: %lu\n",Palette_vector.size());
         v_printf(5,"[%lu]",Palette_vector.size());
     }
-    void load(const ColorRanges *srcRanges, RacIn &rac) {
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn, 24> coder(rac);
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn, 24> coderY(rac);
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn, 24> coderI(rac);
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn, 24> coderQ(rac);
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn, 24> coderA(rac);
+    void load(const ColorRanges *srcRanges, RacIn<IO> &rac) {
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> coder(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> coderY(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> coderI(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> coderQ(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> coderA(rac);
         Color min(srcRanges->min(3), srcRanges->min(0), srcRanges->min(1), srcRanges->min(2));
         Color max(srcRanges->max(3), srcRanges->max(0), srcRanges->max(1), srcRanges->max(2));
         long unsigned size = coder.read_int(1, MAX_PALETTE_SIZE);
