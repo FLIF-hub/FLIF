@@ -128,7 +128,7 @@ void decode_FLIF2_inner_interpol(Images &images, const ColorRanges *ranges, cons
     v_printf(2,"\n");
 }
 
-template<typename Coder> void decode_FLIF2_inner(std::vector<Coder*> &coders, Images &images, const ColorRanges *ranges, const int beginZL, const int endZL, int quality, int scale)
+template<typename Rac, typename Coder> void decode_FLIF2_inner(Rac &rac, std::vector<Coder*> &coders, Images &images, const ColorRanges *ranges, const int beginZL, const int endZL, int quality, int scale)
 {
     ColorVal min,max;
     int nump = images[0].numPlanes();
@@ -152,7 +152,7 @@ template<typename Coder> void decode_FLIF2_inner(std::vector<Coder*> &coders, Im
       if (z % 2 == 0) {
           for (uint32_t r = 1; r < images[0].rows(z); r += 2) {
 #ifdef CHECK_FOR_BROKENFILES
-            if (feof(f)) {
+            if (rac.isEOF()) {
               v_printf(1,"Row %i: Unexpected file end. Interpolation from now on.\n",r);
               decode_FLIF2_inner_interpol(images, ranges, i, beginZL, endZL, (r>1?r-2:r), scale);
               return;
@@ -186,7 +186,7 @@ template<typename Coder> void decode_FLIF2_inner(std::vector<Coder*> &coders, Im
       } else {
           for (uint32_t r = 0; r < images[0].rows(z); r++) {
 #ifdef CHECK_FOR_BROKENFILES
-            if (feof(f)) {
+            if (rac.isEOF()) {
               v_printf(1,"Row %i: Unexpected file end. Interpolation from now on.\n", r);
               decode_FLIF2_inner_interpol(images, ranges, i, beginZL, endZL, (r>0?r-1:r), scale);
               return;
@@ -222,7 +222,7 @@ template<typename Coder> void decode_FLIF2_inner(std::vector<Coder*> &coders, Im
         }
       }
       if (endZL==0) {
-          v_printf(3,"    read %li bytes   ", ftell(f));
+          v_printf(3,"    read %li bytes   ", rac.ftell());
           v_printf(5,"\n");
       }
     }
@@ -246,7 +246,7 @@ template<typename Rac, typename Coder> void decode_FLIF2_pass(Rac &rac, Images &
       }
     }
 
-    decode_FLIF2_inner(coders, images, ranges, beginZL, endZL, quality, scale);
+    decode_FLIF2_inner(rac, coders, images, ranges, beginZL, endZL, quality, scale);
 
     for (int p = 0; p < images[0].numPlanes(); p++) {
         delete coders[p];
@@ -277,7 +277,7 @@ bool decode(const char* filename, Images &images, int quality, int scale)
                 return false;
     }
 
-    f = fopen(filename,"rb");
+    FILE *f = fopen(filename,"rb");
     if (!f) { fprintf(stderr,"Could not open file: %s\n",filename); return false; }
     char buff[5];
     if (!fgets(buff,5,f)) { fprintf(stderr,"Could not read header from file: %s\n",filename); return false; }

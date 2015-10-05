@@ -25,10 +25,10 @@ template<typename RAC> void static write_name(RAC& rac, std::string desc)
 }
 
 
-template<typename Coder> void encode_scanlines_inner(std::vector<Coder*> &coders, const Images &images, const ColorRanges *ranges)
+template<typename Rac, typename Coder> void encode_scanlines_inner(Rac rac, std::vector<Coder*> &coders, const Images &images, const ColorRanges *ranges)
 {
     ColorVal min,max;
-    long fs = ftell(f);
+    long fs = rac.ftell();
     long pixels = images[0].cols()*images[0].rows()*images.size();
     int nump = images[0].numPlanes();
     int beginp = (nump>3 ? 3 : 0);
@@ -52,7 +52,7 @@ template<typename Coder> void encode_scanlines_inner(std::vector<Coder*> &coders
               }
             }
         }
-        long nfs = ftell(f);
+        long nfs = rac.ftell();
         if (nfs-fs > 0) {
            v_printf(3,"filesize : %li (+%li for %li pixels, %f bpp)", nfs, nfs-fs, pixels, 8.0*(nfs-fs)/pixels );
            v_printf(4,"\n");
@@ -72,7 +72,7 @@ template<typename Rac, typename Coder> void encode_scanlines_pass(Rac &rac, cons
     }
 
     while(repeats-- > 0) {
-     encode_scanlines_inner(coders, images, ranges);
+     encode_scanlines_inner(rac, coders, images, ranges);
     }
 
     for (int p = 0; p < ranges->numPlanes(); p++) {
@@ -88,11 +88,11 @@ template<typename Rac, typename Coder> void encode_scanlines_pass(Rac &rac, cons
     }
 }
 
-template<typename Coder> void encode_FLIF2_inner(std::vector<Coder*> &coders, const Images &images, const ColorRanges *ranges, const int beginZL, const int endZL)
+template<typename Rac, typename Coder> void encode_FLIF2_inner(Rac rac, std::vector<Coder*> &coders, const Images &images, const ColorRanges *ranges, const int beginZL, const int endZL)
 {
     ColorVal min,max;
     int nump = images[0].numPlanes();
-    long fs = ftell(f);
+    long fs = rac.ftell();
     for (int i = 0; i < plane_zoomlevels(images[0], beginZL, endZL); i++) {
       std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i);
       int p = pzl.first;
@@ -142,10 +142,10 @@ template<typename Coder> void encode_FLIF2_inner(std::vector<Coder*> &coders, co
             }
           }
       }
-      if (endZL==0 && ftell(f)>fs) {
-          v_printf(3,"    wrote %li bytes    ", ftell(f));
+      if (endZL==0 && rac.ftell()>fs) {
+          v_printf(3,"    wrote %li bytes    ", rac.ftell());
           v_printf(5,"\n");
-          fs = ftell(f);
+          fs = rac.ftell();
       }
     }
 }
@@ -169,7 +169,7 @@ template<typename Rac, typename Coder> void encode_FLIF2_pass(Rac &rac, const Im
       }
     }
     while(repeats-- > 0) {
-     encode_FLIF2_inner(coders, images, ranges, beginZL, endZL);
+     encode_FLIF2_inner(rac, coders, images, ranges, beginZL, endZL);
     }
     for (int p = 0; p < images[0].numPlanes(); p++) {
         coders[p]->simplify();
@@ -252,7 +252,7 @@ template<typename BitChance, typename Rac> void encode_tree(Rac &rac, const Colo
 
 bool encode(const char* filename, Images &images, std::vector<std::string> transDesc, int encoding, int learn_repeats, int acb, int frame_delay, int palette_size, int lookback) {
     if (encoding < 1 || encoding > 2) { fprintf(stderr,"Unknown encoding: %i\n", encoding); return false;}
-    f = fopen(filename,"wb");
+    FILE *f = fopen(filename,"wb");
     fputs("FLIF",f);
     int numPlanes = images[0].numPlanes();
     int numFrames = images.size();

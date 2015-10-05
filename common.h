@@ -14,8 +14,6 @@
 
 #include "flif_config.h"
 
-extern FILE *f;  // the compressed file
-
 extern std::vector<ColorVal> grey; // a pixel with values in the middle of the bounds
 extern int64_t pixels_todo;
 extern int64_t pixels_done;
