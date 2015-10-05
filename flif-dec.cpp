@@ -329,8 +329,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale)
     }
 
     for (int i=0; i<numFrames; i++) {
-      Image image;
-      images.push_back(image);
+      images.push_back(Image());
       images[i].init(width,height,0,maxmax,numPlanes);
     }
     std::vector<const ColorRanges*> rangesList;
