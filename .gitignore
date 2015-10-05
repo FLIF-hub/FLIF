@@ -1,0 +1,10 @@
+
+*.flif
+
+*.png
+*.xcworkspace/*
+*.xcworkspace
+*.xcodeproj
+flif
+
+flif.osx

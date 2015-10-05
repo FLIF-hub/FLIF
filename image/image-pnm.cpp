@@ -6,7 +6,7 @@
 #include "image.h"
 #include "image-pnm.h"
 #include "image-pam.h"
-#include "../flif.h"
+#include "../common.h"
 
 #define PPMREADBUFLEN 256
 

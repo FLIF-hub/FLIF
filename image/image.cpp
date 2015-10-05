@@ -5,7 +5,7 @@
 #include "image-png.h"
 #include "image-pnm.h"
 #include "image-pam.h"
-#include "../flif.h"
+#include "../common.h"
 
 #ifdef _MSC_VER
 #define strcasecmp stricmp

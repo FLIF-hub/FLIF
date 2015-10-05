@@ -3,13 +3,14 @@
 
 #include <string>
 #include <string.h>
+#include <stdarg.h>
+#include <stdio.h>
 
 #include "maniac/rac.h"
 #include "maniac/compound.h"
 #include "maniac/util.h"
 
 #include "image/color_range.h"
-#include "transform/factory.h"
 
 #include "flif_config.h"
 
@@ -23,7 +24,8 @@ extern int64_t pixels_done;
 
 extern const std::vector<std::string> transforms;
 
-
+void increase_verbosity();
+int get_verbosity();
 void v_printf(const int v, const char *format, ...);
 
 typedef SimpleBitChance                         FLIFBitChancePass1;

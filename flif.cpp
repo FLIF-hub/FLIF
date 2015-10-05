@@ -38,7 +38,7 @@
 #ifdef _MSC_VER
 #include "getopt/getopt.h"
 #else
-#include "getopt.h"
+#include <getopt.h>
 #endif
 
 #include <stdarg.h>
@@ -47,20 +47,15 @@
 #include "flif-enc.h"
 #include "flif-dec.h"
 
+#include "flif.h"
+
 #ifdef _MSC_VER
 #define strcasecmp stricmp
 #endif
 
-static int verbosity = 1;
 
-void v_printf(const int v, const char *format, ...) {
-    if (verbosity < v) return;
-    va_list args;
-    va_start(args, format);
-    vfprintf(stdout, format, args);
-    fflush(stdout);
-    va_end(args);
-}
+
+
 
 // planes:
 // 0    Y channel (luminance)
@@ -118,6 +113,27 @@ bool file_is_flif(const char * filename){
         return result;
 }
 
+void show_banner() {
+    v_printf(3,"  _____  __  (__) _____");
+    v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1 [2 October 2015]");
+    v_printf(3,"\n  (__  ||  |_|__||  __)    Free Lossless Image Format");
+    v_printf(3,"\n    (__||______) |__)      (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
+    v_printf(3,"\n");
+}
+
+bool check_compatible_extension (char *ext) {
+    if (!(ext && ( !strcasecmp(ext,".png") // easy to add or remove formats
+                  || !strcasecmp(ext,".pnm")
+                  || !strcasecmp(ext,".ppm")
+                  || !strcasecmp(ext,".pgm")
+                  || !strcasecmp(ext,".pbm")
+                  || !strcasecmp(ext,".pam")))) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
 int main(int argc, char **argv)
 {
     Images images;
@@ -157,7 +173,7 @@ int main(int argc, char **argv)
         switch (c) {
         case 'e': mode=0; break;
         case 'd': mode=1; break;
-        case 'v': verbosity++; break;
+        case 'v': increase_verbosity(); break;
         case 'i': if (method==0) method=2; break;
         case 'n': method=1; break;
         case 'a': acb=1; break;
@@ -188,130 +204,136 @@ int main(int argc, char **argv)
     argc -= optind;
     argv += optind;
 
-  v_printf(3,"  _____  __  (__) _____");
-  v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1 [2 October 2015]");
-  v_printf(3,"\n  (__  ||  |_|__||  __)    Free Lossless Image Format");
-  v_printf(3,"\n    (__||______) |__)      (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
-  v_printf(3,"\n");
-  if (argc == 0) {
+    show_banner();
+    if (argc == 0) {
         //fprintf(stderr,"Input file missing.\n");
-        if (verbosity == 1) show_help();
+        if (get_verbosity() == 1) show_help();
         return 1;
-  }
-  if (argc == 1) {
-        fprintf(stderr,"Output file missing.\n");
+    }
+    
+    if (argc == 1) {
         show_help();
+        fprintf(stderr,"\nOutput file missing.\n");
         return 1;
-  }
+    }
 
     if (file_exists(argv[0])) {
-            if (mode == 0 && file_is_flif(argv[0])) {
-              v_printf(2,"Input file is a FLIF file, adding implicit -d\n");
-              mode = 1;
+        if (mode == 0 && file_is_flif(argv[0])) {
+            v_printf(2,"Input file is a FLIF file, adding implicit -d\n");
+            mode = 1;
+        }
+        char *f = strrchr(argv[0],'/');
+        char *ext = f ? strrchr(f,'.') : strrchr(argv[0],'.');
+        if (mode == 0) {
+            if (!check_compatible_extension(ext)) {
+                fprintf(stderr,"Warning: expected \".png\" or \".pnm\" file name extension for input file, trying anyway...\n");
             }
-            char *f = strrchr(argv[0],'/');
-            char *ext = f ? strrchr(f,'.') : strrchr(argv[0],'.');
-            if (mode == 0) {
-                    if (ext && ( !strcasecmp(ext,".png") ||  !strcasecmp(ext,".pnm") ||  !strcasecmp(ext,".ppm")  ||  !strcasecmp(ext,".pgm") ||  !strcasecmp(ext,".pbm") ||  !strcasecmp(ext,".pam"))) {
-                          // ok
-                    } else {
-                          fprintf(stderr,"Warning: expected \".png\" or \".pnm\" file name extension for input file, trying anyway...\n");
-                    }
-            } else {
-                    if (ext && ( !strcasecmp(ext,".flif")  || ( !strcasecmp(ext,".flf") ))) {
-                          // ok
-                    } else {
-                          fprintf(stderr,"Warning: expected file name extension \".flif\" for input file, trying anyway...\n");
-                    }
+        } else {
+            if (!(ext && ( !strcasecmp(ext,".flif")  || ( !strcasecmp(ext,".flf") )))) {
+                fprintf(stderr,"Warning: expected file name extension \".flif\" for input file, trying anyway...\n");
             }
+        }
     } else if (argc>0) {
-          fprintf(stderr,"Input file does not exist: %s\n",argv[0]);
-          return 1;
+        fprintf(stderr,"Input file does not exist: %s\n",argv[0]);
+        return 1;
     }
 
 
-  if (mode == 0) {
-        int nb_input_images = argc-1;
-        while(argc>1) {
-          Image image;
-          v_printf(2,"\r");
-          if (!image.load(argv[0])) {
+    if (mode == 0) {
+        handle_encode_arguments(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay);
+    } else {
+        int returnCode = handle_decode_arguments(argv, images, quality, scale);
+        if (returnCode > 0) return returnCode;
+    }
+    for (Image &image : images) image.clear();
+    return 0;
+}
+
+/********************************************/
+/*   HEAVIER HANDLING                       */
+/********************************************/
+
+bool handle_encode_arguments(int argc, char **argv, Images &images, int palette_size, int acb, int method, int lookback, int learn_repeats, int frame_delay) {
+    int nb_input_images = argc-1;
+    while(argc>1) {
+        Image image;
+        v_printf(2,"\r");
+        if (!image.load(argv[0])) {
             fprintf(stderr,"Could not read input file: %s\n", argv[0]);
             return 2;
-          };
-          images.push_back(image);
-          if (image.rows() != images[0].rows() || image.cols() != images[0].cols() || image.numPlanes() != images[0].numPlanes()) {
+        };
+        images.push_back(image);
+        if (image.rows() != images[0].rows() || image.cols() != images[0].cols() || image.numPlanes() != images[0].numPlanes()) {
             fprintf(stderr,"Dimensions of all input images should be the same!\n");
             fprintf(stderr,"  First image is %ux%u, %i channels.\n",images[0].cols(),images[0].rows(),images[0].numPlanes());
             fprintf(stderr,"  This image is %ux%u, %i channels: %s\n",image.cols(),image.rows(),image.numPlanes(),argv[0]);
             return 2;
-          }
-          argc--; argv++;
-          if (nb_input_images>1) {v_printf(2,"    (%i/%i)         ",(int)images.size(),nb_input_images); v_printf(4,"\n");}
         }
-        v_printf(2,"\n");
-        bool flat=true;
-        for (Image &image : images) if (image.uses_alpha()) flat=false;
-        if (flat && images[0].numPlanes() == 4) {
-              v_printf(2,"Alpha channel not actually used, dropping it.\n");
-              for (Image &image : images) image.drop_alpha();
+        argc--; argv++;
+        if (nb_input_images>1) {v_printf(2,"    (%i/%i)         ",(int)images.size(),nb_input_images); v_printf(4,"\n");}
+    }
+    v_printf(2,"\n");
+    bool flat=true;
+    for (Image &image : images) if (image.uses_alpha()) flat=false;
+    if (flat && images[0].numPlanes() == 4) {
+        v_printf(2,"Alpha channel not actually used, dropping it.\n");
+        for (Image &image : images) image.drop_alpha();
+    }
+    uint64_t nb_pixels = (uint64_t)images[0].rows() * images[0].cols();
+    std::vector<std::string> desc;
+    desc.push_back("YIQ");  // convert RGB(A) to YIQ(A)
+    desc.push_back("BND");  // get the bounds of the color spaces
+    if (palette_size > 0)
+        desc.push_back("PLA");  // try palette (including alpha)
+    if (palette_size > 0)
+        desc.push_back("PLT");  // try palette (without alpha)
+    if (acb == -1) {
+        // not specified if ACB should be used
+        if (nb_pixels > 10000) desc.push_back("ACB");  // try auto color buckets on large images
+    } else if (acb) desc.push_back("ACB");  // try auto color buckets if forced
+    if (method == 0) {
+        // no method specified, pick one heuristically
+        if (nb_pixels < 10000) method=1; // if the image is small, not much point in doing interlacing
+        else method=2; // default method: interlacing
+    }
+    if (images.size() > 1) {
+        desc.push_back("DUP");  // find duplicate frames
+        desc.push_back("FRS");  // get the shapes of the frames
+        if (lookback != 0) desc.push_back("FRA");  // make a "deep" alpha channel (negative values are transparent to some previous frame)
+    }
+    if (learn_repeats < 0) {
+        // no number of repeats specified, pick a number heuristically
+        learn_repeats = TREE_LEARN_REPEATS;
+        if (nb_pixels < 5000) learn_repeats--;        // avoid large trees for small images
+        if (learn_repeats < 0) learn_repeats=0;
+    }
+    return encode(argv[0], images, desc, method, learn_repeats, acb, frame_delay, palette_size, lookback);
+}
+
+int handle_decode_arguments(char **argv, Images &images, int quality, int scale) {
+    
+    char *ext = strrchr(argv[1],'.');
+    if (!check_compatible_extension(ext)) {
+        fprintf(stderr,"Error: expected \".png\", \".pnm\" or \".pam\" file name extension for output file\n");
+        return 1;
+    }
+    if (!decode(argv[0], images, quality, scale)) return 3;
+    if (scale>1)
+        v_printf(3,"Downscaling output: %ux%u -> %ux%u\n",images[0].cols(),images[0].rows(),images[0].cols()/scale,images[0].rows()/scale);
+    if (images.size() == 1) {
+        if (!images[0].save(argv[1],scale)) return 2;
+    } else {
+        int counter=0;
+        std::vector<char> vfilename(strlen(argv[1])+6);
+        char *filename = &vfilename[0];
+        strcpy(filename,argv[1]);
+        char *a_ext = strrchr(filename,'.');
+        for (Image& image : images) {
+            sprintf(a_ext,"-%03d%s",counter++,ext);
+            if (!image.save(filename,scale)) return 2;
+            v_printf(2,"    (%i/%i)         \r",counter,(int)images.size()); v_printf(4,"\n");
         }
-        uint64_t nb_pixels = (uint64_t)images[0].rows() * images[0].cols();
-        std::vector<std::string> desc;
-        desc.push_back("YIQ");  // convert RGB(A) to YIQ(A)
-        desc.push_back("BND");  // get the bounds of the color spaces
-        if (palette_size > 0)
-          desc.push_back("PLA");  // try palette (including alpha)
-        if (palette_size > 0)
-          desc.push_back("PLT");  // try palette (without alpha)
-        if (acb == -1) {
-          // not specified if ACB should be used
-          if (nb_pixels > 10000) desc.push_back("ACB");  // try auto color buckets on large images
-        } else if (acb) desc.push_back("ACB");  // try auto color buckets if forced
-        if (method == 0) {
-          // no method specified, pick one heuristically
-          if (nb_pixels < 10000) method=1; // if the image is small, not much point in doing interlacing
-          else method=2; // default method: interlacing
-        }
-        if (images.size() > 1) {
-          desc.push_back("DUP");  // find duplicate frames
-          desc.push_back("FRS");  // get the shapes of the frames
-          if (lookback != 0) desc.push_back("FRA");  // make a "deep" alpha channel (negative values are transparent to some previous frame)
-        }
-        if (learn_repeats < 0) {
-          // no number of repeats specified, pick a number heuristically
-          learn_repeats = TREE_LEARN_REPEATS;
-          if (nb_pixels < 5000) learn_repeats--;        // avoid large trees for small images
-          if (learn_repeats < 0) learn_repeats=0;
-        }
-        encode(argv[0], images, desc, method, learn_repeats, acb, frame_delay, palette_size, lookback);
-  } else {
-        char *ext = strrchr(argv[1],'.');
-        if (ext && ( !strcasecmp(ext,".png") ||  !strcasecmp(ext,".pnm") ||  !strcasecmp(ext,".ppm")  ||  !strcasecmp(ext,".pgm") ||  !strcasecmp(ext,".pbm") ||  !strcasecmp(ext,".pam"))) {
-                 // ok
-        } else {
-           fprintf(stderr,"Error: expected \".png\", \".pnm\" or \".pam\" file name extension for output file\n");
-           return 1;
-        }
-        if (!decode(argv[0], images, quality, scale)) return 3;
-        if (scale>1)
-          v_printf(3,"Downscaling output: %ux%u -> %ux%u\n",images[0].cols(),images[0].rows(),images[0].cols()/scale,images[0].rows()/scale);
-        if (images.size() == 1) {
-          if (!images[0].save(argv[1],scale)) return 2;
-        } else {
-          int counter=0;
-          std::vector<char> vfilename(strlen(argv[1])+6);
-          char *filename = &vfilename[0];
-          strcpy(filename,argv[1]);
-          char *a_ext = strrchr(filename,'.');
-          for (Image& image : images) {
-             sprintf(a_ext,"-%03d%s",counter++,ext);
-             if (!image.save(filename,scale)) return 2;
-             v_printf(2,"    (%i/%i)         \r",counter,(int)images.size()); v_printf(4,"\n");
-          }
-        }
-        v_printf(2,"\n");
-  }
-  for (Image &image : images) image.clear();
-  return 0;
+    }
+    v_printf(2,"\n");
+    return -1;
 }
