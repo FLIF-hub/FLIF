@@ -3,6 +3,8 @@
 
 #include <string>
 #include <string.h>
+#include <stdarg.h>
+#include <stdio.h>
 
 #include "maniac/rac.h"
 #include "maniac/compound.h"
