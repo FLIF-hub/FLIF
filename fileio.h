@@ -1,5 +1,5 @@
-#ifndef __FILEIO_H__
-#define __FILEIO_H__
+#ifndef FLIF_FILEIO_H
+#define FLIF_FILEIO_H
 
 #include <stdio.h>
 
