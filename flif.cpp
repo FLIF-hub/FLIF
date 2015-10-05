@@ -121,6 +121,19 @@ void show_banner() {
     v_printf(3,"\n");
 }
 
+bool check_compatible_extension (char *ext) {
+    if (!(ext && ( !strcasecmp(ext,".png") // easy to add or remove formats
+                  || !strcasecmp(ext,".pnm")
+                  || !strcasecmp(ext,".ppm")
+                  || !strcasecmp(ext,".pgm")
+                  || !strcasecmp(ext,".pbm")
+                  || !strcasecmp(ext,".pam")))) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
 int main(int argc, char **argv)
 {
     Images images;
@@ -212,12 +225,7 @@ int main(int argc, char **argv)
         char *f = strrchr(argv[0],'/');
         char *ext = f ? strrchr(f,'.') : strrchr(argv[0],'.');
         if (mode == 0) {
-            if (!(ext && ( !strcasecmp(ext,".png") // easy to add or remove formats
-                        || !strcasecmp(ext,".pnm")
-                        || !strcasecmp(ext,".ppm")
-                        || !strcasecmp(ext,".pgm")
-                        || !strcasecmp(ext,".pbm")
-                        || !strcasecmp(ext,".pam")))) {
+            if (!check_compatible_extension(ext)) {
                 fprintf(stderr,"Warning: expected \".png\" or \".pnm\" file name extension for input file, trying anyway...\n");
             }
         } else {
@@ -240,6 +248,10 @@ int main(int argc, char **argv)
     for (Image &image : images) image.clear();
     return 0;
 }
+
+/********************************************/
+/*   HEAVIER HANDLING                       */
+/********************************************/
 
 bool handle_encode_arguments(int argc, char **argv, Images &images, int palette_size, int acb, int method, int lookback, int learn_repeats, int frame_delay) {
     int nb_input_images = argc-1;
@@ -301,9 +313,7 @@ bool handle_encode_arguments(int argc, char **argv, Images &images, int palette_
 int handle_decode_arguments(char **argv, Images &images, int quality, int scale) {
     
     char *ext = strrchr(argv[1],'.');
-    if (ext && ( !strcasecmp(ext,".png") ||  !strcasecmp(ext,".pnm") ||  !strcasecmp(ext,".ppm")  ||  !strcasecmp(ext,".pgm") ||  !strcasecmp(ext,".pbm") ||  !strcasecmp(ext,".pam"))) {
-        // ok
-    } else {
+    if (!check_compatible_extension(ext)) {
         fprintf(stderr,"Error: expected \".png\", \".pnm\" or \".pam\" file name extension for output file\n");
         return 1;
     }

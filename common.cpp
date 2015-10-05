@@ -12,6 +12,8 @@ int64_t pixels_done = 0;
 const int NB_PROPERTIES_scanlines[] = {7,8,9,7};
 const int NB_PROPERTIES_scanlinesA[] = {8,9,10,7};
 
+
+static int verbosity = 1;
 void increase_verbosity() {
     verbosity ++;
 }

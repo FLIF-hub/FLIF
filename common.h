@@ -22,7 +22,6 @@ extern int64_t pixels_done;
 
 extern const std::vector<std::string> transforms;
 
-static int verbosity = 1;
 void increase_verbosity();
 int get_verbosity();
 void v_printf(const int v, const char *format, ...);
