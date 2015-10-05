@@ -25,4 +25,3 @@ test: flif
 	./flif -d $${OUTF} $${OUTP};				\
 	test "`compare -metric AE $${IN} $${OUTP} null 2>&1`" = "0"
 
-# installed homebrew and installed kegs named "pkg-config" and "libpng"
