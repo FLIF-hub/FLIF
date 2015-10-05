@@ -194,7 +194,6 @@ public:
     void inline flush() { }
 
     int ftell() {
-      // TODO: Should this return the actual bytes written?
       return 0;
     }
 };
@@ -220,8 +219,7 @@ public:
       return feof(file);
     }
     int ftell() {
-      // TODO
-      return 0;
+      return ::ftell(file);
     }
 };
 
