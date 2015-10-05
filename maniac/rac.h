@@ -84,6 +84,13 @@ public:
     bool inline read() {
         return get(range/2);
     }
+
+    bool isEOF() {
+      return io.isEOF();
+    }
+    int ftell() {
+      return io.ftell();
+    }
 };
 
 template <class Config, class IO> class RacOutput
@@ -163,6 +170,10 @@ public:
         output();
         io.flush();
     }
+
+    int ftell() {
+      return io.ftell();
+    }
 };
 
 
@@ -181,6 +192,11 @@ public:
 
     void inline write(bool bit) { }
     void inline flush() { }
+
+    int ftell() {
+      // TODO: Should this return the actual bytes written?
+      return 0;
+    }
 };
 
 
@@ -199,6 +215,13 @@ public:
         fputc(byte, file);
     }
     void flush() {
+    }
+    bool isEOF() {
+      return feof(file);
+    }
+    int ftell() {
+      // TODO
+      return 0;
     }
 };
 
