@@ -20,7 +20,7 @@
      
    - *bit 7*: `0` 
    
-3. *if mutli-frame*: read an unsigned byte and assign to `numFrames`, otherwise assume `numFrames == 1`
+3. *if multi-frame*: read an unsigned byte and assign to `numFrames`, otherwise assume `numFrames == 1`
    
    **FIXME info:** valid range: `0` allowed? `1` allowed? `255` allowed? 
    
