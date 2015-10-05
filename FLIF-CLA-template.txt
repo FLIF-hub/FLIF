@@ -78,9 +78,12 @@ claims; and provided that this license is conditioned upon compliance with Secti
 As a condition on the grant of rights in Sections 2.1 and 2.2, We agree to license
 the Contribution only under the terms of the license or licenses which
 We are using on the Submission Date for the Material or the following additional
-licenses: Apache License 2.0, GNU General Public License v3.0 only,
-GNU Library General Public License v2 only, GNU Lesser General Public License v2.1 only,
-GNU Lesser General Public License v3.0 only, or GNU Affero General Public License v3
+licenses: Apache License 2.0, GNU General Public License v3.0 or any later version,
+GNU Library General Public License v2, GNU Lesser General Public License v2.1,
+GNU Lesser General Public License v3.0 or any later version, the GNU Affero
+General Public License v3 or any later version, and all other GPL-Compatible
+Free Software Licenses approved by the Free Software Foundation and listed
+on this website: https://gnu.org/licenses/license-list.html#GPLCompatibleLicenses
 (including any right to adopt any future version of a license if permitted).
 
 
