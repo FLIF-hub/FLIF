@@ -252,7 +252,7 @@ template<typename BitChance, typename Rac> void flif_encode_tree(Rac &rac, const
 }
 
 template <typename IO>
-bool flif_encode(IO io, Images &images, std::vector<std::string> transDesc, int encoding, int learn_repeats, int acb, int frame_delay, int palette_size, int lookback) {
+bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, int encoding, int learn_repeats, int acb, int frame_delay, int palette_size, int lookback) {
     if (encoding < 1 || encoding > 2) { fprintf(stderr,"Unknown encoding: %i\n", encoding); return false;}
     io.fputs("FLIF");
     int numPlanes = images[0].numPlanes();
@@ -433,5 +433,5 @@ bool flif_encode(IO io, Images &images, std::vector<std::string> transDesc, int 
 }
 
 
-template bool flif_encode(FileIO io, Images &images, std::vector<std::string> transDesc, int encoding, int learn_repeats, int acb, int frame_delay, int palette_size, int lookback);
+template bool flif_encode(FileIO& io, Images &images, std::vector<std::string> transDesc, int encoding, int learn_repeats, int acb, int frame_delay, int palette_size, int lookback);
 
