@@ -13,8 +13,15 @@
 
 
 #include "maniac/rac.h"
-typedef RacInput40 RacIn;
-typedef RacOutput40 RacOut;
+
+#include "fileio.h"
+
+template <typename IO>
+using RacIn = RacInput40<IO>;
+
+template <typename IO>
+using RacOut = RacOutput40<IO>;
+
 //typedef RacInput24 RacIn;
 //typedef RacOutput24 RacOut;
 

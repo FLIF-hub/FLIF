@@ -11,6 +11,7 @@
 #include "flif_config.h"
 
 #include "common.h"
+#include "fileio.h"
 
 template<typename RAC> std::string static read_name(RAC& rac)
 {
@@ -270,38 +271,38 @@ template<typename BitChance, typename Rac> void flif_decode_tree(Rac &rac, const
 
 
 
-bool flif_decode(const char* filename, Images &images, int quality, int scale)
+template <typename IO>
+bool flif_decode(IO io, Images &images, int quality, int scale)
 {
     if (scale != 1 && scale != 2 && scale != 4 && scale != 8 && scale != 16 && scale != 32 && scale != 64 && scale != 128) {
                 fprintf(stderr,"Invalid scale down factor: %i\n", scale);
                 return false;
     }
 
-    FILE *f = fopen(filename,"rb");
-    if (!f) { fprintf(stderr,"Could not open file: %s\n",filename); return false; }
     char buff[5];
-    if (!fgets(buff,5,f)) { fprintf(stderr,"Could not read header from file: %s\n",filename); return false; }
-    if (strcmp(buff,"FLIF")) { fprintf(stderr,"Not a FLIF file: %s\n",filename); return false; }
-    int c = fgetc(f)-' ';
+    if (!io.gets(buff,5)) { fprintf(stderr,"Could not read header from file: %s\n",io.getName()); return false; }
+    if (strcmp(buff,"FLIF")) { fprintf(stderr,"Not a FLIF file: %s\n",io.getName()); return false; }
+    int c = io.getc()-' ';
     int numFrames=1;
     if (c > 47) {
         c -= 32;
-        numFrames = fgetc(f);
+        numFrames = io.getc();
     }
     int encoding=c/16;
     if (scale != 1 && encoding==1) { v_printf(1,"Cannot decode non-interlaced FLIF file at lower scale! Ignoring scale...\n");}
     if (quality < 100 && encoding==1) { v_printf(1,"Cannot decode non-interlaced FLIF file at lower quality! Ignoring quality...\n");}
     int numPlanes=c%16;
-    c = fgetc(f);
+    c = io.getc();
 
-    int width=fgetc(f) << 8;
-    width += fgetc(f);
-    int height=fgetc(f) << 8;
-    height += fgetc(f);
+    int width=io.getc() << 8;
+    width += io.getc();
+    int height=io.getc() << 8;
+    height += io.getc();
+
     // TODO: implement downscaled decoding without allocating a fullscale image buffer!
 
-    RacIn rac(f);
-    SimpleSymbolCoder<FLIFBitChanceMeta, RacIn, 24> metaCoder(rac);
+    RacIn<IO> rac(io);
+    SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> metaCoder(rac);
 
 //    image.init(width, height, 0, 0, 0);
     v_printf(3,"Decoding %ux%u image, channels:",width,height);
@@ -333,13 +334,13 @@ bool flif_decode(const char* filename, Images &images, int quality, int scale)
       images[i].init(width,height,0,maxmax,numPlanes);
     }
     std::vector<const ColorRanges*> rangesList;
-    std::vector<Transform*> transforms;
+    std::vector<Transform<IO>*> transforms;
     rangesList.push_back(getRanges(images[0]));
     v_printf(4,"Transforms: ");
     int tcount=0;
     while (rac.read()) {
         std::string desc = read_name(rac);
-        Transform *trans = create_transform(desc);
+        Transform<IO> *trans = create_transform<IO>(desc);
         if (!trans) {
             fprintf(stderr,"Unknown transformation '%s'\n", desc.c_str());
             return false;
@@ -401,31 +402,31 @@ bool flif_decode(const char* filename, Images &images, int quality, int scale)
       roughZL = images[0].zooms() - NB_NOLEARN_ZOOMS-1;
       if (roughZL < 0) roughZL = 0;
 //      v_printf(2,"Decoding rough data\n");
-      if (bits==10) flif_decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 10> >(rac, images, ranges, forest, images[0].zooms(), roughZL+1, 100, scale);
-      else flif_decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 18> >(rac, images, ranges, forest, images[0].zooms(), roughZL+1, 100, scale);
+      if (bits==10) flif_decode_FLIF2_pass<RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, 10> >(rac, images, ranges, forest, images[0].zooms(), roughZL+1, 100, scale);
+      else flif_decode_FLIF2_pass<RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, 18> >(rac, images, ranges, forest, images[0].zooms(), roughZL+1, 100, scale);
     }
     if (encoding == 2 && quality <= 0) {
       v_printf(3,"Not decoding MANIAC tree\n");
     } else {
       v_printf(3,"Decoded header + rough data. Decoding MANIAC tree.\n");
-      flif_decode_tree<FLIFBitChanceTree, RacIn>(rac, ranges, forest, encoding);
+      flif_decode_tree<FLIFBitChanceTree, RacIn<IO>>(rac, ranges, forest, encoding);
     }
 //    if (encoding == 1 || quality > 0) {
       switch(encoding) {
         case 1: v_printf(3,"Decoding data (scanlines)\n");
-                if (bits==10) flif_decode_scanlines_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 10> >(rac, images, ranges, forest);
-                else flif_decode_scanlines_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 18> >(rac, images, ranges, forest);
+                if (bits==10) flif_decode_scanlines_pass<RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, 10> >(rac, images, ranges, forest);
+                else flif_decode_scanlines_pass<RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, 18> >(rac, images, ranges, forest);
                 break;
         case 2: v_printf(3,"Decoding data (FLIF2)\n");
-                if (bits==10) flif_decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 10> >(rac, images, ranges, forest, roughZL, 0, quality, scale);
-                else flif_decode_FLIF2_pass<RacIn, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn, 18> >(rac, images, ranges, forest, roughZL, 0, quality, scale);
+                if (bits==10) flif_decode_FLIF2_pass<RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, 10> >(rac, images, ranges, forest, roughZL, 0, quality, scale);
+                else flif_decode_FLIF2_pass<RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, 18> >(rac, images, ranges, forest, roughZL, 0, quality, scale);
                 break;
       }
 //    }
     if (numFrames==1)
-      v_printf(2,"\rDecoding done, %li bytes for %ux%u pixels (%.4fbpp)   \n",ftell(f), images[0].cols()/scale, images[0].rows()/scale, 1.0*ftell(f)/images[0].rows()/images[0].cols()/scale/scale);
+      v_printf(2,"\rDecoding done, %li bytes for %ux%u pixels (%.4fbpp)   \n",rac.ftell(), images[0].cols()/scale, images[0].rows()/scale, 1.0*rac.ftell()/images[0].rows()/images[0].cols()/scale/scale);
     else
-      v_printf(2,"\rDecoding done, %li bytes for %i frames of %ux%u pixels (%.4fbpp)   \n",ftell(f), numFrames, images[0].cols()/scale, images[0].rows()/scale, 1.0*ftell(f)/numFrames/images[0].rows()/images[0].cols()/scale/scale);
+      v_printf(2,"\rDecoding done, %li bytes for %i frames of %ux%u pixels (%.4fbpp)   \n",rac.ftell(), numFrames, images[0].cols()/scale, images[0].rows()/scale, 1.0*rac.ftell()/numFrames/images[0].rows()/images[0].cols()/scale/scale);
 
 
     if (quality==100 && scale==1) {
@@ -453,8 +454,9 @@ bool flif_decode(const char* filename, Images &images, int quality, int scale)
     }
     rangesList.clear();
 
-    fclose(f);
+    io.close();
     return true;
 }
 
 
+template bool flif_decode(FileIO io, Images &images, int quality, int scale);

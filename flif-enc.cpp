@@ -11,6 +11,7 @@
 #include "flif_config.h"
 
 #include "common.h"
+#include "fileio.h"
 
 template<typename RAC> void static write_name(RAC& rac, std::string desc)
 {
@@ -250,17 +251,17 @@ template<typename BitChance, typename Rac> void flif_encode_tree(Rac &rac, const
     }
 }
 
-bool flif_encode(const char* filename, Images &images, std::vector<std::string> transDesc, int encoding, int learn_repeats, int acb, int frame_delay, int palette_size, int lookback) {
+template <typename IO>
+bool flif_encode(IO io, Images &images, std::vector<std::string> transDesc, int encoding, int learn_repeats, int acb, int frame_delay, int palette_size, int lookback) {
     if (encoding < 1 || encoding > 2) { fprintf(stderr,"Unknown encoding: %i\n", encoding); return false;}
-    FILE *f = fopen(filename,"wb");
-    fputs("FLIF",f);
+    io.fputs("FLIF");
     int numPlanes = images[0].numPlanes();
     int numFrames = images.size();
     char c=' '+16*encoding+numPlanes;
     if (numFrames>1) c += 32;
-    fputc(c,f);
+    io.fputc(c);
     if (numFrames>1) {
-        if (numFrames<255) fputc((char)numFrames,f);
+        if (numFrames<255) io.fputc((char)numFrames);
         else {
             fprintf(stderr,"Too many frames!\n");
         }
@@ -268,18 +269,18 @@ bool flif_encode(const char* filename, Images &images, std::vector<std::string> 
     c='1';
     for (int p = 0; p < numPlanes; p++) {if (images[0].max(p) != 255) c='2';}
     if (c=='2') {for (int p = 0; p < numPlanes; p++) {if (images[0].max(p) != 65535) c='0';}}
-    fputc(c,f);
+    io.fputc(c);
 
     Image& image = images[0];
     assert(image.cols() <= 0xFFFF);
-    fputc(image.cols() >> 8,f);
-    fputc(image.cols() & 0xFF,f);
+    io.fputc(image.cols() >> 8);
+    io.fputc(image.cols() & 0xFF);
     assert(image.rows() <= 0xFFFF);
-    fputc(image.rows() >> 8,f);
-    fputc(image.rows() & 0xFF,f);
+    io.fputc(image.rows() >> 8);
+    io.fputc(image.rows() & 0xFF);
 
-    RacOut rac(f);
-    SimpleSymbolCoder<FLIFBitChanceMeta, RacOut, 24> metaCoder(rac);
+    RacOut<IO> rac(io);
+    SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> metaCoder(rac);
 
     v_printf(3,"Input: %ux%u, channels:", images[0].cols(), images[0].rows());
     for (int p = 0; p < numPlanes; p++) {
@@ -305,12 +306,12 @@ bool flif_encode(const char* filename, Images &images, std::vector<std::string> 
 //    v_printf(2,"Header: %li bytes.\n", ftell(f));
 
     std::vector<const ColorRanges*> rangesList;
-    std::vector<Transform*> transforms;
+    std::vector<Transform<IO>*> transforms;
     rangesList.push_back(getRanges(image));
     int tcount=0;
     v_printf(4,"Transforms: ");
     for (unsigned int i=0; i<transDesc.size(); i++) {
-        Transform *trans = create_transform(transDesc[i]);
+        Transform<IO> *trans = create_transform<IO>(transDesc[i]);
         if (transDesc[i] == "PLT" || transDesc[i] == "PLA") trans->configure(palette_size);
         if (transDesc[i] == "FRA") trans->configure(lookback);
         if (!trans->init(rangesList.back()) || 
@@ -367,15 +368,15 @@ bool flif_encode(const char* filename, Images &images, std::vector<std::string> 
 
     // not computing checksum until after transformations and potential zero-alpha changes
     uint32_t checksum = image.checksum();
-    long fs = ftell(f);
+    long fs = io.ftell();
 
     int roughZL = 0;
     if (encoding == 2) {
       roughZL = image.zooms() - NB_NOLEARN_ZOOMS-1;
       if (roughZL < 0) roughZL = 0;
       //v_printf(2,"Encoding rough data\n");
-      if (bits==10) flif_encode_FLIF2_pass<RacOut, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut, 10> >(rac, images, ranges, forest, image.zooms(), roughZL+1, 1);
-      else flif_encode_FLIF2_pass<RacOut, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut, 18> >(rac, images, ranges, forest, image.zooms(), roughZL+1, 1);
+      if (bits==10) flif_encode_FLIF2_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, 10> >(rac, images, ranges, forest, image.zooms(), roughZL+1, 1);
+      else flif_encode_FLIF2_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, 18> >(rac, images, ranges, forest, image.zooms(), roughZL+1, 1);
     }
 
     //v_printf(2,"Encoding data (pass 1)\n");
@@ -391,34 +392,34 @@ bool flif_encode(const char* filename, Images &images, std::vector<std::string> 
            break;
     }
     v_printf(3,"\rHeader: %li bytes.", fs);
-    if (encoding==2) v_printf(3," Rough data: %li bytes.", ftell(f)-fs);
+    if (encoding==2) v_printf(3," Rough data: %li bytes.", io.ftell()-fs);
     fflush(stdout);
 
     //v_printf(2,"Encoding tree\n");
-    fs = ftell(f);
-    flif_encode_tree<FLIFBitChanceTree, RacOut>(rac, ranges, forest, encoding);
-    v_printf(3," MANIAC tree: %li bytes.\n", ftell(f)-fs);
+    fs = io.ftell();
+    flif_encode_tree<FLIFBitChanceTree, RacOut<IO>>(rac, ranges, forest, encoding);
+    v_printf(3," MANIAC tree: %li bytes.\n", io.ftell()-fs);
     //v_printf(2,"Encoding data (pass 2)\n");
     switch(encoding) {
         case 1:
-           if (bits==10) flif_encode_scanlines_pass<RacOut, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut, 10> >(rac, images, ranges, forest, 1);
-           else flif_encode_scanlines_pass<RacOut, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut, 18> >(rac, images, ranges, forest, 1);
+           if (bits==10) flif_encode_scanlines_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, 10> >(rac, images, ranges, forest, 1);
+           else flif_encode_scanlines_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, 18> >(rac, images, ranges, forest, 1);
            break;
         case 2:
-           if (bits==10) flif_encode_FLIF2_pass<RacOut, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut, 10> >(rac, images, ranges, forest, roughZL, 0, 1);
-           else flif_encode_FLIF2_pass<RacOut, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut, 18> >(rac, images, ranges, forest, roughZL, 0, 1);
+           if (bits==10) flif_encode_FLIF2_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, 10> >(rac, images, ranges, forest, roughZL, 0, 1);
+           else flif_encode_FLIF2_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, 18> >(rac, images, ranges, forest, roughZL, 0, 1);
            break;
     }
     if (numFrames==1)
-      v_printf(2,"\rEncoding done, %li bytes for %ux%u pixels (%.4fbpp)   \n",ftell(f), images[0].cols(), images[0].rows(), 1.0*ftell(f)/images[0].rows()/images[0].cols());
+      v_printf(2,"\rEncoding done, %li bytes for %ux%u pixels (%.4fbpp)   \n",io.ftell(), images[0].cols(), images[0].rows(), 1.0*io.ftell()/images[0].rows()/images[0].cols());
     else
-      v_printf(2,"\rEncoding done, %li bytes for %i frames of %ux%u pixels (%.4fbpp)   \n",ftell(f), numFrames, images[0].cols(), images[0].rows(), 1.0*ftell(f)/numFrames/images[0].rows()/images[0].cols());
+      v_printf(2,"\rEncoding done, %li bytes for %i frames of %ux%u pixels (%.4fbpp)   \n",io.ftell(), numFrames, images[0].cols(), images[0].rows(), 1.0*io.ftell()/numFrames/images[0].rows()/images[0].cols());
 
     //v_printf(2,"Writing checksum: %X\n", checksum);
     metaCoder.write_int(0, 0xFFFF, checksum / 0x10000);
     metaCoder.write_int(0, 0xFFFF, checksum & 0xFFFF);
     rac.flush();
-    fclose(f);
+    io.close();
 
     for (int i=transforms.size()-1; i>=0; i--) {
         delete transforms[i];
@@ -431,4 +432,6 @@ bool flif_encode(const char* filename, Images &images, std::vector<std::string> 
     return true;
 }
 
+
+template bool flif_encode(FileIO io, Images &images, std::vector<std::string> transDesc, int encoding, int learn_repeats, int acb, int frame_delay, int palette_size, int lookback);
 

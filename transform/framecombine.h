@@ -24,7 +24,8 @@ public:
     }
 };
 
-class TransformFrameCombine : public Transform {
+template <typename IO>
+class TransformFrameCombine : public Transform<IO> {
 protected:
     bool was_flat;
     int max_lookback;
@@ -41,14 +42,14 @@ protected:
         return new ColorRangesFC(lookback, (srcRanges->numPlanes() == 4 ? srcRanges->max(3) : 1), srcRanges);
     }
 
-    void load(const ColorRanges *srcRanges, RacIn &rac) {
-        SimpleSymbolCoder<SimpleBitChance, RacIn, 24> coder(rac);
+    void load(const ColorRanges *srcRanges, RacIn<IO> &rac) {
+        SimpleSymbolCoder<SimpleBitChance, RacIn<IO>, 24> coder(rac);
         max_lookback = coder.read_int(1, 256);
         v_printf(5,"[%i]",max_lookback);
     }
 
-    void save(const ColorRanges *srcRanges, RacOut &rac) const {
-        SimpleSymbolCoder<SimpleBitChance, RacOut, 24> coder(rac);
+    void save(const ColorRanges *srcRanges, RacOut<IO> &rac) const {
+        SimpleSymbolCoder<SimpleBitChance, RacOut<IO>, 24> coder(rac);
         coder.write_int(1,256,max_lookback);
     }
 

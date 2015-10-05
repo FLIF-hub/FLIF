@@ -108,7 +108,8 @@ public:
 };
 
 
-class TransformYIQ : public Transform {
+template <typename IO>
+class TransformYIQ : public Transform<IO> {
 protected:
     int par;
 
