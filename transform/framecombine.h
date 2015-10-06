@@ -1,5 +1,4 @@
-#ifndef FLIF_FRAMECOMBINE_H
-#define FLIF_FRAMECOMBINE_H 1
+#pragma once
 
 #include <vector>
 
@@ -141,5 +140,3 @@ protected:
         if (was_flat) for (Image& image : images) image.drop_alpha();
     }
 };
-
-#endif

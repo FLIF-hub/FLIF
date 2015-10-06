@@ -1,5 +1,4 @@
-#ifndef FLIF_RAC_H
-#define FLIF_RAC_H 1
+#pragma once
 
 #include <stdint.h>
 #include <assert.h>
@@ -225,5 +224,3 @@ template <typename IO> class RacOutput24 : public RacOutput<RacConfig24, IO>
 public:
     RacOutput24(IO& io) : RacOutput<RacConfig24, IO>(io) { }
 };
-
-#endif

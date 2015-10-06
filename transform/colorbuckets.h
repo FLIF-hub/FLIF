@@ -1,5 +1,4 @@
-#ifndef FLIF_CB_H
-#define FLIF_CB_H 1
+#pragma once
 
 #include <vector>
 
@@ -551,5 +550,3 @@ protected:
             return true;
     }
 };
-
-#endif

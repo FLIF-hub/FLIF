@@ -1,5 +1,4 @@
-#ifndef FLIF_FRAMEDUP_H
-#define FLIF_FRAMEDUP_H 1
+#pragma once
 
 #include <vector>
 
@@ -65,5 +64,3 @@ protected:
         return dupes_found;
     }
 };
-
-#endif

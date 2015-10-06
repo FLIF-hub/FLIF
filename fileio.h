@@ -1,5 +1,4 @@
-#ifndef FLIF_FILEIO_H
-#define FLIF_FILEIO_H
+#pragma once
 
 #include <stdio.h>
 
@@ -57,5 +56,3 @@ public:
       return name;
     }
 };
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef FLIF_TRANSFORM_H
-#define FLIF_TRANSFORM_H
+#pragma once
 
 #include "../image/image.h"
 #include "../image/color_range.h"
@@ -28,5 +27,3 @@ public:
     void virtual invData(Images&) const {}
 
 };
-
-#endif

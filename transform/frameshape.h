@@ -1,5 +1,4 @@
-#ifndef FLIF_FRAMESHAPE_H
-#define FLIF_FRAMESHAPE_H 1
+#pragma once
 
 #include <vector>
 
@@ -87,5 +86,3 @@ protected:
         return true;
     }
 };
-
-#endif

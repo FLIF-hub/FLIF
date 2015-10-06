@@ -1,5 +1,4 @@
-#ifndef FLIF_IMAGE_H
-#define FLIF_IMAGE_H 1
+#pragma once
 
 #include <vector>
 #include <assert.h>
@@ -345,5 +344,3 @@ public:
 };
 
 typedef std::vector<Image>    Images;
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef FLIF_YIQ_H
-#define FLIF_YIQ_H 1
+#pragma once
 
 #include "../image/image.h"
 #include "../image/color_range.h"
@@ -165,6 +164,3 @@ public:
         }
     }
 };
-
-
-#endif
