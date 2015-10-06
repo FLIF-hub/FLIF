@@ -1,5 +1,4 @@
-#ifndef FLIF_RAC_CHANCE_H
-#define FLIF_RAC_CHANCE_H 1
+#pragma once
 
 #include <vector>
 #include <math.h>
@@ -234,5 +233,3 @@ public:
     }
 #endif
 };
-
-#endif

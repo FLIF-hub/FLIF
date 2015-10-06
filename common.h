@@ -1,5 +1,4 @@
-#ifndef FLIF_COMMON_H
-#define FLIF_COMMON_H
+#pragma once
 
 #include <string>
 #include <string.h>
@@ -68,5 +67,3 @@ ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges
 int plane_zoomlevels(const Image &image, const int beginZL, const int endZL);
 
 std::pair<int, int> plane_zoomlevel(const Image &image, const int beginZL, const int endZL, int i);
-
-#endif // __COMMMON_H__

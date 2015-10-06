@@ -1,5 +1,4 @@
-#ifndef FLIF_BOUNDS_H
-#define FLIF_BOUNDS_H 1
+#pragma once
 
 #include <vector>
 
@@ -89,5 +88,3 @@ protected:
         return !trivialbounds;
     }
 };
-
-#endif

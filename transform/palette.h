@@ -1,5 +1,4 @@
-#ifndef FLIF_PALETTE_H
-#define FLIF_PALETTE_H 1
+#pragma once
 
 #include "../image/image.h"
 #include "../image/color_range.h"
@@ -153,6 +152,3 @@ public:
         v_printf(5,"[%lu]",Palette_vector.size());
     }
 };
-
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef FLIF_UTIL_H
-#define FLIF_UTIL_H 1
+#pragma once
 
 #include <stdint.h>
 
@@ -22,6 +21,3 @@ template<typename I> I static median3(I a, I b, I c)
 }
 
 //#define STATS 1
-
-
-#endif

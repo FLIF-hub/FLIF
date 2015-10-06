@@ -1,5 +1,4 @@
-#ifndef FLIF_COLOR_RANGE_H
-#define FLIF_COLOR_RANGE_H 1
+#pragma once
 
 #include <vector>
 
@@ -54,5 +53,3 @@ public:
 };
 
 const ColorRanges *dupRanges(const ColorRanges *ranges);
-
-#endif

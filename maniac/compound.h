@@ -1,5 +1,4 @@
-#ifndef FLIF_RAC_COMPOUND_H
-#define FLIF_RAC_COMPOUND_H 1
+#pragma once
 
 #include <vector>
 #include <math.h>
@@ -675,5 +674,3 @@ public:
           read_subtree(0, rootrange, tree);
     }
 };
-
-#endif
