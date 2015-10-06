@@ -115,6 +115,7 @@ public:
       
       other.palette = false;
       other.seen_before = 0;
+      return *this;
 	}
 	
     void init(uint32_t w, uint32_t h, ColorVal min, ColorVal max, int p) {
