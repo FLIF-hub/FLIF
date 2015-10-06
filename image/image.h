@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <assert.h>
-#include <stdio.h>
 #include <stdint.h>
 #include <valarray>
 #include "crc32k.h"

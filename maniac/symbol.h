@@ -1,7 +1,9 @@
 #ifndef _RAC_SYMBOL_H_
 #define _RAC_SYMBOL_H_ 1
 
+#ifdef STATS
 #include <stdio.h>
+#endif
 
 #include <vector>
 #include <assert.h>

@@ -4,8 +4,11 @@
 #include <vector>
 #include <math.h>
 #include <stdint.h>
+
+#ifdef STATS
 #include <stdlib.h>
 #include <stdio.h>
+#endif
 
 extern const uint16_t log4k[4097];
 extern const int log4k_scale;
