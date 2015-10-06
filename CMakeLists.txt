@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 2.8.12)
 project(flif)
 
 find_package(PNG REQUIRED)
@@ -30,6 +30,7 @@ set(PROJECT_SOURCES
     ${IMAGE_SOURCES}
     ${MANIAC_SOURCES}
     ${TRANSFORM_SOURCES}
+    io.cpp
     common.cpp
     flif-dec.cpp
     flif-enc.cpp
