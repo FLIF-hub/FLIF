@@ -308,6 +308,8 @@ bool handle_encode_arguments(int argc, char **argv, Images &images, int palette_
         if (learn_repeats < 0) learn_repeats=0;
     }
     FILE *file = fopen(argv[0],"wb");
+    if (!file)
+        return false;
     FileIO fio(file, argv[0]);
     return flif_encode(fio, images, desc, method, learn_repeats, acb, frame_delay, palette_size, lookback);
 }
@@ -321,6 +323,8 @@ int handle_decode_arguments(char **argv, Images &images, int quality, int scale)
     }
 
     FILE *file = fopen(argv[0],"rb");
+    if(!file)
+        return 1;
     FileIO fio(file, argv[0]);
 
     if (!flif_decode(fio, images, quality, scale)) return 3;

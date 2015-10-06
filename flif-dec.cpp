@@ -453,7 +453,6 @@ bool flif_decode(IO& io, Images &images, int quality, int scale)
     }
     rangesList.clear();
 
-    io.close();
     return true;
 }
 

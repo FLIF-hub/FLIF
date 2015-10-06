@@ -400,7 +400,7 @@ public:
     void info(int n) const {
         indent(n); printf("Tree:\n");
         for (unsigned int i=0; i<leaf_node.size(); i++) {
-            indent(n); printf("Leaf %i\n", i);
+            indent(n); printf("Leaf %u\n", i);
             leaf_node[i].info(n+1);
         }
     }

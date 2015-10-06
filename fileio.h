@@ -49,10 +49,6 @@ public:
     int fputc(int c) {
       return ::fputc(c, file);
     }
-    void close() {
-      fclose(file);
-      file = NULL;
-    }
     const char* getName() {
       return name;
     }
