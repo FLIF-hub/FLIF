@@ -18,7 +18,9 @@ private:
 public:
     FileIO(FILE* fil, const char *aname) : file(fil), name(aname) { }
 	~FileIO() {
-		fclose(file);
+		if (file) {
+			fclose(file);
+		}
 	}
     int read() {
         int r = fgetc(file);
