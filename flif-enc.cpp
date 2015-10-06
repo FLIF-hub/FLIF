@@ -13,6 +13,8 @@
 #include "common.h"
 #include "fileio.h"
 
+using namespace maniac::util;
+
 template<typename RAC> void static write_name(RAC& rac, std::string desc)
 {
     int nb=0;

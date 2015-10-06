@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <valarray>
+#include <memory>
 #include "crc32k.h"
 
 #include "../io.h"
@@ -14,6 +15,14 @@ typedef int16_t ColorVal_intern_8;   // used in representations
 typedef int32_t ColorVal_intern_16;  // making them signed and a large enough for big palettes and negative alpha values for frame combination
 typedef int32_t ColorVal_intern_32;
 
+// It's a part of C++14. Following impl was taken from GotW#102
+// (http://herbsutter.com/gotw/_102/).
+// It should go into some common header one day.
+template <typename T, typename... Args>
+std::unique_ptr<T> make_unique(Args &&... args)
+{
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
 
 template <typename pixel_t> class Plane {
 protected:
@@ -33,18 +42,18 @@ public:
 };
 
 class Image {
-private:
-	// prevent copy
-	Image(const Image& other) = delete;
-	Image& operator=(const Image& other) = delete;
+    Image(const Image& other) = delete;
+    Image& operator=(const Image& other) = delete;
 
-protected:
-    Plane<ColorVal_intern_8> *plane_8_1;
-    Plane<ColorVal_intern_8> *plane_8_2;
-    Plane<ColorVal_intern_16> *plane_16_1;
-    Plane<ColorVal_intern_16> *plane_16_2;
-    Plane<ColorVal_intern_32> *plane_32_1;
-    Plane<ColorVal_intern_32> *plane_32_2;
+    template <typename CV>
+    using PlanePtr = std::unique_ptr<Plane<CV>>;
+
+    PlanePtr<ColorVal_intern_8> plane_8_1;
+    PlanePtr<ColorVal_intern_8> plane_8_2;
+    PlanePtr<ColorVal_intern_16> plane_16_1;
+    PlanePtr<ColorVal_intern_16> plane_16_2;
+    PlanePtr<ColorVal_intern_32> plane_32_1;
+    PlanePtr<ColorVal_intern_32> plane_32_2;
     uint32_t width, height;
     ColorVal minval,maxval;
     int num;
@@ -60,9 +69,6 @@ public:
     }
 
     Image() {
-      plane_8_1 = plane_8_2 = NULL;
-      plane_16_1 = plane_16_2 = NULL;
-      plane_32_1 = plane_32_2 = NULL;
       width = height = 0;
       minval = maxval = 0;
       num = 0;
@@ -71,47 +77,36 @@ public:
       seen_before = 0;
     }
 
-    ~Image() {
-      clear();
-    }
-
     // move constructor
     Image(Image&& other) {
       // reuse implementation from assignment operator
       operator=(std::move(other));
     }
     Image& operator=(Image&& other) {
-      plane_8_1 = other.plane_8_1;
-      plane_8_2 = other.plane_8_2;
-      plane_16_1 = other.plane_16_1;
-      plane_16_2 = other.plane_16_2;
-      plane_32_1 = other.plane_32_1;
-      plane_32_2 = other.plane_32_2;
-      
-      other.plane_8_1 = NULL;
-      other.plane_8_2 = NULL;
-      other.plane_16_1 = NULL;
-      other.plane_16_2 = NULL;
-      other.plane_32_1 = NULL;
-      other.plane_32_2 = NULL;
-      
+      plane_8_1 = std::move(other.plane_8_1);
+      plane_8_2 = std::move(other.plane_8_2);
+      plane_16_1 = std::move(other.plane_16_1);
+      plane_16_2 = std::move(other.plane_16_2);
+      plane_32_1 = std::move(other.plane_32_1);
+      plane_32_2 = std::move(other.plane_32_2);
+
       width = other.width;
       height = other.height;
       minval = other.minval;
       maxval = other.maxval;
       num = other.num;
       depth = other.depth;
-      
+
       other.width = other.height = 0;
       other.minval = other.maxval = 0;
       other.num = 0;
       other.depth = 0;
-      
+
       palette = other.palette;
       col_begin = std::move(other.col_begin);
       col_end = std::move(other.col_end);
       seen_before = other.seen_before;
-      
+
       other.palette = false;
       other.seen_before = 0;
       return *this;
@@ -133,33 +128,27 @@ public:
       assert(min == 0);
       assert(max < (1<<depth));
       assert(p <= 4);
-      plane_8_1 = plane_8_2 = NULL;
-      plane_16_1 = plane_16_2 = NULL;
-      plane_32_1 = plane_32_2 = NULL;
+      clear();
       if (depth <= 8) {
-        if (p>0) plane_8_1 = new Plane<ColorVal_intern_8>(width, height); // R,Y
-        if (p>1) plane_16_1 = new Plane<ColorVal_intern_16>(width, height); // G,I
-        if (p>2) plane_16_2 = new Plane<ColorVal_intern_16>(width, height); // B,Q
-        if (p>3) plane_8_2 = new Plane<ColorVal_intern_8>(width, height); // A
+        if (p>0) plane_8_1 = make_unique<Plane<ColorVal_intern_8>>(width, height); // R,Y
+        if (p>1) plane_16_1 = make_unique<Plane<ColorVal_intern_16>>(width, height); // G,I
+        if (p>2) plane_16_2 = make_unique<Plane<ColorVal_intern_16>>(width, height); // B,Q
+        if (p>3) plane_8_2 = make_unique<Plane<ColorVal_intern_8>>(width, height); // A
       } else {
-        if (p>0) plane_16_1 = new Plane<ColorVal_intern_16>(width, height); // R,Y
-        if (p>1) plane_32_1 = new Plane<ColorVal_intern_32>(width, height); // G,I
-        if (p>2) plane_32_2 = new Plane<ColorVal_intern_32>(width, height); // B,Q
-        if (p>3) plane_16_2 = new Plane<ColorVal_intern_16>(width, height); // A
+        if (p>0) plane_16_1 = make_unique<Plane<ColorVal_intern_16>>(width, height); // R,Y
+        if (p>1) plane_32_1 = make_unique<Plane<ColorVal_intern_32>>(width, height); // G,I
+        if (p>2) plane_32_2 = make_unique<Plane<ColorVal_intern_32>>(width, height); // B,Q
+        if (p>3) plane_16_2 = make_unique<Plane<ColorVal_intern_16>>(width, height); // A
       }
     }
 
     void clear() {
-        delete plane_8_1;
-        delete plane_8_2;
-        delete plane_16_1;
-        delete plane_16_2;
-        delete plane_32_1;
-        delete plane_32_2;
-		
-        plane_8_1 = plane_8_2 = NULL;
-        plane_16_1 = plane_16_2 = NULL;
-        plane_32_1 = plane_32_2 = NULL;
+      plane_8_1.reset(nullptr);
+      plane_8_2.reset(nullptr);
+      plane_16_1.reset(nullptr);
+      plane_16_2.reset(nullptr);
+      plane_32_1.reset(nullptr);
+      plane_32_2.reset(nullptr);
     }
 
     void reset() {
@@ -177,11 +166,9 @@ public:
         if (num<4) return;
         assert(num==4);
         if (depth <= 8) {
-                if (plane_8_2) delete plane_8_2;
-                plane_8_2 = NULL;
+                plane_8_2.reset(nullptr);
         } else {
-                if (plane_16_2) delete plane_16_2;
-                plane_16_2 = NULL;
+                plane_16_2.reset(nullptr);
         }
         num=3;
     }
@@ -189,11 +176,11 @@ public:
         switch(num) {
             case 1:
               if (depth <= 8) {
-                plane_16_1 = new Plane<ColorVal_intern_16>(width, height); // G,I
-                plane_16_2 = new Plane<ColorVal_intern_16>(width, height); // B,Q
+                plane_16_1 = make_unique<Plane<ColorVal_intern_16>>(width, height); // G,I
+                plane_16_2 = make_unique<Plane<ColorVal_intern_16>>(width, height); // B,Q
               } else {
-                plane_32_1 = new Plane<ColorVal_intern_32>(width, height); // G,I
-                plane_32_2 = new Plane<ColorVal_intern_32>(width, height); // B,Q
+                plane_32_1 = make_unique<Plane<ColorVal_intern_32>>(width, height); // G,I
+                plane_32_2 = make_unique<Plane<ColorVal_intern_32>>(width, height); // B,Q
               }
               for (uint32_t r=0; r<height; r++) {
                for (uint32_t c=0; c<width; c++) {
@@ -205,9 +192,9 @@ public:
               }
             case 3:
               if (depth <= 8) {
-                plane_8_2 = new Plane<ColorVal_intern_8>(width, height); // A
+                plane_8_2 = make_unique<Plane<ColorVal_intern_8>>(width, height); // A
               } else {
-                plane_16_2 = new Plane<ColorVal_intern_16>(width, height); // A
+                plane_16_2 = make_unique<Plane<ColorVal_intern_16>>(width, height); // A
               }
               num=4;
               for (uint32_t r=0; r<height; r++) {

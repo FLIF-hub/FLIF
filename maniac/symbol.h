@@ -140,13 +140,15 @@ public:
     }
 
     void info_symbol(int n) const {
-        indent(n); printf("ZERO:   "); bitZero().info_bitchance();
-        indent(n); printf("SIGN:   "); bitSign().info_bitchance();
+        // TODO: move implementation to separate source file to have a chance to use
+        //       `using namespace util` without consequences
+        maniac::util::indent(n); printf("ZERO:   "); bitZero().info_bitchance();
+        maniac::util::indent(n); printf("SIGN:   "); bitSign().info_bitchance();
         for (int i=0; i<bits-1; i++) {
-            indent(n); printf("EXP % 2i: ", i); bitExp(i).info_bitchance();
+            maniac::util::indent(n); printf("EXP % 2i: ", i); bitExp(i).info_bitchance();
         }
         for (int i=0; i<bits; i++) {
-            indent(n); printf("MNT % 2i: ", i); bitMant(i).info_bitchance();
+            maniac::util::indent(n); printf("MNT % 2i: ", i); bitMant(i).info_bitchance();
         }
     }
 #endif
@@ -192,8 +194,8 @@ template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min
     int amin = (sign? min : -max);
     int amax = (sign? max : -min);
 
-    int emax = (bits <= 10 ? log2_tab[amax] : ilog2(amax));
-    int i = (bits <= 10 ? log2_tab[amin] : ilog2(amin));
+    int emax = (bits <= 10 ? maniac::util::log2_tab[amax] : maniac::util::ilog2(amax));
+    int i = (bits <= 10 ? maniac::util::log2_tab[amin] : maniac::util::ilog2(amin));
 
     for (; i < emax; i++) {
         // if exponent >i is impossible, we are done
@@ -260,12 +262,12 @@ template <int bits, typename SymbolCoder> void writer(SymbolCoder& coder, int mi
     if (sign && min <= 0) min = 1;
     if (!sign && max >= 0) max = -1;
     const int a = abs(value);
-    const int e = ilog2(a);
+    const int e = maniac::util::ilog2(a);
     int amin = sign ? abs(min) : abs(max);
     int amax = sign ? abs(max) : abs(min);
 
-    int emax = (bits <= 10 ? log2_tab[amax] : ilog2(amax));
-    int i = (bits <= 10 ? log2_tab[amin] : ilog2(amin));
+    int emax = (bits <= 10 ? maniac::util::log2_tab[amax] : maniac::util::ilog2(amax));
+    int i = (bits <= 10 ? maniac::util::log2_tab[amin] : maniac::util::ilog2(amin));
     while (i < emax) {
         // if exponent >i is impossible, we are done
         if ((1 << (i+1)) > amax) break;
@@ -405,7 +407,7 @@ public:
 
 #ifdef STATS
     void info(int n) const {
-        indent(n); printf("Total integers: %llu\n", (unsigned long long)symbols);
+        maniac::util::indent(n); printf("Total integers: %llu\n", (unsigned long long)symbols);
         ctx.info(n);
     }
 #endif
