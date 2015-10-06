@@ -17,9 +17,9 @@ private:
 	void operator=(FileIO&&) {}
 public:
     FileIO(FILE* fil, const char *aname) : file(fil), name(aname) { }
-	~FileIO() {
-		fclose(file);
-	}
+    ~FileIO() {
+        if (file) fclose(file);
+    }
     int read() {
         int r = fgetc(file);
         if (r < 0) return 0;

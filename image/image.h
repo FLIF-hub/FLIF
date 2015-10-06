@@ -67,7 +67,6 @@ public:
       minval = maxval = 0;
       num = 0;
       depth = 0;
-      
       palette = false;
       seen_before = 0;
     }
@@ -79,9 +78,9 @@ public:
     // move constructor
     Image(Image&& other) {
       // reuse implementation from assignment operator
-	  operator=(std::move(other));
+      operator=(std::move(other));
     }
-	Image& operator=(Image&& other) {
+    Image& operator=(Image&& other) {
       plane_8_1 = other.plane_8_1;
       plane_8_2 = other.plane_8_2;
       plane_16_1 = other.plane_16_1;
@@ -115,8 +114,9 @@ public:
       
       other.palette = false;
       other.seen_before = 0;
-	}
-	
+      return *this;
+    }
+
     void init(uint32_t w, uint32_t h, ColorVal min, ColorVal max, int p) {
       width = w;
       height = h;
