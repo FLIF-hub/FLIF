@@ -1,7 +1,6 @@
 #ifndef FLIF_RAC_H
 #define FLIF_RAC_H 1
 
-#include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
 
