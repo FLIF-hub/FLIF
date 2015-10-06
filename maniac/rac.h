@@ -32,7 +32,7 @@ template <typename Config, typename IO> class RacInput
 public:
     typedef typename Config::data_t rac_t;
 protected:
-    IO io;
+    IO& io;
 private:
     rac_t range;
     rac_t low;
@@ -59,7 +59,7 @@ private:
         }
     }
 public:
-    RacInput(IO ioin) : io(ioin), range(Config::BASE_RANGE), low(0) {
+    RacInput(IO& ioin) : io(ioin), range(Config::BASE_RANGE), low(0) {
         rac_t r = Config::BASE_RANGE;
         while (r > 1) {
             low <<= 8;
@@ -103,7 +103,7 @@ template <class Config, typename IO> class RacOutput
 public:
     typedef typename Config::data_t rac_t;
 protected:
-    IO io;
+    IO& io;
 private:
     rac_t range;
     rac_t low;
@@ -147,7 +147,7 @@ private:
         output();
     }
 public:
-    RacOutput(IO ioin) : io(ioin), range(Config::BASE_RANGE), low(0), delayed_byte(-1), delayed_count(0) { }
+    RacOutput(IO& ioin) : io(ioin), range(Config::BASE_RANGE), low(0), delayed_byte(-1), delayed_count(0) { }
 
     void inline write(int num, int denom, bool bit) {
         assert(num>=0);
@@ -206,25 +206,25 @@ public:
 template <typename IO> class RacInput40 : public RacInput<RacConfig40, IO>
 {
 public:
-    RacInput40(IO io) : RacInput<RacConfig40, IO>(io) { }
+    RacInput40(IO& io) : RacInput<RacConfig40, IO>(io) { }
 };
 
 template <typename IO> class RacOutput40 : public RacOutput<RacConfig40, IO>
 {
 public:
-    RacOutput40(IO io) : RacOutput<RacConfig40, IO>(io) { }
+    RacOutput40(IO& io) : RacOutput<RacConfig40, IO>(io) { }
 };
 
 template <typename IO> class RacInput24 : public RacInput<RacConfig24, IO>
 {
 public:
-    RacInput24(IO io) : RacInput<RacConfig24, IO>(io) { }
+    RacInput24(IO& io) : RacInput<RacConfig24, IO>(io) { }
 };
 
 template <typename IO> class RacOutput24 : public RacOutput<RacConfig24, IO>
 {
 public:
-    RacOutput24(IO io) : RacOutput<RacConfig24, IO>(io) { }
+    RacOutput24(IO& io) : RacOutput<RacConfig24, IO>(io) { }
 };
 
 #endif

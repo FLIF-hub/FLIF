@@ -245,7 +245,6 @@ int main(int argc, char **argv)
         int returnCode = handle_decode_arguments(argv, images, quality, scale);
         if (returnCode > 0) return returnCode;
     }
-    for (Image &image : images) image.clear();
     return 0;
 }
 
@@ -262,11 +261,12 @@ bool handle_encode_arguments(int argc, char **argv, Images &images, int palette_
             fprintf(stderr,"Could not read input file: %s\n", argv[0]);
             return 2;
         };
-        images.push_back(image);
-        if (image.rows() != images[0].rows() || image.cols() != images[0].cols() || image.numPlanes() != images[0].numPlanes()) {
+        images.push_back(std::move(image));
+        const Image& last_image = images.back();
+		if (last_image.rows() != images[0].rows() || last_image.cols() != images[0].cols() || last_image.numPlanes() != images[0].numPlanes()) {
             fprintf(stderr,"Dimensions of all input images should be the same!\n");
             fprintf(stderr,"  First image is %ux%u, %i channels.\n",images[0].cols(),images[0].rows(),images[0].numPlanes());
-            fprintf(stderr,"  This image is %ux%u, %i channels: %s\n",image.cols(),image.rows(),image.numPlanes(),argv[0]);
+            fprintf(stderr,"  This image is %ux%u, %i channels: %s\n",last_image.cols(),last_image.rows(),last_image.numPlanes(),argv[0]);
             return 2;
         }
         argc--; argv++;

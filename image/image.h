@@ -33,6 +33,11 @@ public:
 };
 
 class Image {
+private:
+	// prevent copy
+	Image(const Image& other) = delete;
+	Image& operator=(const Image& other) = delete;
+
 protected:
     Plane<ColorVal_intern_8> *plane_8_1;
     Plane<ColorVal_intern_8> *plane_8_2;
@@ -55,7 +60,63 @@ public:
     }
 
     Image() {
+      plane_8_1 = plane_8_2 = NULL;
+      plane_16_1 = plane_16_2 = NULL;
+      plane_32_1 = plane_32_2 = NULL;
+      width = height = 0;
+      minval = maxval = 0;
+      num = 0;
+      depth = 0;
+      
+      palette = false;
+      seen_before = 0;
     }
+
+    ~Image() {
+      clear();
+    }
+
+    // move constructor
+    Image(Image&& other) {
+      // reuse implementation from assignment operator
+	  operator=(std::move(other));
+    }
+	Image& operator=(Image&& other) {
+      plane_8_1 = other.plane_8_1;
+      plane_8_2 = other.plane_8_2;
+      plane_16_1 = other.plane_16_1;
+      plane_16_2 = other.plane_16_2;
+      plane_32_1 = other.plane_32_1;
+      plane_32_2 = other.plane_32_2;
+      
+      other.plane_8_1 = NULL;
+      other.plane_8_2 = NULL;
+      other.plane_16_1 = NULL;
+      other.plane_16_2 = NULL;
+      other.plane_32_1 = NULL;
+      other.plane_32_2 = NULL;
+      
+      width = other.width;
+      height = other.height;
+      minval = other.minval;
+      maxval = other.maxval;
+      num = other.num;
+      depth = other.depth;
+      
+      other.width = other.height = 0;
+      other.minval = other.maxval = 0;
+      other.num = 0;
+      other.depth = 0;
+      
+      palette = other.palette;
+      col_begin = std::move(other.col_begin);
+      col_end = std::move(other.col_end);
+      seen_before = other.seen_before;
+      
+      other.palette = false;
+      other.seen_before = 0;
+	}
+	
     void init(uint32_t w, uint32_t h, ColorVal min, ColorVal max, int p) {
       width = w;
       height = h;
@@ -95,6 +156,10 @@ public:
         delete plane_16_2;
         delete plane_32_1;
         delete plane_32_2;
+		
+        plane_8_1 = plane_8_2 = NULL;
+        plane_16_1 = plane_16_2 = NULL;
+        plane_32_1 = plane_32_2 = NULL;
     }
 
     void reset() {

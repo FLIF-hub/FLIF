@@ -8,8 +8,18 @@ class FileIO
 private:
     FILE *file;
     const char *name;
+	
+	// prevent copy
+	FileIO(const FileIO&) {}
+	void operator=(const FileIO&) {}
+	// prevent move, for now
+	FileIO(FileIO&&) {}
+	void operator=(FileIO&&) {}
 public:
     FileIO(FILE* fil, const char *aname) : file(fil), name(aname) { }
+	~FileIO() {
+		fclose(file);
+	}
     int read() {
         int r = fgetc(file);
         if (r < 0) return 0;
