@@ -419,7 +419,6 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, int
     metaCoder.write_int(0, 0xFFFF, checksum / 0x10000);
     metaCoder.write_int(0, 0xFFFF, checksum & 0xFFFF);
     rac.flush();
-    io.close();
 
     for (int i=transforms.size()-1; i>=0; i--) {
         delete transforms[i];

@@ -41,7 +41,7 @@ protected:
     bool process(const ColorRanges *srcRanges, const Images &images) {
         int np=srcRanges->numPlanes();
         nb = images.size();
-        seen_before.empty();
+        seen_before.clear();
         seen_before.resize(nb,-1);
         bool dupes_found=false;
         for (unsigned int fr=1; fr<images.size(); fr++) {
