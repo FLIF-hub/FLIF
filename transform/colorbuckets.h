@@ -284,7 +284,7 @@ class TransformCB : public Transform<IO> {
 protected:
     ColorBuckets *cb;
 
-    const ColorRanges* meta(Images& images, const ColorRanges *srcRanges) {
+    const ColorRanges* meta(Images&, const ColorRanges *srcRanges) {
 //        cb->print();
         // in the I buckets, some discrete buckets may have become continuous to keep the colorbucket info small
         // this means some Q buckets are empty, which means that some values from the I buckets can be eliminated
@@ -498,7 +498,7 @@ protected:
         }
     }
 
-    bool process(const ColorRanges *srcRanges, const Images &images) {
+    bool process(const ColorRanges *, const Images &images) {
             std::vector<ColorVal> pixel(images[0].numPlanes());
             // fill buckets
             for (const Image& image : images)

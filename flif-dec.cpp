@@ -83,7 +83,7 @@ template<typename Rac, typename Coder> void flif_decode_scanlines_pass(Rac &rac,
 
 // interpolate rest of the image
 // used when decoding lossy
-void flif_decode_FLIF2_inner_interpol(Images &images, const ColorRanges *ranges, const int I, const int beginZL, const int endZL, const uint32_t R, const int scale)
+void flif_decode_FLIF2_inner_interpol(Images &images, const ColorRanges *, const int I, const int beginZL, const int endZL, const uint32_t R, const int scale)
 {
     for (int i = I; i < plane_zoomlevels(images[0], beginZL, endZL); i++) {
       std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i);

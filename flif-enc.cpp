@@ -185,7 +185,7 @@ template<typename Rac, typename Coder> void flif_encode_FLIF2_pass(Rac &rac, con
     }
 }
 
-void flif_encode_FLIF2_interpol_zero_alpha(Images &images, const ColorRanges *ranges, const int beginZL, const int endZL)
+void flif_encode_FLIF2_interpol_zero_alpha(Images &images, const ColorRanges *, const int beginZL, const int endZL)
 {
     for (Image& image : images)
     for (int i = 0; i < plane_zoomlevels(image, beginZL, endZL); i++) {

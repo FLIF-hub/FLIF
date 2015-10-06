@@ -15,7 +15,7 @@ public:
     virtual int numPlanes() const =0;
     virtual ColorVal min(int p) const =0;
     virtual ColorVal max(int p) const =0;
-    virtual void minmax(const int p, const prevPlanes &pp, ColorVal &minv, ColorVal &maxv) const { minv=min(p); maxv=max(p); }
+    virtual void minmax(const int p, const prevPlanes &, ColorVal &minv, ColorVal &maxv) const { minv=min(p); maxv=max(p); }
     virtual void snap(const int p, const prevPlanes &pp, ColorVal &minv, ColorVal &maxv, ColorVal &v) const {
         minmax(p,pp,minv,maxv);
         if(v>maxv) v=maxv;

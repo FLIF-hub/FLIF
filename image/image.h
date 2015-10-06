@@ -265,11 +265,11 @@ public:
         return num;
     }
 
-    ColorVal min(int p) const {
+    ColorVal min(int) const {
         return minval;
     }
 
-    ColorVal max(int p) const {
+    ColorVal max(int) const {
         return maxval;
     }
 

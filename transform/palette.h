@@ -59,7 +59,7 @@ public:
         return new ColorRangesPalette(srcRanges, Palette_vector.size());
     }
 
-    bool process(const ColorRanges *srcRanges, const Images &images) {
+    bool process(const ColorRanges *, const Images &images) {
         for (const Image& image : images)
         for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {

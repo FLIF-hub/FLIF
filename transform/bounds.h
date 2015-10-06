@@ -32,7 +32,7 @@ class TransformBounds : public Transform<IO> {
 protected:
     std::vector<std::pair<ColorVal, ColorVal> > bounds;
 
-    const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) {
+    const ColorRanges *meta(Images&, const ColorRanges *srcRanges) {
         if (srcRanges->isStatic()) {
             return new StaticColorRanges(bounds);
         } else {

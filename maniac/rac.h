@@ -185,17 +185,17 @@ public:
 class RacDummy
 {
 public:
-    void inline write(int num, int denom, bool bit) {
+    void inline write(int num, int denom, bool) {
         assert(num>=0);
         assert(num<denom);
         assert(denom>1);
     }
 
-    void inline write(uint16_t b16, bool bit) {
+    void inline write(uint16_t b16, bool) {
         assert(b16>0);
     }
 
-    void inline write(bool bit) { }
+    void inline write(bool) { }
     void inline flush() { }
 
     int ftell() {
