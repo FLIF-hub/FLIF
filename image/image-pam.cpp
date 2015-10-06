@@ -25,7 +25,7 @@ bool image_load_pam(const char *filename, Image& image)
     int type=0;
     if ( (!strncmp(buf, "P7\n", 3)) ) type=7;
     if (type==0) {
-        fprintf(stderr,"PAM file is not of type P7, cannot read other types.\n");
+        e_printf("PAM file is not of type P7, cannot read other types.\n");
         fclose(fp);
         return false;
     }
@@ -39,10 +39,10 @@ bool image_load_pam(const char *filename, Image& image)
         sscanf(buf, "HEIGHT %u\n", &height);
         sscanf(buf, "DEPTH %u\n", &depth);
         sscanf(buf, "MAXVAL %u\n", &maxval);
-        if (maxlines-- < 1) {fprintf(stderr,"Problem while parsing PAM header.\n"); fclose(fp); return false;}
+        if (maxlines-- < 1) {e_printf("Problem while parsing PAM header.\n"); fclose(fp); return false;}
     } while ( strncmp(buf, "ENDHDR", 6) != 0 );
     if (depth>4 || depth <1 || width <1 || height < 1 || maxval<1 || maxval > 0xffff) {
-        fprintf(stderr,"Couldn't parse PAM header, or unsupported kind of PAM file.\n");
+        e_printf("Couldn't parse PAM header, or unsupported kind of PAM file.\n");
         fclose(fp);
         return false;
     }
@@ -85,7 +85,7 @@ bool image_save_pam(const char *filename, const Image& image)
         ColorVal max = image.max(0);
 
         if (max > 0xffff) {
-            fprintf(stderr,"Cannot store as PAM. Find out why.\n");
+            e_printf("Cannot store as PAM. Find out why.\n");
             fclose(fp);
             return false;
         }

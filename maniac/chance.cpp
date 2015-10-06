@@ -39,7 +39,7 @@ void build_table(uint16_t *zero_state, uint16_t *one_state, size_t size, int fac
         zero_state[i] = size - one_state[size - i];
 
     /*  for (int i=0; i<size; i++) {
-        fprintf(stderr,"%i -> [%i,%i]\n",i,zero_state[i],one_state[i]);
+        e_printf("%i -> [%i,%i]\n",i,zero_state[i],one_state[i]);
       } */
 }
 

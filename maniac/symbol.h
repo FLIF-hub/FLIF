@@ -275,7 +275,7 @@ template <int bits, typename SymbolCoder> void writer(SymbolCoder& coder, int mi
         if (i==e) break;
         i++;
     }
-//  fprintf(stderr,"exp=%i\n",e);
+//  e_printf("exp=%i\n",e);
     int have = (1 << e);
     int left = have-1;
     for (int pos = e; pos>0;) {
@@ -339,14 +339,14 @@ public:
         BitChance& bch = ctx.bit(typ,i);
         rac.write(bch.get(), bit);
         bch.put(bit, table);
-//    fprintf(stderr,"bit %s%i = %s\n", SymbolChanceBitName[typ], i, bit ? "true" : "false");
+//    e_printf("bit %s%i = %s\n", SymbolChanceBitName[typ], i, bit ? "true" : "false");
     }
 
     bool read(SymbolChanceBitType typ, int i = 0) {
         BitChance& bch = ctx.bit(typ,i);
         bool bit = rac.read(bch.get());
         bch.put(bit, table);
-//    fprintf(stderr,"bit %s%i = %s\n", SymbolChanceBitName[typ], i, bit ? "true" : "false");
+//    e_printf("bit %s%i = %s\n", SymbolChanceBitName[typ], i, bit ? "true" : "false");
         return bit;
     }
 };

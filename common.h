@@ -3,7 +3,6 @@
 
 #include <string>
 #include <string.h>
-#include <stdarg.h>
 
 #include "maniac/rac.h"
 #include "maniac/compound.h"
@@ -13,6 +12,8 @@
 
 #include "flif_config.h"
 
+#include "io.h"
+
 extern std::vector<ColorVal> grey; // a pixel with values in the middle of the bounds
 extern int64_t pixels_todo;
 extern int64_t pixels_done;
@@ -20,10 +21,6 @@ extern int64_t pixels_done;
 #define MAX_TRANSFORM 8
 
 extern const std::vector<std::string> transforms;
-
-void increase_verbosity();
-int get_verbosity();
-void v_printf(const int v, const char *format, ...);
 
 typedef SimpleBitChance                         FLIFBitChancePass1;
 
