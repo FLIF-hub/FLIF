@@ -33,14 +33,14 @@ protected:
 
     void configure(const int setting) { if (nb==0) nb=setting; else cols=setting; } // ok this is dirty
 
-    void load(const ColorRanges *srcRanges, RacIn<IO> &rac) {
+    void load(const ColorRanges *, RacIn<IO> &rac) {
         SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> coder(rac);
         for (unsigned int i=0; i<nb; i+=1) {b.push_back(coder.read_int(0,cols));}
         for (unsigned int i=0; i<nb; i+=1) {e.push_back(cols-coder.read_int(0,cols-b[i]));}
 //        for (unsigned int i=0; i<nb; i+=1) {e.push_back(coder.read_int(b[i],cols));}
     }
 
-    void save(const ColorRanges *srcRanges, RacOut<IO> &rac) const {
+    void save(const ColorRanges *, RacOut<IO> &rac) const {
         SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> coder(rac);
         assert(nb == b.size());
         assert(nb == e.size());

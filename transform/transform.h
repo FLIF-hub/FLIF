@@ -18,14 +18,14 @@ public:
     // On encode: init, process, save, meta, data, <processing>
     // On decode: init,          load, meta,       <processing>, invData           ( + optional configure anywhere)
 
-    bool virtual init(const ColorRanges *srcRanges) { return true; }
-    void virtual configure(const int setting) { }
-    bool virtual process(const ColorRanges *srcRanges, const Images &images) { return true; };
-    void virtual load(const ColorRanges *srcRanges, RacIn<IO> &rac) {};
-    void virtual save(const ColorRanges *srcRanges, RacOut<IO> &rac) const {};
-    const ColorRanges virtual *meta(Images& images, const ColorRanges *srcRanges) { return new DupColorRanges(srcRanges); }
-    void virtual data(Images& images) const {}
-    void virtual invData(Images& images) const {}
+    bool virtual init(const ColorRanges *) { return true; }
+    void virtual configure(const int) { }
+    bool virtual process(const ColorRanges *, const Images &) { return true; };
+    void virtual load(const ColorRanges *, RacIn<IO> &) {};
+    void virtual save(const ColorRanges *, RacOut<IO> &) const {};
+    const ColorRanges virtual *meta(Images&, const ColorRanges *srcRanges) { return new DupColorRanges(srcRanges); }
+    void virtual data(Images&) const {}
+    void virtual invData(Images&) const {}
 
 };
 
