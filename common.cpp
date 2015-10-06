@@ -11,24 +11,6 @@ const int NB_PROPERTIES_scanlines[] = {7,8,9,7};
 const int NB_PROPERTIES_scanlinesA[] = {8,9,10,7};
 
 
-static int verbosity = 1;
-void increase_verbosity() {
-    verbosity ++;
-}
-
-int get_verbosity() {
-    return verbosity;
-}
-
-void v_printf(const int v, const char *format, ...) {
-    if (verbosity < v) return;
-    va_list args;
-    va_start(args, format);
-    vfprintf(stdout, format, args);
-    fflush(stdout);
-    va_end(args);
-}
-
 void initPropRanges_scanlines(Ranges &propRanges, const ColorRanges &ranges, int p) {
     propRanges.clear();
     int min = ranges.min(p);

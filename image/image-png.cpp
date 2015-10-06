@@ -24,6 +24,7 @@ enum {
 #include "image.h"
 #include "image-png.h"
 
+#include "../common.h"
 
 int image_load_png(const char *filename, Image &image) {
 #ifdef FLIF_USE_STB_IMAGE
@@ -150,7 +151,7 @@ int image_load_png(const char *filename, Image &image) {
           }
           break;
         default:
-          fprintf(stderr,"Should not happen: unsupported PNG color type!\n");
+          e_printf("Should not happen: unsupported PNG color type!\n");
     }
   } else if (bit_depth == 16) {
     switch(color_type) {
@@ -195,9 +196,9 @@ int image_load_png(const char *filename, Image &image) {
           }
           break;
         default:
-          fprintf(stderr,"Should not happen: unsupported PNG color type!\n");
+          e_printf("Should not happen: unsupported PNG color type!\n");
     }
-  } else fprintf(stderr,"Should not happen: unsupported PNG bit depth: %i!\n",bit_depth);
+  } else e_printf("Should not happen: unsupported PNG bit depth: %i!\n",bit_depth);
 
   png_destroy_read_struct(&png_ptr,&info_ptr,(png_infopp) NULL);
   fclose(fp);

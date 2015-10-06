@@ -1,5 +1,4 @@
 #include "util.h"
-#include <stdio.h>
 #include <stdint.h>
 
 // table for integer 2-logs
@@ -41,8 +40,3 @@ int ilog2(uint32_t l)
     return p;
 }
 
-void indent(int n) {
-    for (int i=0; i<n; i++) {
-        printf("  ");
-    }
-}

@@ -7,6 +7,8 @@
 #include <valarray>
 #include "crc32k.h"
 
+#include "../io.h"
+
 typedef int32_t ColorVal;  // used in computations
 
 typedef int16_t ColorVal_intern_8;   // used in representations
@@ -216,7 +218,7 @@ public:
               }
             case 4: // nothing to be done, we already have an alpha channel
               break;
-            default: fprintf(stderr,"OOPS: ensure_alpha() problem");
+            default: e_printf("OOPS: ensure_alpha() problem");
         }
     }
 

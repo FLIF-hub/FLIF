@@ -27,7 +27,7 @@ bool image_load_pnm(const char *filename, Image& image)
     if ( (!strncmp(buf, "P6\n", 3)) ) type=6;
     if ( (!strncmp(buf, "P7\n", 3)) ) {fclose(fp); image_load_pam(filename, image);}
     if (type==0) {
-        fprintf(stderr,"PNM file is not of type P4, P5 or P6, cannot read other types.\n");
+        e_printf("PNM file is not of type P4, P5 or P6, cannot read other types.\n");
         fclose(fp);
         return false;
     }
@@ -46,7 +46,7 @@ bool image_load_pnm(const char *filename, Image& image)
     char bla;
     r = fscanf(fp, "%u%c", &maxval, &bla);
     if ( (r < 2) || maxval<1 || maxval > 0xffff ) {
-        fprintf(stderr,"Invalid PNM file.\n");
+        e_printf("Invalid PNM file.\n");
         fclose(fp);
         return false;
     }
@@ -99,7 +99,7 @@ bool image_save_pnm(const char *filename, const Image& image)
         ColorVal max = image.max(0);
 
         if (max > 0xffff) {
-            fprintf(stderr,"Cannot store as PNM. Find out why.\n");
+            e_printf("Cannot store as PNM. Find out why.\n");
             fclose(fp);
             return false;
         }
@@ -120,7 +120,7 @@ bool image_save_pnm(const char *filename, const Image& image)
         ColorVal max = image.max(0);
 
         if (max > 0xffff) {
-            fprintf(stderr,"Cannot store as PNM. Find out why.\n");
+            e_printf("Cannot store as PNM. Find out why.\n");
             fclose(fp);
             return false;
         }
@@ -134,7 +134,7 @@ bool image_save_pnm(const char *filename, const Image& image)
             }
         }
     } else {
-        fprintf(stderr,"Cannot store as PNM. Find out why.\n");
+        e_printf("Cannot store as PNM. Find out why.\n");
         fclose(fp);
         return false;
     }

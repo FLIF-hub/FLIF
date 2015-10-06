@@ -179,23 +179,23 @@ int main(int argc, char **argv)
         case 'a': acb=1; break;
         case 'b': acb=0; break;
         case 'p': palette_size=atoi(optarg);
-                  if (palette_size < -1 || palette_size > 30000) {fprintf(stderr,"Not a sensible number for option -p\n"); return 1; }
+                  if (palette_size < -1 || palette_size > 30000) {e_printf("Not a sensible number for option -p\n"); return 1; }
                   if (palette_size == 0) {v_printf(2,"Palette disabled\n"); }
                   break;
         case 'q': quality=atoi(optarg);
-                  if (quality < -1 || quality > 100) {fprintf(stderr,"Not a sensible number for option -q\n"); return 1; }
+                  if (quality < -1 || quality > 100) {e_printf("Not a sensible number for option -q\n"); return 1; }
                   break;
         case 's': scale=atoi(optarg);
-                  if (scale < 1 || scale > 128) {fprintf(stderr,"Not a sensible number for option -s\n"); return 1; }
+                  if (scale < 1 || scale > 128) {e_printf("Not a sensible number for option -s\n"); return 1; }
                   break;
         case 'r': learn_repeats=atoi(optarg);
-                  if (learn_repeats < 0 || learn_repeats > 1000) {fprintf(stderr,"Not a sensible number for option -r\n"); return 1; }
+                  if (learn_repeats < 0 || learn_repeats > 1000) {e_printf("Not a sensible number for option -r\n"); return 1; }
                   break;
         case 'f': frame_delay=atoi(optarg);
-                  if (frame_delay < 0 || frame_delay > 60000) {fprintf(stderr,"Not a sensible number for option -f\n"); return 1; }
+                  if (frame_delay < 0 || frame_delay > 60000) {e_printf("Not a sensible number for option -f\n"); return 1; }
                   break;
         case 'l': lookback=atoi(optarg);
-                  if (lookback < -1 || lookback > 256) {fprintf(stderr,"Not a sensible number for option -l\n"); return 1; }
+                  if (lookback < -1 || lookback > 256) {e_printf("Not a sensible number for option -l\n"); return 1; }
                   break;
         case 'h':
         default: show_help(); return 0;
@@ -206,14 +206,14 @@ int main(int argc, char **argv)
 
     show_banner();
     if (argc == 0) {
-        //fprintf(stderr,"Input file missing.\n");
+        //e_printf("Input file missing.\n");
         if (get_verbosity() == 1) show_help();
         return 1;
     }
     
     if (argc == 1) {
         show_help();
-        fprintf(stderr,"\nOutput file missing.\n");
+        e_printf("\nOutput file missing.\n");
         return 1;
     }
 
@@ -226,15 +226,15 @@ int main(int argc, char **argv)
         char *ext = f ? strrchr(f,'.') : strrchr(argv[0],'.');
         if (mode == 0) {
             if (!check_compatible_extension(ext)) {
-                fprintf(stderr,"Warning: expected \".png\" or \".pnm\" file name extension for input file, trying anyway...\n");
+                e_printf("Warning: expected \".png\" or \".pnm\" file name extension for input file, trying anyway...\n");
             }
         } else {
             if (!(ext && ( !strcasecmp(ext,".flif")  || ( !strcasecmp(ext,".flf") )))) {
-                fprintf(stderr,"Warning: expected file name extension \".flif\" for input file, trying anyway...\n");
+                e_printf("Warning: expected file name extension \".flif\" for input file, trying anyway...\n");
             }
         }
     } else if (argc>0) {
-        fprintf(stderr,"Input file does not exist: %s\n",argv[0]);
+        e_printf("Input file does not exist: %s\n",argv[0]);
         return 1;
     }
 
@@ -258,15 +258,15 @@ bool handle_encode_arguments(int argc, char **argv, Images &images, int palette_
         Image image;
         v_printf(2,"\r");
         if (!image.load(argv[0])) {
-            fprintf(stderr,"Could not read input file: %s\n", argv[0]);
+            e_printf("Could not read input file: %s\n", argv[0]);
             return 2;
         };
         images.push_back(std::move(image));
         const Image& last_image = images.back();
 		if (last_image.rows() != images[0].rows() || last_image.cols() != images[0].cols() || last_image.numPlanes() != images[0].numPlanes()) {
-            fprintf(stderr,"Dimensions of all input images should be the same!\n");
-            fprintf(stderr,"  First image is %ux%u, %i channels.\n",images[0].cols(),images[0].rows(),images[0].numPlanes());
-            fprintf(stderr,"  This image is %ux%u, %i channels: %s\n",last_image.cols(),last_image.rows(),last_image.numPlanes(),argv[0]);
+            e_printf("Dimensions of all input images should be the same!\n");
+            e_printf("  First image is %ux%u, %i channels.\n",images[0].cols(),images[0].rows(),images[0].numPlanes());
+            e_printf("  This image is %ux%u, %i channels: %s\n",last_image.cols(),last_image.rows(),last_image.numPlanes(),argv[0]);
             return 2;
         }
         argc--; argv++;
@@ -316,7 +316,7 @@ int handle_decode_arguments(char **argv, Images &images, int quality, int scale)
     
     char *ext = strrchr(argv[1],'.');
     if (!check_compatible_extension(ext)) {
-        fprintf(stderr,"Error: expected \".png\", \".pnm\" or \".pam\" file name extension for output file\n");
+        e_printf("Error: expected \".png\", \".pnm\" or \".pam\" file name extension for output file\n");
         return 1;
     }
 

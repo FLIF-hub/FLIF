@@ -20,7 +20,7 @@ template<typename RAC> void static write_name(RAC& rac, std::string desc)
         if (transforms[nb] == desc) break;
         nb++;
     }
-    if (transforms[nb] != desc) { fprintf(stderr,"ERROR: Unknown transform description string!\n"); return;}
+    if (transforms[nb] != desc) { e_printf("ERROR: Unknown transform description string!\n"); return;}
     UniformSymbolCoder<RAC> coder(rac);
     coder.write_int(0, MAX_TRANSFORM, nb);
 }
@@ -253,7 +253,7 @@ template<typename BitChance, typename Rac> void flif_encode_tree(Rac &rac, const
 
 template <typename IO>
 bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, int encoding, int learn_repeats, int acb, int frame_delay, int palette_size, int lookback) {
-    if (encoding < 1 || encoding > 2) { fprintf(stderr,"Unknown encoding: %i\n", encoding); return false;}
+    if (encoding < 1 || encoding > 2) { e_printf("Unknown encoding: %i\n", encoding); return false;}
     io.fputs("FLIF");
     int numPlanes = images[0].numPlanes();
     int numFrames = images.size();
@@ -263,7 +263,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, int
     if (numFrames>1) {
         if (numFrames<255) io.fputc((char)numFrames);
         else {
-            fprintf(stderr,"Too many frames!\n");
+            e_printf("Too many frames!\n");
         }
     }
     c='1';
@@ -317,7 +317,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, int
         if (!trans->init(rangesList.back()) || 
             (!trans->process(rangesList.back(), images)
               && !(acb==1 && transDesc[i] == "ACB" && printf(", forced_") && (tcount=0)==0))) {
-            //fprintf(stderr, "Transform '%s' failed\n", transDesc[i].c_str());
+            //e_printf( "Transform '%s' failed\n", transDesc[i].c_str());
         } else {
             if (tcount++ > 0) v_printf(4,", ");
             v_printf(4,"%s", transDesc[i].c_str());
