@@ -6,4 +6,4 @@ OUTP=$3
 
 ./flif "${IN}" "${OUTF}"
 ./flif -d ${OUTF} ${OUTP}
-test "`compare -metric AE $${IN} $${OUTP} null 2>&1`" = "0"
+test "`compare -metric AE ${IN} ${OUTP} null 2>&1`" = "0"
