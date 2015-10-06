@@ -12,16 +12,6 @@ flif.dbg: maniac/*.h maniac/*.cpp image/*.h image/*.cpp transform/*.h transform/
 
 test: flif
 	mkdir -p testFiles
-	IN=benchmark/input/webp_gallery/2_webp_ll.png;		\
-	OUTF=testFiles/2_webp_ll.flif;				\
-	OUTP=testFiles/decoded_2_webp_ll.png;			\
-	./flif "$${IN}" "$${OUTF}";				\
-	./flif -d $${OUTF} $${OUTP};				\
-	test "`compare -metric AE $${IN} $${OUTP} null 2>&1`" = "0"
-	IN=benchmark/input/kodak/kodim01.png ;		\
-	OUTF=testFiles/kodim01.flif;				\
-	OUTP=testFiles/decoded_kodim01.png;			\
-	./flif "$${IN}" "$${OUTF}";				\
-	./flif -d $${OUTF} $${OUTP};				\
-	test "`compare -metric AE $${IN} $${OUTP} null 2>&1`" = "0"
+	./tools/test-roundtrip.sh benchmark/input/webp_gallery/2_webp_ll.png testFiles/2_webp_ll.flif testFiles/decoded_2_webp_ll.png
+	./tools/test-roundtrip.sh benchmark/input/kodak/kodim01.png testFiles/kodim01.flif testFiles/decoded_kodim01.png
 
