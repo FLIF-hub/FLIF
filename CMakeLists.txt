@@ -26,6 +26,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-ggdb3")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
+if(USE_ASAN)
+    message(STATUS "Using ASAN")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+endif()
+
 set(PROJECT_SOURCES
     ${IMAGE_SOURCES}
     ${MANIAC_SOURCES}

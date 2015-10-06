@@ -1,6 +1,9 @@
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
+
+namespace maniac {
+namespace util {
 
 extern const uint8_t log2_tab[1024];
 int ilog2(uint32_t l);
@@ -12,6 +15,7 @@ template<typename I> void static swap(I& a, I& b)
     a = b;
     b = c;
 }
+
 template<typename I> I static median3(I a, I b, I c)
 {
     if (a<b) swap(a,b);
@@ -20,4 +24,5 @@ template<typename I> I static median3(I a, I b, I c)
     return b;
 }
 
-//#define STATS 1
+} // namespace util
+} // namespace maniac

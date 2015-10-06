@@ -1,6 +1,9 @@
 #include "util.h"
 #include <stdint.h>
 
+namespace maniac {
+namespace util {
+
 // table for integer 2-logs
 const uint8_t log2_tab[1024] = {0,0,1,1,2,2,2,2,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5,
                                 5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
@@ -40,3 +43,5 @@ int ilog2(uint32_t l)
     return p;
 }
 
+} // namespace util
+} // namespace maniac

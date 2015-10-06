@@ -1,5 +1,7 @@
 #include "common.h"
 
+using namespace maniac::util;
+
 std::vector<ColorVal> grey; // a pixel with values in the middle of the bounds
 
 const std::vector<std::string> transforms = {"YIQ","BND","ACB","PLT","PLA","FRS","DUP","FRA","???"};

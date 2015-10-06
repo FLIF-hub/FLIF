@@ -13,6 +13,8 @@
 #include "common.h"
 #include "fileio.h"
 
+using namespace maniac::util;
+
 template<typename RAC> std::string static read_name(RAC& rac)
 {
     UniformSymbolCoder<RAC> coder(rac);
