@@ -240,11 +240,11 @@ void flif_encode_scanlines_interpol_zero_alpha(Images &images, const ColorRanges
 }
 
 
-template<typename BitChance, typename Rac> void flif_encode_tree(Rac &rac, const ColorRanges *ranges, const std::vector<Tree> &forest, const int encoding)
+template<typename BitChance, typename Rac> void flif_encode_tree(Rac &rac, const ColorRanges *ranges, const std::vector<Tree> &forest, const flifEncoding encoding)
 {
     for (int p = 0; p < ranges->numPlanes(); p++) {
         Ranges propRanges;
-        if (encoding==1) initPropRanges_scanlines(propRanges, *ranges, p);
+        if (encoding==flifEncoding::nonInterlaced) initPropRanges_scanlines(propRanges, *ranges, p);
         else initPropRanges(propRanges, *ranges, p);
         MetaPropertySymbolCoder<BitChance, Rac> metacoder(rac, propRanges);
 //        forest[p].print(stdout);
@@ -254,12 +254,11 @@ template<typename BitChance, typename Rac> void flif_encode_tree(Rac &rac, const
 }
 
 template <typename IO>
-bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, int encoding, int learn_repeats, int acb, int frame_delay, int palette_size, int lookback) {
-    if (encoding < 1 || encoding > 2) { e_printf("Unknown encoding: %i\n", encoding); return false;}
+bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int frame_delay, int palette_size, int lookback) {
     io.fputs("FLIF");
     int numPlanes = images[0].numPlanes();
     int numFrames = images.size();
-    char c=' '+16*encoding+numPlanes;
+    char c=' '+16*(static_cast<uint8_t>(encoding))+numPlanes;
     if (numFrames>1) c += 32;
     io.fputc(c);
     if (numFrames>1) {
@@ -363,8 +362,8 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, int
     if (ranges->numPlanes() > 3) {
       v_printf(4,"Replacing fully transparent pixels with predicted pixel values at the other planes\n");
       switch(encoding) {
-        case 1: flif_encode_scanlines_interpol_zero_alpha(images, ranges); break;
-        case 2: flif_encode_FLIF2_interpol_zero_alpha(images, ranges, image.zooms(), 0); break;
+        case flifEncoding::nonInterlaced: flif_encode_scanlines_interpol_zero_alpha(images, ranges); break;
+        case flifEncoding::interlaced: flif_encode_FLIF2_interpol_zero_alpha(images, ranges, image.zooms(), 0); break;
       }
     }
 
@@ -373,7 +372,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, int
     long fs = io.ftell();
 
     int roughZL = 0;
-    if (encoding == 2) {
+    if (encoding == flifEncoding::interlaced) {
       roughZL = image.zooms() - NB_NOLEARN_ZOOMS-1;
       if (roughZL < 0) roughZL = 0;
       //v_printf(2,"Encoding rough data\n");
@@ -384,17 +383,17 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, int
     //v_printf(2,"Encoding data (pass 1)\n");
     if (learn_repeats>1) v_printf(3,"Learning a MANIAC tree. Iterating %i times.\n",learn_repeats);
     switch(encoding) {
-        case 1:
+        case flifEncoding::nonInterlaced:
            if (bits==10) flif_encode_scanlines_pass<RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, 10> >(dummy, images, ranges, forest, learn_repeats);
            else flif_encode_scanlines_pass<RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, 18> >(dummy, images, ranges, forest, learn_repeats);
            break;
-        case 2:
+        case flifEncoding::interlaced:
            if (bits==10) flif_encode_FLIF2_pass<RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, 10> >(dummy, images, ranges, forest, roughZL, 0, learn_repeats);
            else flif_encode_FLIF2_pass<RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, 18> >(dummy, images, ranges, forest, roughZL, 0, learn_repeats);
            break;
     }
     v_printf(3,"\rHeader: %li bytes.", fs);
-    if (encoding==2) v_printf(3," Rough data: %li bytes.", io.ftell()-fs);
+    if (encoding==flifEncoding::interlaced) v_printf(3," Rough data: %li bytes.", io.ftell()-fs);
     fflush(stdout);
 
     //v_printf(2,"Encoding tree\n");
@@ -403,11 +402,11 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, int
     v_printf(3," MANIAC tree: %li bytes.\n", io.ftell()-fs);
     //v_printf(2,"Encoding data (pass 2)\n");
     switch(encoding) {
-        case 1:
+        case flifEncoding::nonInterlaced:
            if (bits==10) flif_encode_scanlines_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, 10> >(rac, images, ranges, forest, 1);
            else flif_encode_scanlines_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, 18> >(rac, images, ranges, forest, 1);
            break;
-        case 2:
+        case flifEncoding::interlaced:
            if (bits==10) flif_encode_FLIF2_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, 10> >(rac, images, ranges, forest, roughZL, 0, 1);
            else flif_encode_FLIF2_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, 18> >(rac, images, ranges, forest, roughZL, 0, 1);
            break;
@@ -434,5 +433,5 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, int
 }
 
 
-template bool flif_encode(FileIO& io, Images &images, std::vector<std::string> transDesc, int encoding, int learn_repeats, int acb, int frame_delay, int palette_size, int lookback);
+template bool flif_encode(FileIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int frame_delay, int palette_size, int lookback);
 

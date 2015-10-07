@@ -47,8 +47,6 @@
 #include "flif-enc.h"
 #include "flif-dec.h"
 
-#include "flif.h"
-
 #ifdef _MSC_VER
 #define strcasecmp stricmp
 #endif
@@ -134,11 +132,116 @@ bool check_compatible_extension (char *ext) {
     }
 }
 
+union flifEncodingOptional {
+  flifEncoding encoding;
+  Optional o;
+  flifEncodingOptional() : o(Optional::undefined) {}
+};
+
+/********************************************/
+/*   HEAVIER HANDLING                       */
+/********************************************/
+
+bool handle_encode_arguments(int argc, char **argv, Images &images, int palette_size, int acb, flifEncodingOptional method, int lookback, int learn_repeats, int frame_delay) {
+    int nb_input_images = argc-1;
+    while(argc>1) {
+        Image image;
+        v_printf(2,"\r");
+        if (!image.load(argv[0])) {
+            e_printf("Could not read input file: %s\n", argv[0]);
+            return 2;
+        };
+        images.push_back(std::move(image));
+        const Image& last_image = images.back();
+		if (last_image.rows() != images[0].rows() || last_image.cols() != images[0].cols() || last_image.numPlanes() != images[0].numPlanes()) {
+            e_printf("Dimensions of all input images should be the same!\n");
+            e_printf("  First image is %ux%u, %i channels.\n",images[0].cols(),images[0].rows(),images[0].numPlanes());
+            e_printf("  This image is %ux%u, %i channels: %s\n",last_image.cols(),last_image.rows(),last_image.numPlanes(),argv[0]);
+            return 2;
+        }
+        argc--; argv++;
+        if (nb_input_images>1) {v_printf(2,"    (%i/%i)         ",(int)images.size(),nb_input_images); v_printf(4,"\n");}
+    }
+    v_printf(2,"\n");
+    bool flat=true;
+    for (Image &image : images) if (image.uses_alpha()) flat=false;
+    if (flat && images[0].numPlanes() == 4) {
+        v_printf(2,"Alpha channel not actually used, dropping it.\n");
+        for (Image &image : images) image.drop_alpha();
+    }
+    uint64_t nb_pixels = (uint64_t)images[0].rows() * images[0].cols();
+    std::vector<std::string> desc;
+    desc.push_back("YIQ");  // convert RGB(A) to YIQ(A)
+    desc.push_back("BND");  // get the bounds of the color spaces
+    if (palette_size > 0)
+        desc.push_back("PLA");  // try palette (including alpha)
+    if (palette_size > 0)
+        desc.push_back("PLT");  // try palette (without alpha)
+    if (acb == -1) {
+        // not specified if ACB should be used
+        if (nb_pixels > 10000) desc.push_back("ACB");  // try auto color buckets on large images
+    } else if (acb) desc.push_back("ACB");  // try auto color buckets if forced
+    if (method.o == Optional::undefined) {
+        // no method specified, pick one heuristically
+        if (nb_pixels < 10000) method.encoding=flifEncoding::nonInterlaced; // if the image is small, not much point in doing interlacing
+        else method.encoding=flifEncoding::interlaced; // default method: interlacing
+    }
+    if (images.size() > 1) {
+        desc.push_back("DUP");  // find duplicate frames
+        desc.push_back("FRS");  // get the shapes of the frames
+        if (lookback != 0) desc.push_back("FRA");  // make a "deep" alpha channel (negative values are transparent to some previous frame)
+    }
+    if (learn_repeats < 0) {
+        // no number of repeats specified, pick a number heuristically
+        learn_repeats = TREE_LEARN_REPEATS;
+        if (nb_pixels < 5000) learn_repeats--;        // avoid large trees for small images
+        if (learn_repeats < 0) learn_repeats=0;
+    }
+    FILE *file = fopen(argv[0],"wb");
+    if (!file)
+        return false;
+    FileIO fio(file, argv[0]);
+    return flif_encode(fio, images, desc, method.encoding, learn_repeats, acb, frame_delay, palette_size, lookback);
+}
+
+int handle_decode_arguments(char **argv, Images &images, int quality, int scale) {
+
+    char *ext = strrchr(argv[1],'.');
+    if (!check_compatible_extension(ext)) {
+        e_printf("Error: expected \".png\", \".pnm\" or \".pam\" file name extension for output file\n");
+        return 1;
+    }
+
+    FILE *file = fopen(argv[0],"rb");
+    if(!file)
+        return 1;
+    FileIO fio(file, argv[0]);
+
+    if (!flif_decode(fio, images, quality, scale)) return 3;
+    if (scale>1)
+        v_printf(3,"Downscaling output: %ux%u -> %ux%u\n",images[0].cols(),images[0].rows(),images[0].cols()/scale,images[0].rows()/scale);
+    if (images.size() == 1) {
+        if (!images[0].save(argv[1],scale)) return 2;
+    } else {
+        int counter=0;
+        std::vector<char> vfilename(strlen(argv[1])+6);
+        char *filename = &vfilename[0];
+        strcpy(filename,argv[1]);
+        char *a_ext = strrchr(filename,'.');
+        for (Image& image : images) {
+            sprintf(a_ext,"-%03d%s",counter++,ext);
+            if (!image.save(filename,scale)) return 2;
+            v_printf(2,"    (%i/%i)         \r",counter,(int)images.size()); v_printf(4,"\n");
+        }
+    }
+    v_printf(2,"\n");
+    return -1;
+}
 int main(int argc, char **argv)
 {
     Images images;
     int mode = 0; // 0 = encode, 1 = decode
-    int method = 0; // 1=non-interlacing, 2=interlacing
+    flifEncodingOptional method; // 1=non-interlacing, 2=interlacing
     int quality = 100; // 100 = everything, positive value: partial decode, negative value: only rough data
     int learn_repeats = -1;
     int acb = -1; // try auto color buckets
@@ -174,8 +277,8 @@ int main(int argc, char **argv)
         case 'e': mode=0; break;
         case 'd': mode=1; break;
         case 'v': increase_verbosity(); break;
-        case 'i': if (method==0) method=2; break;
-        case 'n': method=1; break;
+        case 'i': method.encoding=flifEncoding::interlaced; break;
+        case 'n': method.encoding=flifEncoding::nonInterlaced; break;
         case 'a': acb=1; break;
         case 'b': acb=0; break;
         case 'p': palette_size=atoi(optarg);
@@ -238,7 +341,6 @@ int main(int argc, char **argv)
         return 1;
     }
 
-
     if (mode == 0) {
         handle_encode_arguments(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay);
     } else {
@@ -248,102 +350,3 @@ int main(int argc, char **argv)
     return 0;
 }
 
-/********************************************/
-/*   HEAVIER HANDLING                       */
-/********************************************/
-
-bool handle_encode_arguments(int argc, char **argv, Images &images, int palette_size, int acb, int method, int lookback, int learn_repeats, int frame_delay) {
-    int nb_input_images = argc-1;
-    while(argc>1) {
-        Image image;
-        v_printf(2,"\r");
-        if (!image.load(argv[0])) {
-            e_printf("Could not read input file: %s\n", argv[0]);
-            return 2;
-        };
-        images.push_back(std::move(image));
-        const Image& last_image = images.back();
-		if (last_image.rows() != images[0].rows() || last_image.cols() != images[0].cols() || last_image.numPlanes() != images[0].numPlanes()) {
-            e_printf("Dimensions of all input images should be the same!\n");
-            e_printf("  First image is %ux%u, %i channels.\n",images[0].cols(),images[0].rows(),images[0].numPlanes());
-            e_printf("  This image is %ux%u, %i channels: %s\n",last_image.cols(),last_image.rows(),last_image.numPlanes(),argv[0]);
-            return 2;
-        }
-        argc--; argv++;
-        if (nb_input_images>1) {v_printf(2,"    (%i/%i)         ",(int)images.size(),nb_input_images); v_printf(4,"\n");}
-    }
-    v_printf(2,"\n");
-    bool flat=true;
-    for (Image &image : images) if (image.uses_alpha()) flat=false;
-    if (flat && images[0].numPlanes() == 4) {
-        v_printf(2,"Alpha channel not actually used, dropping it.\n");
-        for (Image &image : images) image.drop_alpha();
-    }
-    uint64_t nb_pixels = (uint64_t)images[0].rows() * images[0].cols();
-    std::vector<std::string> desc;
-    desc.push_back("YIQ");  // convert RGB(A) to YIQ(A)
-    desc.push_back("BND");  // get the bounds of the color spaces
-    if (palette_size > 0)
-        desc.push_back("PLA");  // try palette (including alpha)
-    if (palette_size > 0)
-        desc.push_back("PLT");  // try palette (without alpha)
-    if (acb == -1) {
-        // not specified if ACB should be used
-        if (nb_pixels > 10000) desc.push_back("ACB");  // try auto color buckets on large images
-    } else if (acb) desc.push_back("ACB");  // try auto color buckets if forced
-    if (method == 0) {
-        // no method specified, pick one heuristically
-        if (nb_pixels < 10000) method=1; // if the image is small, not much point in doing interlacing
-        else method=2; // default method: interlacing
-    }
-    if (images.size() > 1) {
-        desc.push_back("DUP");  // find duplicate frames
-        desc.push_back("FRS");  // get the shapes of the frames
-        if (lookback != 0) desc.push_back("FRA");  // make a "deep" alpha channel (negative values are transparent to some previous frame)
-    }
-    if (learn_repeats < 0) {
-        // no number of repeats specified, pick a number heuristically
-        learn_repeats = TREE_LEARN_REPEATS;
-        if (nb_pixels < 5000) learn_repeats--;        // avoid large trees for small images
-        if (learn_repeats < 0) learn_repeats=0;
-    }
-    FILE *file = fopen(argv[0],"wb");
-    if (!file)
-        return false;
-    FileIO fio(file, argv[0]);
-    return flif_encode(fio, images, desc, method, learn_repeats, acb, frame_delay, palette_size, lookback);
-}
-
-int handle_decode_arguments(char **argv, Images &images, int quality, int scale) {
-    
-    char *ext = strrchr(argv[1],'.');
-    if (!check_compatible_extension(ext)) {
-        e_printf("Error: expected \".png\", \".pnm\" or \".pam\" file name extension for output file\n");
-        return 1;
-    }
-
-    FILE *file = fopen(argv[0],"rb");
-    if(!file)
-        return 1;
-    FileIO fio(file, argv[0]);
-
-    if (!flif_decode(fio, images, quality, scale)) return 3;
-    if (scale>1)
-        v_printf(3,"Downscaling output: %ux%u -> %ux%u\n",images[0].cols(),images[0].rows(),images[0].cols()/scale,images[0].rows()/scale);
-    if (images.size() == 1) {
-        if (!images[0].save(argv[1],scale)) return 2;
-    } else {
-        int counter=0;
-        std::vector<char> vfilename(strlen(argv[1])+6);
-        char *filename = &vfilename[0];
-        strcpy(filename,argv[1]);
-        char *a_ext = strrchr(filename,'.');
-        for (Image& image : images) {
-            sprintf(a_ext,"-%03d%s",counter++,ext);
-            if (!image.save(filename,scale)) return 2;
-            v_printf(2,"    (%i/%i)         \r",counter,(int)images.size()); v_printf(4,"\n");
-        }
-    }
-    v_printf(2,"\n");
-    return -1;
-}
