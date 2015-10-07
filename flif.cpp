@@ -241,7 +241,7 @@ int main(int argc, char **argv)
 {
     Images images;
     int mode = 0; // 0 = encode, 1 = decode
-    flifEncodingOptional method; // 1=non-interlacing, 2=interlacing
+    flifEncodingOptional method;
     int quality = 100; // 100 = everything, positive value: partial decode, negative value: only rough data
     int learn_repeats = -1;
     int acb = -1; // try auto color buckets
