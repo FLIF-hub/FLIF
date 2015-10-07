@@ -14,7 +14,7 @@
 
 #include "io.h"
 
-enum class Optional : short {
+enum class Optional : uint8_t {
   undefined = 0
 };
 
