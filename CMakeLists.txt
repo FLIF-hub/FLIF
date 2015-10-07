@@ -14,7 +14,6 @@ set(IMAGE_SOURCES
 
 set(MANIAC_SOURCES
     maniac/chance.cpp
-    maniac/util.cpp
 )
 
 set(TRANSFORM_SOURCES
