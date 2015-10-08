@@ -282,11 +282,15 @@ template <typename IO>
 class TransformCB : public Transform<IO> {
 protected:
     ColorBuckets *cb;
+    bool really_used;
+
+    ~TransformCB() {if (!really_used) delete cb;}
 
     const ColorRanges* meta(Images&, const ColorRanges *srcRanges) {
 //        cb->print();
         // in the I buckets, some discrete buckets may have become continuous to keep the colorbucket info small
         // this means some Q buckets are empty, which means that some values from the I buckets can be eliminated
+        really_used = true;
         prevPlanes pixelL,pixelU;
         pixelL.push_back(cb->min0);
         pixelU.push_back(cb->min0+CB0b-1);
@@ -314,6 +318,7 @@ protected:
         return new ColorRangesCB(srcRanges, cb);
     }
     bool init(const ColorRanges *srcRanges) {
+        really_used = false;
         if(srcRanges->numPlanes() < 3) return false;
         if (srcRanges->min(1) == 0 && srcRanges->max(1) == 0 && srcRanges->min(2) == 0 && srcRanges->max(2) == 0) return false; // probably palette image
         if (srcRanges->min(0) == srcRanges->max(0) &&
