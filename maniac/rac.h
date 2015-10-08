@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <assert.h>
+#include "../config.h"
 
 /* RAC configuration for 40-bit RAC */
 class RacConfig40
@@ -96,6 +97,7 @@ public:
     }
 };
 
+#ifdef HAS_ENCODER
 template <class Config, typename IO> class RacOutput
 {
 public:
@@ -107,6 +109,7 @@ private:
     rac_t low;
     int delayed_byte;
     int delayed_count;
+
     void inline output() {
         while (range <= Config::MIN_RANGE) {
             int byte = low >> Config::MIN_RANGE_BITS;
@@ -178,6 +181,7 @@ public:
       return io.ftell();
     }
 };
+#endif
 
 
 class RacDummy
@@ -207,11 +211,13 @@ public:
     RacInput40(IO& io) : RacInput<RacConfig40, IO>(io) { }
 };
 
+#ifdef HAS_ENCODER
 template <typename IO> class RacOutput40 : public RacOutput<RacConfig40, IO>
 {
 public:
     RacOutput40(IO& io) : RacOutput<RacConfig40, IO>(io) { }
 };
+#endif
 
 template <typename IO> class RacInput24 : public RacInput<RacConfig24, IO>
 {
@@ -219,8 +225,10 @@ public:
     RacInput24(IO& io) : RacInput<RacConfig24, IO>(io) { }
 };
 
+#ifdef HAS_ENCODER
 template <typename IO> class RacOutput24 : public RacOutput<RacConfig24, IO>
 {
 public:
     RacOutput24(IO& io) : RacOutput<RacConfig24, IO>(io) { }
 };
+#endif

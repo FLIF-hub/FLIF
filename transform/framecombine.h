@@ -47,10 +47,12 @@ protected:
         v_printf(5,"[%i]",max_lookback);
     }
 
+#ifdef HAS_ENCODER
     void save(const ColorRanges *, RacOut<IO> &rac) const {
         SimpleSymbolCoder<SimpleBitChance, RacOut<IO>, 24> coder(rac);
         coder.write_int(1,256,max_lookback);
     }
+#endif
 
 // a heuristic to figure out if this is going to help (it won't help if we introduce more entropy than what is eliminated)
     bool process(const ColorRanges *srcRanges, const Images &images) {

@@ -104,6 +104,8 @@ public:
           image.palette=false;
         }
     }
+
+#if HAS_ENCODER
     void save(const ColorRanges *srcRanges, RacOut<IO> &rac) const {
         SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> coder(rac);
         SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> coderY(rac);
@@ -135,6 +137,7 @@ public:
 //        printf("\nSaved palette of size: %lu\n",Palette_vector.size());
         v_printf(5,"[%lu]",Palette_vector.size());
     }
+#endif
     void load(const ColorRanges *srcRanges, RacIn<IO> &rac) {
         SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> coder(rac);
         SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> coderY(rac);

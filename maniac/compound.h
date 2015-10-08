@@ -36,6 +36,7 @@ public:
 
 class Tree : public std::vector<PropertyDecisionNode>
 {
+#ifdef STATS
 protected:
     void print_subtree(FILE* file, int pos, int indent) const {
         const PropertyDecisionNode &n = (*this)[pos];
@@ -53,7 +54,9 @@ public:
         print_subtree(file, 0, 0);
     }
 
+#endif
 
+public:
     Tree() : std::vector<PropertyDecisionNode>(1, PropertyDecisionNode()) {}
 };
 
@@ -161,11 +164,13 @@ public:
         return bit;
     }
 
+#ifdef HAS_ENCODER
     void inline write(const bool bit, const SymbolChanceBitType type, const int i = 0) {
         BitChance& ch = chances.realChances.bit(type, i);
         rac.write(ch.get(), bit);
         updateChances(type, i, bit);
     }
+#endif
 };
 
 
@@ -228,12 +233,14 @@ public:
         return bit;
     }
 
+#ifdef HAS_ENCODER
     void write(bool bit, SymbolChanceBitType type, int i = 0) {
         BitChance& ch = bestChance(type, i);
         rac.write(ch.get(), bit);
         updateChances(type, i, bit);
 //    e_printf("bit %s%i = %s\n", SymbolChanceBitName[type], i, bit ? "true" : "false");
     }
+#endif
 };
 
 
@@ -255,6 +262,7 @@ public:
         return val;
     }
 
+#ifdef HAS_ENCODER
     void write_int(FinalCompoundSymbolChances<BitChance, bits>& chancesIn, int min, int max, int val) {
 #ifdef STATS
         chancesIn.sum += (double)val;
@@ -265,12 +273,15 @@ public:
 //        printf("%i in %i..%i\n",val, min, max);
         writer<bits>(bitCoder, min, max, val);
     }
+#endif
+
     int read_int(FinalCompoundSymbolChances<BitChance, bits> &chancesIn, int nbits) {
         FinalCompoundSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, rac, chancesIn);
         int val = reader(bitCoder, nbits);
         return val;
     }
 
+#ifdef HAS_ENCODER
     void write_int(FinalCompoundSymbolChances<BitChance, bits>& chancesIn, int nbits, int val) {
 #ifdef STATS
         chancesIn.sum += (double)val;
@@ -280,6 +291,7 @@ public:
         FinalCompoundSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, rac, chancesIn);
         writer(bitCoder, nbits, val);
     }
+#endif
 };
 
 template <typename BitChance, typename RAC, int bits> class CompoundSymbolCoder
@@ -299,20 +311,24 @@ public:
         return reader<bits>(bitCoder, min, max);
     }
 
+#ifdef HAS_ENCODER
     void write_int(CompoundSymbolChances<BitChance, bits>& chancesIn, std::vector<bool> &selectIn, int min, int max, int val) {
         if (min == max) { assert(val==min); return; }
         CompoundSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, rac, chancesIn, selectIn);
         writer<bits>(bitCoder, min, max, val);
     }
+#endif
     int read_int(CompoundSymbolChances<BitChance, bits> &chancesIn, std::vector<bool> &selectIn, int nbits) {
         CompoundSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, rac, chancesIn, selectIn);
         return reader(bitCoder, nbits);
     }
 
+#ifdef HAS_ENCODER
     void write_int(CompoundSymbolChances<BitChance, bits>& chancesIn, std::vector<bool> &selectIn, int nbits, int val) {
         CompoundSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, rac, chancesIn, selectIn);
         writer(bitCoder, nbits, val);
     }
+#endif
 };
 
 
@@ -377,23 +393,28 @@ public:
         return coder.read_int(chances, min, max);
     }
 
+#ifdef HAS_ENCODER
     void write_int(Properties &properties, int min, int max, int val) {
         if (min == max) { assert(val==min); return; }
         assert(properties.size() == range.size());
         FinalCompoundSymbolChances<BitChance,bits> &chances = find_leaf(properties);
         coder.write_int(chances, min, max, val);
     }
+#endif
+
     int read_int(Properties &properties, int nbits) {
         assert(properties.size() == range.size());
         FinalCompoundSymbolChances<BitChance,bits> &chances = find_leaf(properties);
         return coder.read_int(chances, nbits);
     }
 
+#ifdef HAS_ENCODER
     void write_int(Properties &properties, int nbits, int val) {
         assert(properties.size() == range.size());
         FinalCompoundSymbolChances<BitChance,bits> &chances = find_leaf(properties);
         coder.write_int(chances, nbits, val);
     }
+#endif
 
 #ifdef STATS
     void info(int n) const {
@@ -518,6 +539,7 @@ public:
         return coder.read_int(chances2, selection, min, max);
     }
 
+#ifdef HAS_ENCODER
     void write_int(Properties &properties, int min, int max, int val) {
 #ifdef STATS
         symbols++;
@@ -527,6 +549,8 @@ public:
         CompoundSymbolChances<BitChance,bits> &chances2 = find_leaf(properties);
         coder.write_int(chances2, selection, min, max, val);
     }
+#endif
+
     int read_int(Properties &properties, int nbits) {
 #ifdef STATS
         symbols++;
@@ -537,6 +561,7 @@ public:
         return coder.read_int(chances2, selection, nbits);
     }
 
+#ifdef HAS_ENCODER
     void write_int(Properties &properties, int nbits, int val) {
 #ifdef STATS
         symbols++;
@@ -546,6 +571,7 @@ public:
         CompoundSymbolChances<BitChance,bits> &chances2 = find_leaf(properties);
         coder.write_int(chances2, selection, nbits, val);
     }
+#endif
 
 #ifdef STATS
     void info(int n) const {
@@ -607,6 +633,8 @@ public:
            assert(range[i].first <= range[i].second);
         }
     }
+
+#ifdef HAS_ENCODER
     void write_subtree(int pos, Ranges &subrange, const Tree &tree) {
         const PropertyDecisionNode &n = tree[pos];
         int p = n.property;
@@ -636,6 +664,8 @@ public:
           Ranges rootrange(range);
           write_subtree(0, rootrange, tree);
     }
+#endif
+
     int read_subtree(int pos, Ranges &subrange, Tree &tree) {
         PropertyDecisionNode &n = tree[pos];
         int p = n.property = coder.read_int(0,nb_properties)-1;

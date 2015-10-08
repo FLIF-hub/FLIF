@@ -229,6 +229,7 @@ template <typename SymbolCoder> int reader_p(SymbolCoder& coder, int min, int ma
 }
 */
 
+#ifdef HAS_ENCODER
 template <typename SymbolCoder> void writer(SymbolCoder& coder, int bits, int value)
 {
   int pos=0;
@@ -296,6 +297,7 @@ template <int bits, typename SymbolCoder> void writer(SymbolCoder& coder, int mi
         have |= (bit << pos);
     }
 }
+#endif
 
 template <typename BitChance, typename RAC> class SimpleBitCoder
 {
@@ -372,13 +374,16 @@ public:
 #endif
     }
 
+#ifdef HAS_ENCODER
     void write_int(int min, int max, int value) {
         SimpleSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, ctx, rac);
         writer<bits, SimpleSymbolBitCoder<BitChance, RAC, bits> >(bitCoder, min, max, value);
+
 #ifdef STATS
         symbols++;
 #endif
     }
+#endif
 
     int read_int(int min, int max) {
         SimpleSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, ctx, rac);
@@ -388,6 +393,7 @@ public:
         return reader<bits, SimpleSymbolBitCoder<BitChance, RAC, bits>>(bitCoder, min, max);
     }
 
+#ifdef HAS_ENCODER
     void write_int(int nbits, int value) {
         assert (nbits <= bits);
         SimpleSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, ctx, rac);
@@ -396,6 +402,7 @@ public:
         symbols++;
 #endif
     }
+#endif
 
     int read_int(int nbits) {
         assert (nbits <= bits);
