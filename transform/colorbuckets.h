@@ -423,6 +423,7 @@ protected:
         if (srcRanges->numPlanes() > 3) cb->bucket3 = load_bucket(coder, srcRanges, 3, pixelL, pixelU);
     }
 
+#ifdef HAS_ENCODER
     void save_bucket(const ColorBucket &b, SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> &coder, const ColorRanges *srcRanges, const int plane, const prevPlanes &pixelL, const prevPlanes &pixelU) const {
         if (plane<3)
         for (int p=0; p<plane; p++) {
@@ -501,6 +502,7 @@ protected:
 //          printf("\n");
         }
     }
+#endif
 
     bool process(const ColorRanges *, const Images &images) {
             std::vector<ColorVal> pixel(images[0].numPlanes());

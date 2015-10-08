@@ -52,6 +52,7 @@ protected:
         }
     }
 
+#ifdef HAS_ENCODER
     void save(const ColorRanges *srcRanges, RacOut<IO> &rac) const {
         SimpleSymbolCoder<SimpleBitChance, RacOut<IO>, 24> coder(rac);
         for (int p=0; p<srcRanges->numPlanes(); p++) {
@@ -64,6 +65,7 @@ protected:
             v_printf(5,"[%i:%i..%i]",p,min,max);
         }
     }
+#endif
 
     bool process(const ColorRanges *srcRanges, const Images &images) {
         bounds.clear();

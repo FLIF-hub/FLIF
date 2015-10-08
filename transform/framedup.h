@@ -31,12 +31,14 @@ protected:
         int count=0; for(int i : seen_before) { if(i>=0) count++; } v_printf(5,"[%i]",count);
     }
 
+#ifdef HAS_ENCODER
     void save(const ColorRanges *, RacOut<IO> &rac) const {
         SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> coder(rac);
         assert(nb == seen_before.size());
         for (unsigned int i=1; i<seen_before.size(); i++) coder.write_int(-1,nb-2,seen_before[i]);
         int count=0; for(int i : seen_before) { if(i>=0) count++; } v_printf(5,"[%i]",count);
     }
+#endif
 
     bool process(const ColorRanges *srcRanges, const Images &images) {
         int np=srcRanges->numPlanes();

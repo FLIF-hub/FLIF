@@ -39,6 +39,7 @@ protected:
 //        for (unsigned int i=0; i<nb; i+=1) {e.push_back(coder.read_int(b[i],cols));}
     }
 
+#if 0
     void save(const ColorRanges *, RacOut<IO> &rac) const {
         SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> coder(rac);
         assert(nb == b.size());
@@ -47,6 +48,7 @@ protected:
         for (unsigned int i=0; i<nb; i+=1) { coder.write_int(0,cols-b[i],cols-e[i]); }
 //        for (unsigned int i=0; i<nb; i+=1) { coder.write_int(b[i],cols,e[i]); }
     }
+#endif
 
     bool process(const ColorRanges *srcRanges, const Images &images) {
         if (images.size()<2) return false;
