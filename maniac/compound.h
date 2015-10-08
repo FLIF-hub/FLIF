@@ -106,6 +106,7 @@ public:
 #endif
 };
 
+#ifdef HAS_ENCODER
 // leaf nodes during tree construction phase
 template <typename BitChance, int bits> class CompoundSymbolChances : public FinalCompoundSymbolChances<BitChance, bits>
 {
@@ -136,7 +137,7 @@ public:
     { }
 
 };
-
+#endif
 
 
 template <typename BitChance, typename RAC, int bits> class FinalCompoundSymbolBitCoder
@@ -174,6 +175,7 @@ public:
 };
 
 
+#ifdef HAS_ENCODER
 template <typename BitChance, typename RAC, int bits> class CompoundSymbolBitCoder
 {
 public:
@@ -233,16 +235,14 @@ public:
         return bit;
     }
 
-#ifdef HAS_ENCODER
     void write(bool bit, SymbolChanceBitType type, int i = 0) {
         BitChance& ch = bestChance(type, i);
         rac.write(ch.get(), bit);
         updateChances(type, i, bit);
 //    e_printf("bit %s%i = %s\n", SymbolChanceBitName[type], i, bit ? "true" : "false");
     }
-#endif
 };
-
+#endif
 
 template <typename BitChance, typename RAC, int bits> class FinalCompoundSymbolCoder
 {
@@ -294,6 +294,8 @@ public:
 #endif
 };
 
+
+#ifdef HAS_ENCODER
 template <typename BitChance, typename RAC, int bits> class CompoundSymbolCoder
 {
 private:
@@ -311,26 +313,23 @@ public:
         return reader<bits>(bitCoder, min, max);
     }
 
-#ifdef HAS_ENCODER
     void write_int(CompoundSymbolChances<BitChance, bits>& chancesIn, std::vector<bool> &selectIn, int min, int max, int val) {
         if (min == max) { assert(val==min); return; }
         CompoundSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, rac, chancesIn, selectIn);
         writer<bits>(bitCoder, min, max, val);
     }
-#endif
+
     int read_int(CompoundSymbolChances<BitChance, bits> &chancesIn, std::vector<bool> &selectIn, int nbits) {
         CompoundSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, rac, chancesIn, selectIn);
         return reader(bitCoder, nbits);
     }
 
-#ifdef HAS_ENCODER
     void write_int(CompoundSymbolChances<BitChance, bits>& chancesIn, std::vector<bool> &selectIn, int nbits, int val) {
         CompoundSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, rac, chancesIn, selectIn);
         writer(bitCoder, nbits, val);
     }
-#endif
 };
-
+#endif
 
 
 template <typename BitChance, typename RAC, int bits> class FinalPropertySymbolCoder
@@ -430,6 +429,7 @@ public:
 
 
 
+#ifdef HAS_ENCODER
 template <typename BitChance, typename RAC, int bits> class PropertySymbolCoder
 {
 public:
@@ -539,7 +539,6 @@ public:
         return coder.read_int(chances2, selection, min, max);
     }
 
-#ifdef HAS_ENCODER
     void write_int(Properties &properties, int min, int max, int val) {
 #ifdef STATS
         symbols++;
@@ -549,7 +548,6 @@ public:
         CompoundSymbolChances<BitChance,bits> &chances2 = find_leaf(properties);
         coder.write_int(chances2, selection, min, max, val);
     }
-#endif
 
     int read_int(Properties &properties, int nbits) {
 #ifdef STATS
@@ -561,7 +559,6 @@ public:
         return coder.read_int(chances2, selection, nbits);
     }
 
-#ifdef HAS_ENCODER
     void write_int(Properties &properties, int nbits, int val) {
 #ifdef STATS
         symbols++;
@@ -571,7 +568,6 @@ public:
         CompoundSymbolChances<BitChance,bits> &chances2 = find_leaf(properties);
         coder.write_int(chances2, selection, nbits, val);
     }
-#endif
 
 #ifdef STATS
     void info(int n) const {
@@ -611,7 +607,7 @@ public:
     }
 
 };
-
+#endif
 
 
 template <typename BitChance, typename RAC> class MetaPropertySymbolCoder
