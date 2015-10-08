@@ -39,7 +39,7 @@ protected:
 //        for (unsigned int i=0; i<nb; i+=1) {e.push_back(coder.read_int(b[i],cols));}
     }
 
-#if 0
+#if HAS_ENCODER
     void save(const ColorRanges *, RacOut<IO> &rac) const {
         SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> coder(rac);
         assert(nb == b.size());

@@ -36,7 +36,7 @@ public:
 
 class Tree : public std::vector<PropertyDecisionNode>
 {
-#ifdef STAT
+#ifdef STATS
 protected:
     void print_subtree(FILE* file, int pos, int indent) const {
         const PropertyDecisionNode &n = (*this)[pos];
