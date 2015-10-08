@@ -392,19 +392,22 @@ bool flif_decode(IO& io, Images &images, int quality, int scale)
         }
     }
     int bits = 10;
+#ifdef SUPPORT_HDR
     if (mbits >10) bits=18;
-    if (mbits > bits) { printf("OOPS: %i > %i\n",mbits,bits); return false;}
+#endif
+    if (mbits > bits) { e_printf("This FLIF cannot decode >8 bit per channel files. Please compile with SUPPORT_HDR.\n"); return false;}
 
 
     std::vector<Tree> forest(ranges->numPlanes(), Tree());
-
     int roughZL = 0;
-    if (encoding == 2) {
+     if (encoding == 2) {
       roughZL = images[0].zooms() - NB_NOLEARN_ZOOMS-1;
       if (roughZL < 0) roughZL = 0;
 //      v_printf(2,"Decoding rough data\n");
       if (bits==10) flif_decode_FLIF2_pass<RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, 10> >(rac, images, ranges, forest, images[0].zooms(), roughZL+1, 100, scale);
+#ifdef SUPPORT_HDR
       else flif_decode_FLIF2_pass<RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, 18> >(rac, images, ranges, forest, images[0].zooms(), roughZL+1, 100, scale);
+#endif
     }
     if (encoding == 2 && quality <= 0) {
       v_printf(3,"Not decoding MANIAC tree\n");
@@ -416,11 +419,15 @@ bool flif_decode(IO& io, Images &images, int quality, int scale)
       switch(encoding) {
         case 1: v_printf(3,"Decoding data (scanlines)\n");
                 if (bits==10) flif_decode_scanlines_pass<RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, 10> >(rac, images, ranges, forest);
+#ifdef SUPPORT_HDR
                 else flif_decode_scanlines_pass<RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, 18> >(rac, images, ranges, forest);
+#endif
                 break;
-        case 2: v_printf(3,"Decoding data (FLIF2)\n");
+        case 2: v_printf(3,"Decoding data (interlaced)\n");
                 if (bits==10) flif_decode_FLIF2_pass<RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, 10> >(rac, images, ranges, forest, roughZL, 0, quality, scale);
+#ifdef SUPPORT_HDR
                 else flif_decode_FLIF2_pass<RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, 18> >(rac, images, ranges, forest, roughZL, 0, quality, scale);
+#endif
                 break;
       }
 //    }

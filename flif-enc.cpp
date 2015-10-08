@@ -350,8 +350,10 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
         }
     }
     int bits = 10; // hardcoding things for 8 bit RGB (which means 9 bit IQ and 10 bit differences)
+#ifdef SUPPORT_HDR
     if (mbits >10) bits=18;
-    if (mbits > bits) { printf("OOPS: %i > %i\n",mbits,bits); return false;}
+#endif
+    if (mbits > bits) { e_printf("OOPS: this FLIF only supports 8-bit RGBA (not compiled with SUPPORT_HDR)\n"); return false;}
 
     pixels_todo = image.rows()*image.cols()*ranges->numPlanes()*(learn_repeats+1);
 
@@ -377,7 +379,9 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
       if (roughZL < 0) roughZL = 0;
       //v_printf(2,"Encoding rough data\n");
       if (bits==10) flif_encode_FLIF2_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, 10> >(rac, images, ranges, forest, image.zooms(), roughZL+1, 1);
+#ifdef SUPPORT_HDR
       else flif_encode_FLIF2_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, 18> >(rac, images, ranges, forest, image.zooms(), roughZL+1, 1);
+#endif
     }
 
     //v_printf(2,"Encoding data (pass 1)\n");
@@ -385,11 +389,15 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     switch(encoding) {
         case flifEncoding::nonInterlaced:
            if (bits==10) flif_encode_scanlines_pass<RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, 10> >(dummy, images, ranges, forest, learn_repeats);
+#ifdef SUPPORT_HDR
            else flif_encode_scanlines_pass<RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, 18> >(dummy, images, ranges, forest, learn_repeats);
+#endif
            break;
         case flifEncoding::interlaced:
            if (bits==10) flif_encode_FLIF2_pass<RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, 10> >(dummy, images, ranges, forest, roughZL, 0, learn_repeats);
+#ifdef SUPPORT_HDR
            else flif_encode_FLIF2_pass<RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, 18> >(dummy, images, ranges, forest, roughZL, 0, learn_repeats);
+#endif
            break;
     }
     v_printf(3,"\rHeader: %li bytes.", fs);
@@ -404,11 +412,15 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     switch(encoding) {
         case flifEncoding::nonInterlaced:
            if (bits==10) flif_encode_scanlines_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, 10> >(rac, images, ranges, forest, 1);
+#ifdef SUPPORT_HDR
            else flif_encode_scanlines_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, 18> >(rac, images, ranges, forest, 1);
+#endif
            break;
         case flifEncoding::interlaced:
            if (bits==10) flif_encode_FLIF2_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, 10> >(rac, images, ranges, forest, roughZL, 0, 1);
+#ifdef SUPPORT_HDR
            else flif_encode_FLIF2_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, 18> >(rac, images, ranges, forest, roughZL, 0, 1);
+#endif
            break;
     }
     if (numFrames==1)
