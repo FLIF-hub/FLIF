@@ -9,8 +9,14 @@
 #include <stdio.h>
 #endif
 
-extern const uint16_t log4k[4097];
-extern const int log4k_scale;
+struct Log4kTable {
+    uint16_t data[4097];
+    int scale;
+
+    Log4kTable();
+};
+
+extern const Log4kTable log4k;
 
 class StaticBitChanceTable
 {
@@ -41,11 +47,11 @@ public:
     void inline put(bool, const Table &) {}
 
     void estim(bool bit, uint64_t &total) const {
-        total += log4k[bit ? chance : 4096-chance];
+        total += log4k.data[bit ? chance : 4096-chance];
     }
 
     int scale() const {
-        return log4k_scale;
+        return log4k.scale;
     }
 };
 
@@ -88,11 +94,11 @@ public:
     }
 
     void estim(bool bit, uint64_t &total) const {
-        total += log4k[bit ? chance : 4096-chance];
+        total += log4k.data[bit ? chance : 4096-chance];
     }
 
     int scale() const {
-        return log4k_scale;
+        return log4k.scale;
     }
 
 #ifdef STATS
