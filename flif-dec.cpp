@@ -277,13 +277,13 @@ template <typename IO>
 bool flif_decode(IO& io, Images &images, int quality, int scale)
 {
     if (scale != 1 && scale != 2 && scale != 4 && scale != 8 && scale != 16 && scale != 32 && scale != 64 && scale != 128) {
-                e_printf("Invalid scale down factor: %i\n", scale);
-                return false;
+        e_printf("Invalid scale down factor: %i\n", scale);
+        return false;
     }
 
     char buff[5];
     if (!io.gets(buff,5)) { e_printf("Could not read header from file: %s\n",io.getName()); return false; }
-    if (strcmp(buff,"FLIF")) { e_printf("Not a FLIF file: %s\n",io.getName()); return false; }
+    if (strcmp(buff,"FLIF") != 0) { e_printf("Not a FLIF file: %s\n",io.getName()); return false; }
     int c = io.getc()-' ';
     int numFrames=1;
     if (c > 47) {
@@ -331,8 +331,8 @@ bool flif_decode(IO& io, Images &images, int quality, int scale)
     }
 
     for (int i=0; i<numFrames; i++) {
-      images.push_back(Image());
-      images[i].init(width,height,0,maxmax,numPlanes);
+        images.push_back(Image());
+        images[i].init(width,height,0,maxmax,numPlanes);
     }
     std::vector<const ColorRanges*> rangesList;
     std::vector<Transform<IO>*> transforms;
