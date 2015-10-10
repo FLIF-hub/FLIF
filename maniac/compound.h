@@ -1,5 +1,4 @@
-#ifndef _RAC_COMPOUND_H_
-#define _RAC_COMPOUND_H_ 1
+#pragma once
 
 #include <vector>
 #include <math.h>
@@ -37,6 +36,7 @@ public:
 
 class Tree : public std::vector<PropertyDecisionNode>
 {
+#ifdef STATS
 protected:
     void print_subtree(FILE* file, int pos, int indent) const {
         const PropertyDecisionNode &n = (*this)[pos];
@@ -54,7 +54,9 @@ public:
         print_subtree(file, 0, 0);
     }
 
+#endif
 
+public:
     Tree() : std::vector<PropertyDecisionNode>(1, PropertyDecisionNode()) {}
 };
 
@@ -104,6 +106,7 @@ public:
 #endif
 };
 
+#ifdef HAS_ENCODER
 // leaf nodes during tree construction phase
 template <typename BitChance, int bits> class CompoundSymbolChances : public FinalCompoundSymbolChances<BitChance, bits>
 {
@@ -134,7 +137,7 @@ public:
     { }
 
 };
-
+#endif
 
 
 template <typename BitChance, typename RAC, int bits> class FinalCompoundSymbolBitCoder
@@ -162,14 +165,17 @@ public:
         return bit;
     }
 
+#ifdef HAS_ENCODER
     void inline write(const bool bit, const SymbolChanceBitType type, const int i = 0) {
         BitChance& ch = chances.realChances.bit(type, i);
         rac.write(ch.get(), bit);
         updateChances(type, i, bit);
     }
+#endif
 };
 
 
+#ifdef HAS_ENCODER
 template <typename BitChance, typename RAC, int bits> class CompoundSymbolBitCoder
 {
 public:
@@ -225,7 +231,7 @@ public:
         BitChance& ch = bestChance(type, i);
         bool bit = rac.read(ch.get());
         updateChances(type, i, bit);
-//    fprintf(stderr,"bit %s%i = %s\n", SymbolChanceBitName[type], i, bit ? "true" : "false");
+//    e_printf("bit %s%i = %s\n", SymbolChanceBitName[type], i, bit ? "true" : "false");
         return bit;
     }
 
@@ -233,10 +239,10 @@ public:
         BitChance& ch = bestChance(type, i);
         rac.write(ch.get(), bit);
         updateChances(type, i, bit);
-//    fprintf(stderr,"bit %s%i = %s\n", SymbolChanceBitName[type], i, bit ? "true" : "false");
+//    e_printf("bit %s%i = %s\n", SymbolChanceBitName[type], i, bit ? "true" : "false");
     }
 };
-
+#endif
 
 template <typename BitChance, typename RAC, int bits> class FinalCompoundSymbolCoder
 {
@@ -256,6 +262,7 @@ public:
         return val;
     }
 
+#ifdef HAS_ENCODER
     void write_int(FinalCompoundSymbolChances<BitChance, bits>& chancesIn, int min, int max, int val) {
 #ifdef STATS
         chancesIn.sum += (double)val;
@@ -266,12 +273,15 @@ public:
 //        printf("%i in %i..%i\n",val, min, max);
         writer<bits>(bitCoder, min, max, val);
     }
+#endif
+
     int read_int(FinalCompoundSymbolChances<BitChance, bits> &chancesIn, int nbits) {
         FinalCompoundSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, rac, chancesIn);
         int val = reader(bitCoder, nbits);
         return val;
     }
 
+#ifdef HAS_ENCODER
     void write_int(FinalCompoundSymbolChances<BitChance, bits>& chancesIn, int nbits, int val) {
 #ifdef STATS
         chancesIn.sum += (double)val;
@@ -281,8 +291,11 @@ public:
         FinalCompoundSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, rac, chancesIn);
         writer(bitCoder, nbits, val);
     }
+#endif
 };
 
+
+#ifdef HAS_ENCODER
 template <typename BitChance, typename RAC, int bits> class CompoundSymbolCoder
 {
 private:
@@ -305,6 +318,7 @@ public:
         CompoundSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, rac, chancesIn, selectIn);
         writer<bits>(bitCoder, min, max, val);
     }
+
     int read_int(CompoundSymbolChances<BitChance, bits> &chancesIn, std::vector<bool> &selectIn, int nbits) {
         CompoundSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, rac, chancesIn, selectIn);
         return reader(bitCoder, nbits);
@@ -315,7 +329,7 @@ public:
         writer(bitCoder, nbits, val);
     }
 };
-
+#endif
 
 
 template <typename BitChance, typename RAC, int bits> class FinalPropertySymbolCoder
@@ -378,29 +392,34 @@ public:
         return coder.read_int(chances, min, max);
     }
 
+#ifdef HAS_ENCODER
     void write_int(Properties &properties, int min, int max, int val) {
         if (min == max) { assert(val==min); return; }
         assert(properties.size() == range.size());
         FinalCompoundSymbolChances<BitChance,bits> &chances = find_leaf(properties);
         coder.write_int(chances, min, max, val);
     }
+#endif
+
     int read_int(Properties &properties, int nbits) {
         assert(properties.size() == range.size());
         FinalCompoundSymbolChances<BitChance,bits> &chances = find_leaf(properties);
         return coder.read_int(chances, nbits);
     }
 
+#ifdef HAS_ENCODER
     void write_int(Properties &properties, int nbits, int val) {
         assert(properties.size() == range.size());
         FinalCompoundSymbolChances<BitChance,bits> &chances = find_leaf(properties);
         coder.write_int(chances, nbits, val);
     }
+#endif
 
 #ifdef STATS
     void info(int n) const {
         indent(n); printf("Tree:\n");
         for (unsigned int i=0; i<leaf_node.size(); i++) {
-            indent(n); printf("Leaf %i\n", i);
+            indent(n); printf("Leaf %u\n", i);
             leaf_node[i].info(n+1);
         }
     }
@@ -410,6 +429,7 @@ public:
 
 
 
+#ifdef HAS_ENCODER
 template <typename BitChance, typename RAC, int bits> class PropertySymbolCoder
 {
 public:
@@ -430,7 +450,7 @@ private:
         uint32_t pos = 0;
         Ranges current_ranges = range;
         while(inner_node[pos].property != -1) {
-//        fprintf(stderr,"Checking property %i (val=%i, splitval=%i)\n",inner_node[pos].property,properties[inner_node[pos].property],inner_node[pos].splitval);
+//        e_printf("Checking property %i (val=%i, splitval=%i)\n",inner_node[pos].property,properties[inner_node[pos].property],inner_node[pos].splitval);
             if (properties[inner_node[pos].property] > inner_node[pos].splitval) {
                 current_ranges[inner_node[pos].property].first = inner_node[pos].splitval + 1;
                 pos = inner_node[pos].childID;
@@ -528,6 +548,7 @@ public:
         CompoundSymbolChances<BitChance,bits> &chances2 = find_leaf(properties);
         coder.write_int(chances2, selection, min, max, val);
     }
+
     int read_int(Properties &properties, int nbits) {
 #ifdef STATS
         symbols++;
@@ -569,7 +590,7 @@ public:
             subtree_size += simplify_subtree(n.childID+1);
             n.count /= CONTEXT_TREE_COUNT_DIV;
             if (n.count > CONTEXT_TREE_MAX_COUNT) {
-//               fprintf(stderr, "Unexpected high count in context tree.\n");
+//               e_printf( "Unexpected high count in context tree.\n");
                n.count = CONTEXT_TREE_MAX_COUNT;
             }
             if (n.count < CONTEXT_TREE_MIN_COUNT) n.count=CONTEXT_TREE_MIN_COUNT;
@@ -586,7 +607,7 @@ public:
     }
 
 };
-
+#endif
 
 
 template <typename BitChance, typename RAC> class MetaPropertySymbolCoder
@@ -608,6 +629,8 @@ public:
            assert(range[i].first <= range[i].second);
         }
     }
+
+#ifdef HAS_ENCODER
     void write_subtree(int pos, Ranges &subrange, const Tree &tree) {
         const PropertyDecisionNode &n = tree[pos];
         int p = n.property;
@@ -619,7 +642,7 @@ public:
             int oldmax = subrange[p].second;
             assert(oldmin < oldmax);
             coder.write_int(oldmin, oldmax-1, n.splitval);
-//            fprintf(stderr, "Pos %i: prop %i splitval %i in [%i..%i]\n", pos, n.property, n.splitval, oldmin, oldmax-1);
+//            e_printf( "Pos %i: prop %i splitval %i in [%i..%i]\n", pos, n.property, n.splitval, oldmin, oldmax-1);
             // > splitval
             subrange[p].first = n.splitval+1;
             write_subtree(n.childID, subrange, tree);
@@ -637,6 +660,8 @@ public:
           Ranges rootrange(range);
           write_subtree(0, rootrange, tree);
     }
+#endif
+
     int read_subtree(int pos, Ranges &subrange, Tree &tree) {
         PropertyDecisionNode &n = tree[pos];
         int p = n.property = coder.read_int(0,nb_properties)-1;
@@ -645,14 +670,14 @@ public:
             int oldmin = subrange[p].first;
             int oldmax = subrange[p].second;
             if (oldmin >= oldmax) {
-              fprintf(stderr, "Invalid tree. Aborting tree decoding.\n");
+              e_printf( "Invalid tree. Aborting tree decoding.\n");
               return -1;
             }
             n.count = coder.read_int(CONTEXT_TREE_MIN_COUNT, CONTEXT_TREE_MAX_COUNT); // * CONTEXT_TREE_COUNT_QUANTIZATION;
             assert(oldmin < oldmax);
             int splitval = n.splitval = coder.read_int(oldmin, oldmax-1);
             int childID = n.childID = tree.size();
-//            fprintf(stderr, "Pos %i: prop %i splitval %i in [%i..%i]\n", pos, n.property, splitval, oldmin, oldmax-1);
+//            e_printf( "Pos %i: prop %i splitval %i in [%i..%i]\n", pos, n.property, splitval, oldmin, oldmax-1);
             tree.push_back(PropertyDecisionNode());
             tree.push_back(PropertyDecisionNode());
             // > splitval
@@ -675,5 +700,3 @@ public:
           read_subtree(0, rootrange, tree);
     }
 };
-
-#endif

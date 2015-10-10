@@ -1,5 +1,4 @@
-#ifndef _FRAMECOMBINE_H_
-#define _FRAMECOMBINE_H_ 1
+#pragma once
 
 #include <vector>
 
@@ -24,7 +23,8 @@ public:
     }
 };
 
-class TransformFrameCombine : public Transform {
+template <typename IO>
+class TransformFrameCombine : public Transform<IO> {
 protected:
     bool was_flat;
     int max_lookback;
@@ -41,19 +41,22 @@ protected:
         return new ColorRangesFC(lookback, (srcRanges->numPlanes() == 4 ? srcRanges->max(3) : 1), srcRanges);
     }
 
-    void load(const ColorRanges *srcRanges, RacIn &rac) {
-        SimpleSymbolCoder<SimpleBitChance, RacIn, 24> coder(rac);
+    void load(const ColorRanges *, RacIn<IO> &rac) {
+        SimpleSymbolCoder<SimpleBitChance, RacIn<IO>, 24> coder(rac);
         max_lookback = coder.read_int(1, 256);
         v_printf(5,"[%i]",max_lookback);
     }
 
-    void save(const ColorRanges *srcRanges, RacOut &rac) const {
-        SimpleSymbolCoder<SimpleBitChance, RacOut, 24> coder(rac);
+#ifdef HAS_ENCODER
+    void save(const ColorRanges *, RacOut<IO> &rac) const {
+        SimpleSymbolCoder<SimpleBitChance, RacOut<IO>, 24> coder(rac);
         coder.write_int(1,256,max_lookback);
     }
+#endif
 
 // a heuristic to figure out if this is going to help (it won't help if we introduce more entropy than what is eliminated)
     bool process(const ColorRanges *srcRanges, const Images &images) {
+        if (images.size() < 2) return false;
         int nump=images[0].numPlanes();
         int pixel_cost = 1;
         for (int p=0; p<nump; p++) pixel_cost *= (1 + srcRanges->max(p) - srcRanges->min(p));
@@ -139,5 +142,3 @@ protected:
         if (was_flat) for (Image& image : images) image.drop_alpha();
     }
 };
-
-#endif

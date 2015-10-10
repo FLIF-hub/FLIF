@@ -1,7 +1,8 @@
-#ifndef _RAC_SYMBOL_H_
-#define _RAC_SYMBOL_H_ 1
+#pragma once
 
+#ifdef STATS
 #include <stdio.h>
+#endif
 
 #include <vector>
 #include <assert.h>
@@ -139,13 +140,15 @@ public:
     }
 
     void info_symbol(int n) const {
-        indent(n); printf("ZERO:   "); bitZero().info_bitchance();
-        indent(n); printf("SIGN:   "); bitSign().info_bitchance();
+        // TODO: move implementation to separate source file to have a chance to use
+        //       `using namespace util` without consequences
+        maniac::util::indent(n); printf("ZERO:   "); bitZero().info_bitchance();
+        maniac::util::indent(n); printf("SIGN:   "); bitSign().info_bitchance();
         for (int i=0; i<bits-1; i++) {
-            indent(n); printf("EXP % 2i: ", i); bitExp(i).info_bitchance();
+            maniac::util::indent(n); printf("EXP % 2i: ", i); bitExp(i).info_bitchance();
         }
         for (int i=0; i<bits; i++) {
-            indent(n); printf("MNT % 2i: ", i); bitMant(i).info_bitchance();
+            maniac::util::indent(n); printf("MNT % 2i: ", i); bitMant(i).info_bitchance();
         }
     }
 #endif
@@ -191,8 +194,8 @@ template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min
     int amin = (sign? min : -max);
     int amax = (sign? max : -min);
 
-    int emax = (bits <= 10 ? log2_tab[amax] : ilog2(amax));
-    int i = (bits <= 10 ? log2_tab[amin] : ilog2(amin));
+    int emax = maniac::util::ilog2(amax);
+    int i = maniac::util::ilog2(amin);
 
     for (; i < emax; i++) {
         // if exponent >i is impossible, we are done
@@ -226,6 +229,7 @@ template <typename SymbolCoder> int reader_p(SymbolCoder& coder, int min, int ma
 }
 */
 
+#ifdef HAS_ENCODER
 template <typename SymbolCoder> void writer(SymbolCoder& coder, int bits, int value)
 {
   int pos=0;
@@ -259,12 +263,13 @@ template <int bits, typename SymbolCoder> void writer(SymbolCoder& coder, int mi
     if (sign && min <= 0) min = 1;
     if (!sign && max >= 0) max = -1;
     const int a = abs(value);
-    const int e = ilog2(a);
+    const int e = maniac::util::ilog2(a);
     int amin = sign ? abs(min) : abs(max);
     int amax = sign ? abs(max) : abs(min);
 
-    int emax = (bits <= 10 ? log2_tab[amax] : ilog2(amax));
-    int i = (bits <= 10 ? log2_tab[amin] : ilog2(amin));
+    int emax = maniac::util::ilog2(amax);
+    int i = maniac::util::ilog2(amin);
+
     while (i < emax) {
         // if exponent >i is impossible, we are done
         if ((1 << (i+1)) > amax) break;
@@ -273,7 +278,7 @@ template <int bits, typename SymbolCoder> void writer(SymbolCoder& coder, int mi
         if (i==e) break;
         i++;
     }
-//  fprintf(stderr,"exp=%i\n",e);
+//  e_printf("exp=%i\n",e);
     int have = (1 << e);
     int left = have-1;
     for (int pos = e; pos>0;) {
@@ -292,6 +297,7 @@ template <int bits, typename SymbolCoder> void writer(SymbolCoder& coder, int mi
         have |= (bit << pos);
     }
 }
+#endif
 
 template <typename BitChance, typename RAC> class SimpleBitCoder
 {
@@ -337,14 +343,14 @@ public:
         BitChance& bch = ctx.bit(typ,i);
         rac.write(bch.get(), bit);
         bch.put(bit, table);
-//    fprintf(stderr,"bit %s%i = %s\n", SymbolChanceBitName[typ], i, bit ? "true" : "false");
+//    e_printf("bit %s%i = %s\n", SymbolChanceBitName[typ], i, bit ? "true" : "false");
     }
 
     bool read(SymbolChanceBitType typ, int i = 0) {
         BitChance& bch = ctx.bit(typ,i);
         bool bit = rac.read(bch.get());
         bch.put(bit, table);
-//    fprintf(stderr,"bit %s%i = %s\n", SymbolChanceBitName[typ], i, bit ? "true" : "false");
+//    e_printf("bit %s%i = %s\n", SymbolChanceBitName[typ], i, bit ? "true" : "false");
         return bit;
     }
 };
@@ -368,13 +374,16 @@ public:
 #endif
     }
 
+#ifdef HAS_ENCODER
     void write_int(int min, int max, int value) {
         SimpleSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, ctx, rac);
         writer<bits, SimpleSymbolBitCoder<BitChance, RAC, bits> >(bitCoder, min, max, value);
+
 #ifdef STATS
         symbols++;
 #endif
     }
+#endif
 
     int read_int(int min, int max) {
         SimpleSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, ctx, rac);
@@ -384,6 +393,7 @@ public:
         return reader<bits, SimpleSymbolBitCoder<BitChance, RAC, bits>>(bitCoder, min, max);
     }
 
+#ifdef HAS_ENCODER
     void write_int(int nbits, int value) {
         assert (nbits <= bits);
         SimpleSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, ctx, rac);
@@ -392,6 +402,7 @@ public:
         symbols++;
 #endif
     }
+#endif
 
     int read_int(int nbits) {
         assert (nbits <= bits);
@@ -404,10 +415,8 @@ public:
 
 #ifdef STATS
     void info(int n) const {
-        indent(n); printf("Total integers: %llu\n", (unsigned long long)symbols);
+        maniac::util::indent(n); printf("Total integers: %llu\n", (unsigned long long)symbols);
         ctx.info(n);
     }
 #endif
 };
-
-#endif

@@ -1,12 +1,13 @@
-#ifndef _IMAGE_H_
-#define _IMAGE_H_ 1
+#pragma once
 
 #include <vector>
 #include <assert.h>
-#include <stdio.h>
 #include <stdint.h>
 #include <valarray>
+#include <memory>
 #include "crc32k.h"
+
+#include "../io.h"
 
 typedef int32_t ColorVal;  // used in computations
 
@@ -14,6 +15,14 @@ typedef int16_t ColorVal_intern_8;   // used in representations
 typedef int32_t ColorVal_intern_16;  // making them signed and a large enough for big palettes and negative alpha values for frame combination
 typedef int32_t ColorVal_intern_32;
 
+// It's a part of C++14. Following impl was taken from GotW#102
+// (http://herbsutter.com/gotw/_102/).
+// It should go into some common header one day.
+template <typename T, typename... Args>
+std::unique_ptr<T> make_unique(Args &&... args)
+{
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
 
 template <typename pixel_t> class Plane {
 protected:
@@ -33,17 +42,26 @@ public:
 };
 
 class Image {
-protected:
-    Plane<ColorVal_intern_8> *plane_8_1;
-    Plane<ColorVal_intern_8> *plane_8_2;
-    Plane<ColorVal_intern_16> *plane_16_1;
-    Plane<ColorVal_intern_16> *plane_16_2;
-    Plane<ColorVal_intern_32> *plane_32_1;
-    Plane<ColorVal_intern_32> *plane_32_2;
+    Image(const Image& other) = delete;
+    Image& operator=(const Image& other) = delete;
+
+    template <typename CV>
+    using PlanePtr = std::unique_ptr<Plane<CV>>;
+
+    PlanePtr<ColorVal_intern_8> plane_8_1;
+    PlanePtr<ColorVal_intern_8> plane_8_2;
+    PlanePtr<ColorVal_intern_16> plane_16_1;
+    PlanePtr<ColorVal_intern_16> plane_16_2;
+    PlanePtr<ColorVal_intern_32> plane_32_1;
+    PlanePtr<ColorVal_intern_32> plane_32_2;
     uint32_t width, height;
     ColorVal minval,maxval;
     int num;
+#ifdef SUPPORT_HDR
     int depth;
+#else
+    const int depth=8;
+#endif
 
 public:
     bool palette;
@@ -55,7 +73,55 @@ public:
     }
 
     Image() {
+      width = height = 0;
+      minval = maxval = 0;
+      num = 0;
+#ifdef SUPPORT_HDR
+      depth = 0;
+#endif
+      palette = false;
+      seen_before = 0;
     }
+
+    // move constructor
+    Image(Image&& other) {
+      // reuse implementation from assignment operator
+      operator=(std::move(other));
+    }
+    Image& operator=(Image&& other) {
+      plane_8_1 = std::move(other.plane_8_1);
+      plane_8_2 = std::move(other.plane_8_2);
+      plane_16_1 = std::move(other.plane_16_1);
+      plane_16_2 = std::move(other.plane_16_2);
+#ifdef SUPPORT_HDR
+      plane_32_1 = std::move(other.plane_32_1);
+      plane_32_2 = std::move(other.plane_32_2);
+#endif
+
+      width = other.width;
+      height = other.height;
+      minval = other.minval;
+      maxval = other.maxval;
+      num = other.num;
+#ifdef SUPPORT_HDR
+      depth = other.depth;
+      other.depth = 0;
+#endif
+
+      other.width = other.height = 0;
+      other.minval = other.maxval = 0;
+      other.num = 0;
+
+      palette = other.palette;
+      col_begin = std::move(other.col_begin);
+      col_end = std::move(other.col_end);
+      seen_before = other.seen_before;
+
+      other.palette = false;
+      other.seen_before = 0;
+      return *this;
+    }
+
     void init(uint32_t w, uint32_t h, ColorVal min, ColorVal max, int p) {
       width = w;
       height = h;
@@ -67,34 +133,41 @@ public:
       col_end.resize(height,width);
       num = p;
       seen_before = -1;
+#ifdef SUPPORT_HDR
       if (max < 256) depth=8; else depth=16;
+#else
+      assert(max<256);
+#endif
+
       palette=false;
       assert(min == 0);
       assert(max < (1<<depth));
       assert(p <= 4);
-      plane_8_1 = plane_8_2 = NULL;
-      plane_16_1 = plane_16_2 = NULL;
-      plane_32_1 = plane_32_2 = NULL;
+      clear();
       if (depth <= 8) {
-        if (p>0) plane_8_1 = new Plane<ColorVal_intern_8>(width, height); // R,Y
-        if (p>1) plane_16_1 = new Plane<ColorVal_intern_16>(width, height); // G,I
-        if (p>2) plane_16_2 = new Plane<ColorVal_intern_16>(width, height); // B,Q
-        if (p>3) plane_8_2 = new Plane<ColorVal_intern_8>(width, height); // A
+        if (p>0) plane_8_1 = make_unique<Plane<ColorVal_intern_8>>(width, height); // R,Y
+        if (p>1) plane_16_1 = make_unique<Plane<ColorVal_intern_16>>(width, height); // G,I
+        if (p>2) plane_16_2 = make_unique<Plane<ColorVal_intern_16>>(width, height); // B,Q
+        if (p>3) plane_8_2 = make_unique<Plane<ColorVal_intern_8>>(width, height); // A
+#ifdef SUPPORT_HDR
       } else {
-        if (p>0) plane_16_1 = new Plane<ColorVal_intern_16>(width, height); // R,Y
-        if (p>1) plane_32_1 = new Plane<ColorVal_intern_32>(width, height); // G,I
-        if (p>2) plane_32_2 = new Plane<ColorVal_intern_32>(width, height); // B,Q
-        if (p>3) plane_16_2 = new Plane<ColorVal_intern_16>(width, height); // A
+        if (p>0) plane_16_1 = make_unique<Plane<ColorVal_intern_16>>(width, height); // R,Y
+        if (p>1) plane_32_1 = make_unique<Plane<ColorVal_intern_32>>(width, height); // G,I
+        if (p>2) plane_32_2 = make_unique<Plane<ColorVal_intern_32>>(width, height); // B,Q
+        if (p>3) plane_16_2 = make_unique<Plane<ColorVal_intern_16>>(width, height); // A
+#endif
       }
     }
 
     void clear() {
-        delete plane_8_1;
-        delete plane_8_2;
-        delete plane_16_1;
-        delete plane_16_2;
-        delete plane_32_1;
-        delete plane_32_2;
+      plane_8_1.reset(nullptr);
+      plane_8_2.reset(nullptr);
+      plane_16_1.reset(nullptr);
+      plane_16_2.reset(nullptr);
+#ifdef SUPPORT_HDR
+      plane_32_1.reset(nullptr);
+      plane_32_2.reset(nullptr);
+#endif
     }
 
     void reset() {
@@ -112,11 +185,9 @@ public:
         if (num<4) return;
         assert(num==4);
         if (depth <= 8) {
-                if (plane_8_2) delete plane_8_2;
-                plane_8_2 = NULL;
+                plane_8_2.reset(nullptr);
         } else {
-                if (plane_16_2) delete plane_16_2;
-                plane_16_2 = NULL;
+                plane_16_2.reset(nullptr);
         }
         num=3;
     }
@@ -124,11 +195,13 @@ public:
         switch(num) {
             case 1:
               if (depth <= 8) {
-                plane_16_1 = new Plane<ColorVal_intern_16>(width, height); // G,I
-                plane_16_2 = new Plane<ColorVal_intern_16>(width, height); // B,Q
+                plane_16_1 = make_unique<Plane<ColorVal_intern_16>>(width, height); // G,I
+                plane_16_2 = make_unique<Plane<ColorVal_intern_16>>(width, height); // B,Q
+#ifdef SUPPORT_HDR
               } else {
-                plane_32_1 = new Plane<ColorVal_intern_32>(width, height); // G,I
-                plane_32_2 = new Plane<ColorVal_intern_32>(width, height); // B,Q
+                plane_32_1 = make_unique<Plane<ColorVal_intern_32>>(width, height); // G,I
+                plane_32_2 = make_unique<Plane<ColorVal_intern_32>>(width, height); // B,Q
+#endif
               }
               for (uint32_t r=0; r<height; r++) {
                for (uint32_t c=0; c<width; c++) {
@@ -140,9 +213,9 @@ public:
               }
             case 3:
               if (depth <= 8) {
-                plane_8_2 = new Plane<ColorVal_intern_8>(width, height); // A
+                plane_8_2 = make_unique<Plane<ColorVal_intern_8>>(width, height); // A
               } else {
-                plane_16_2 = new Plane<ColorVal_intern_16>(width, height); // A
+                plane_16_2 = make_unique<Plane<ColorVal_intern_16>>(width, height); // A
               }
               num=4;
               for (uint32_t r=0; r<height; r++) {
@@ -152,7 +225,7 @@ public:
               }
             case 4: // nothing to be done, we already have an alpha channel
               break;
-            default: fprintf(stderr,"OOPS: ensure_alpha() problem");
+            default: e_printf("OOPS: ensure_alpha() problem");
         }
     }
 
@@ -162,13 +235,16 @@ public:
 
     // access pixel by coordinate
     ColorVal operator()(const int p, const uint32_t r, const uint32_t c) const {
+#ifdef SUPPORT_HDR
       if (depth <= 8) {
+#endif
         switch(p) {
           case 0: return plane_8_1->get(r,c);
           case 1: return plane_16_1->get(r,c);
           case 2: return plane_16_2->get(r,c);
           default: return plane_8_2->get(r,c);
         }
+#ifdef SUPPORT_HDR
       } else {
         switch(p) {
           case 0: return plane_16_1->get(r,c);
@@ -177,15 +253,19 @@ public:
           default: return plane_16_2->get(r,c);
         }
       }
+#endif
     }
     void set(int p, uint32_t r, uint32_t c, ColorVal x) {
+#ifdef SUPPORT_HDR
       if (depth <= 8) {
+#endif
         switch(p) {
           case 0: return plane_8_1->set(r,c,x);
           case 1: return plane_16_1->set(r,c,x);
           case 2: return plane_16_2->set(r,c,x);
           default: return plane_8_2->set(r,c,x);
         }
+#ifdef SUPPORT_HDR
       } else {
         switch(p) {
           case 0: return plane_16_1->set(r,c,x);
@@ -194,17 +274,18 @@ public:
           default: return plane_16_2->set(r,c,x);
         }
       }
+#endif
     }
 
     int numPlanes() const {
         return num;
     }
 
-    ColorVal min(int p) const {
+    ColorVal min(int) const {
         return minval;
     }
 
-    ColorVal max(int p) const {
+    ColorVal max(int) const {
         return maxval;
     }
 
@@ -279,5 +360,3 @@ public:
 };
 
 typedef std::vector<Image>    Images;
-
-#endif

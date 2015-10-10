@@ -1,5 +1,4 @@
-#ifndef _YIQ_H_
-#define _YIQ_H_ 1
+#pragma once
 
 #include "../image/image.h"
 #include "../image/color_range.h"
@@ -8,7 +7,7 @@
 
 #define clip(x,l,u)   if (x < l) x=l; if (x > u) x=u
 
-ColorVal static inline get_min_y(int par) {
+ColorVal static inline get_min_y(int) {
     return 0;
 }
 
@@ -108,7 +107,8 @@ public:
 };
 
 
-class TransformYIQ : public Transform {
+template <typename IO>
+class TransformYIQ : public Transform<IO> {
 protected:
     int par;
 
@@ -121,7 +121,7 @@ public:
         return true;
     }
 
-    const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) {
+    const ColorRanges *meta(Images&, const ColorRanges *srcRanges) {
         return new ColorRangesYIQ(par, srcRanges);
     }
 
@@ -164,6 +164,3 @@ public:
         }
     }
 };
-
-
-#endif

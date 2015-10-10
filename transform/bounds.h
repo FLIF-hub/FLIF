@@ -1,5 +1,4 @@
-#ifndef _BOUNDS_H_
-#define _BOUNDS_H_ 1
+#pragma once
 
 #include <vector>
 
@@ -27,11 +26,12 @@ public:
 };
 
 
-class TransformBounds : public Transform {
+template <typename IO>
+class TransformBounds : public Transform<IO> {
 protected:
     std::vector<std::pair<ColorVal, ColorVal> > bounds;
 
-    const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) {
+    const ColorRanges *meta(Images&, const ColorRanges *srcRanges) {
         if (srcRanges->isStatic()) {
             return new StaticColorRanges(bounds);
         } else {
@@ -39,8 +39,8 @@ protected:
         }
     }
 
-    void load(const ColorRanges *srcRanges, RacIn &rac) {
-        SimpleSymbolCoder<SimpleBitChance, RacIn, 24> coder(rac);
+    void load(const ColorRanges *srcRanges, RacIn<IO> &rac) {
+        SimpleSymbolCoder<SimpleBitChance, RacIn<IO>, 24> coder(rac);
         bounds.clear();
         for (int p=0; p<srcRanges->numPlanes(); p++) {
 //            ColorVal min = coder.read_int(0, srcRanges->max(p) - srcRanges->min(p)) + srcRanges->min(p);
@@ -52,8 +52,9 @@ protected:
         }
     }
 
-    void save(const ColorRanges *srcRanges, RacOut &rac) const {
-        SimpleSymbolCoder<SimpleBitChance, RacOut, 24> coder(rac);
+#ifdef HAS_ENCODER
+    void save(const ColorRanges *srcRanges, RacOut<IO> &rac) const {
+        SimpleSymbolCoder<SimpleBitChance, RacOut<IO>, 24> coder(rac);
         for (int p=0; p<srcRanges->numPlanes(); p++) {
             ColorVal min = bounds[p].first;
             ColorVal max = bounds[p].second;
@@ -64,6 +65,7 @@ protected:
             v_printf(5,"[%i:%i..%i]",p,min,max);
         }
     }
+#endif
 
     bool process(const ColorRanges *srcRanges, const Images &images) {
         bounds.clear();
@@ -88,5 +90,3 @@ protected:
         return !trivialbounds;
     }
 };
-
-#endif

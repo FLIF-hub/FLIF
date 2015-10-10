@@ -1,6 +1,4 @@
-#ifndef __FLIF_DEC_H__
-#define __FLIF_DEC_H__
+#pragma once
 
-bool decode(const char* filename, Images &images, int quality, int scale);
-
-#endif
+template <typename IO>
+bool flif_decode(IO& io, Images &images, int quality = 100, int scale = 1);

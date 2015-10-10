@@ -1,10 +1,8 @@
-#ifndef _RAC_H_
-#define _RAC_H_ 1
+#pragma once
 
-#include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
-
+#include "../config.h"
 
 /* RAC configuration for 40-bit RAC */
 class RacConfig40
@@ -33,7 +31,7 @@ template <typename Config, typename IO> class RacInput
 public:
     typedef typename Config::data_t rac_t;
 protected:
-    IO io;
+    IO& io;
 private:
     rac_t range;
     rac_t low;
@@ -60,7 +58,7 @@ private:
         }
     }
 public:
-    RacInput(IO ioin) : io(ioin), range(Config::BASE_RANGE), low(0) {
+    RacInput(IO& ioin) : io(ioin), range(Config::BASE_RANGE), low(0) {
         rac_t r = Config::BASE_RANGE;
         while (r > 1) {
             low <<= 8;
@@ -84,19 +82,34 @@ public:
     bool inline read() {
         return get(range/2);
     }
+
+    bool isEOF() {
+      return io.isEOF();
+    }
+    int ftell() {
+      return io.ftell();
+    }
+    char getc() {
+      return io.getc();
+    }
+    char * gets(char *buf, int n) {
+      return io.gets(buf, n);
+    }
 };
 
-template <class Config, class IO> class RacOutput
+#ifdef HAS_ENCODER
+template <class Config, typename IO> class RacOutput
 {
 public:
     typedef typename Config::data_t rac_t;
 protected:
-    IO io;
+    IO& io;
 private:
     rac_t range;
     rac_t low;
     int delayed_byte;
     int delayed_count;
+
     void inline output() {
         while (range <= Config::MIN_RANGE) {
             int byte = low >> Config::MIN_RANGE_BITS;
@@ -135,7 +148,7 @@ private:
         output();
     }
 public:
-    RacOutput(IO ioin) : io(ioin), range(Config::BASE_RANGE), low(0), delayed_byte(-1), delayed_count(0) { }
+    RacOutput(IO& ioin) : io(ioin), range(Config::BASE_RANGE), low(0), delayed_byte(-1), delayed_count(0) { }
 
     void inline write(int num, int denom, bool bit) {
         assert(num>=0);
@@ -163,67 +176,59 @@ public:
         output();
         io.flush();
     }
+
+    int ftell() {
+      return io.ftell();
+    }
 };
+#endif
 
 
 class RacDummy
 {
 public:
-    void inline write(int num, int denom, bool bit) {
+    void inline write(int num, int denom, bool) {
         assert(num>=0);
         assert(num<denom);
         assert(denom>1);
     }
 
-    void inline write(uint16_t b16, bool bit) {
+    void inline write(uint16_t b16, bool) {
         assert(b16>0);
     }
 
-    void inline write(bool bit) { }
+    void inline write(bool) { }
     void inline flush() { }
-};
 
-
-class RacFileIO
-{
-private:
-    FILE *file;
-public:
-    RacFileIO(FILE* fil) : file(fil) { }
-    int read() {
-        int r = fgetc(file);
-        if (r < 0) return 0;
-        return r;
-    }
-    void write(int byte) {
-        fputc(byte, file);
-    }
-    void flush() {
+    int ftell() {
+      return 0;
     }
 };
 
-class RacInput40 : public RacInput<RacConfig40, RacFileIO>
+template <typename IO> class RacInput40 : public RacInput<RacConfig40, IO>
 {
 public:
-    RacInput40(FILE *file) : RacInput<RacConfig40, RacFileIO>(RacFileIO(file)) { }
+    RacInput40(IO& io) : RacInput<RacConfig40, IO>(io) { }
 };
 
-class RacOutput40 : public RacOutput<RacConfig40, RacFileIO>
+#ifdef HAS_ENCODER
+template <typename IO> class RacOutput40 : public RacOutput<RacConfig40, IO>
 {
 public:
-    RacOutput40(FILE *file) : RacOutput<RacConfig40, RacFileIO>(RacFileIO(file)) { }
+    RacOutput40(IO& io) : RacOutput<RacConfig40, IO>(io) { }
 };
+#endif
 
-class RacInput24 : public RacInput<RacConfig24, RacFileIO>
+template <typename IO> class RacInput24 : public RacInput<RacConfig24, IO>
 {
 public:
-    RacInput24(FILE *file) : RacInput<RacConfig24, RacFileIO>(RacFileIO(file)) { }
+    RacInput24(IO& io) : RacInput<RacConfig24, IO>(io) { }
 };
 
-class RacOutput24 : public RacOutput<RacConfig24, RacFileIO>
+#ifdef HAS_ENCODER
+template <typename IO> class RacOutput24 : public RacOutput<RacConfig24, IO>
 {
 public:
-    RacOutput24(FILE *file) : RacOutput<RacConfig24, RacFileIO>(RacFileIO(file)) { }
+    RacOutput24(IO& io) : RacOutput<RacConfig24, IO>(io) { }
 };
-
 #endif

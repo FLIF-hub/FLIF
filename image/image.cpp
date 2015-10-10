@@ -1,5 +1,4 @@
 #include <string.h>
-#include <stdio.h>
 
 #include "image.h"
 #include "image-png.h"
@@ -35,7 +34,7 @@ bool Image::load(const char *filename)
         return image_load_pam(filename,*this);
     }
     if (image_load_pnm(filename,*this) || !image_load_png(filename,*this)) return true;
-    fprintf(stderr,"ERROR: Unknown input file type to read from: %s\n",ext ? ext : "(none)");
+    e_printf("ERROR: Unknown input file type to read from: %s\n",ext ? ext : "(none)");
     return false;
 }
 
@@ -59,7 +58,7 @@ bool Image::save(const char *filename) const
     if (ext && !strcasecmp(ext,".pam")) {
         return image_save_pam(filename,*this);
     }
-    fprintf(stderr,"ERROR: Unknown extension to write to: %s\n",ext ? ext : "(none)");
+    e_printf("ERROR: Unknown extension to write to: %s\n",ext ? ext : "(none)");
     return false;
 }
 bool Image::save(const char *filename, const int scale) const

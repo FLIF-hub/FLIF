@@ -1,9 +1,7 @@
-#ifndef _TRANSFORM_FACTORY_H_
-#define _TRANSFORM_FACTORY_H_
+#pragma once
 
 #include "transform.h"
 #include <string>
 
-Transform *create_transform(std::string desc);
-
-#endif
+template <typename IO>
+Transform<IO> *create_transform(std::string desc);

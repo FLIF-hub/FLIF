@@ -1,10 +1,8 @@
-#ifndef  __COMMMON_H__
-#define __COMMMON_H__
+#pragma once
 
+#include <memory>
 #include <string>
 #include <string.h>
-#include <stdarg.h>
-#include <stdio.h>
 
 #include "maniac/rac.h"
 #include "maniac/compound.h"
@@ -14,7 +12,16 @@
 
 #include "flif_config.h"
 
-extern FILE *f;  // the compressed file
+#include "io.h"
+
+enum class Optional : uint8_t {
+  undefined = 0
+};
+
+enum class flifEncoding : uint8_t {
+  nonInterlaced = 1,
+  interlaced = 2
+};
 
 extern std::vector<ColorVal> grey; // a pixel with values in the middle of the bounds
 extern int64_t pixels_todo;
@@ -23,10 +30,6 @@ extern int64_t pixels_done;
 #define MAX_TRANSFORM 8
 
 extern const std::vector<std::string> transforms;
-
-void increase_verbosity();
-int get_verbosity();
-void v_printf(const int v, const char *format, ...);
 
 typedef SimpleBitChance                         FLIFBitChancePass1;
 
@@ -74,5 +77,3 @@ ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges
 int plane_zoomlevels(const Image &image, const int beginZL, const int endZL);
 
 std::pair<int, int> plane_zoomlevel(const Image &image, const int beginZL, const int endZL, int i);
-
-#endif // __COMMMON_H__
