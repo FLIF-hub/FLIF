@@ -160,7 +160,7 @@ bool handle_encode_arguments(int argc, char **argv, Images &images, int palette_
         v_printf(2,"\r");
         if (!image.load(argv[0])) {
             e_printf("Could not read input file: %s\n", argv[0]);
-            return 2;
+            return false;//2
         };
         images.push_back(std::move(image));
         const Image& last_image = images.back();
@@ -168,7 +168,7 @@ bool handle_encode_arguments(int argc, char **argv, Images &images, int palette_
             e_printf("Dimensions of all input images should be the same!\n");
             e_printf("  First image is %ux%u, %i channels.\n",images[0].cols(),images[0].rows(),images[0].numPlanes());
             e_printf("  This image is %ux%u, %i channels: %s\n",last_image.cols(),last_image.rows(),last_image.numPlanes(),argv[0]);
-            return 2;
+            return false;//2
         }
         argc--; argv++;
         if (nb_input_images>1) {v_printf(2,"    (%i/%i)         ",(int)images.size(),nb_input_images); v_printf(4,"\n");}

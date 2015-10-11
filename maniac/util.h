@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include "bit.h"
 
 namespace maniac {
 namespace util {
