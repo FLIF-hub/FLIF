@@ -12,6 +12,6 @@ flif.dbg: maniac/*.h maniac/*.cpp image/*.h image/*.cpp transform/*.h transform/
 
 test: flif
 	mkdir -p testFiles
-	./tools/test-roundtrip.sh benchmark/input/webp_gallery/2_webp_ll.png testFiles/2_webp_ll.flif testFiles/decoded_2_webp_ll.png
-	./tools/test-roundtrip.sh benchmark/input/kodak/kodim01.png testFiles/kodim01.flif testFiles/decoded_kodim01.png
+	./tools/test-roundtrip.sh tools/2_webp_ll.png testFiles/2_webp_ll.flif testFiles/decoded_2_webp_ll.png
+	./tools/test-roundtrip.sh tools/kodim01.png testFiles/kodim01.flif testFiles/decoded_kodim01.png
 
