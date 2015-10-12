@@ -467,4 +467,4 @@ bool flif_decode(IO& io, Images &images, int quality, int scale)
 
 
 template bool flif_decode(FileIO& io, Images &images, int quality, int scale);
-template bool flif_decode(FlifBlobIO& io, Images &images, int quality, int scale);
+template bool flif_decode(BlobIO& io, Images &images, int quality, int scale);

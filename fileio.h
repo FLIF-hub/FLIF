@@ -58,7 +58,7 @@ public:
 };
 
 
-class FlifBlobIO
+class BlobIO
 {
 private:
     FILE *file;
@@ -70,24 +70,25 @@ private:
 
     
     // prevent copy
-    FlifBlobIO(const FlifBlobIO&) {}
-    void operator=(const FlifBlobIO&) {}
+    BlobIO(const BlobIO&) {}
+    void operator=(const BlobIO&) {}
     // prevent move, for now
-    FlifBlobIO(FlifBlobIO&&) {}
-    void operator=(FlifBlobIO&&) {}
+    BlobIO(BlobIO&&) {}
+    void operator=(BlobIO&&) {}
 public:
-    FlifBlobIO(FILE* fil, const char *aname){
+    BlobIO(FILE* fil, const char *aname){
         readFlifFromFile(fil, aname);
+		closeFile();
     }
     
-    FlifBlobIO(FileIO *fio) {
+    BlobIO(FileIO *fio) {
         file = fio->getFileHandle();
         name = fio->getName();
         readFlifFromFile(file, name);
     }
     
-    FlifBlobIO() {}
-    ~FlifBlobIO() {
+    BlobIO() {}
+    ~BlobIO() {
         if (flifBlob == NULL) delete [] flifBlob;
     }
     
@@ -101,13 +102,16 @@ public:
         flifBlob = new char[fSize];
         
         ::fread(flifBlob, fSize, 1, file);
-        fclose(file);
-        file = NULL;
         memoryPos = 0;
         
         printf("read\n");
     }
-    
+	
+	void closeFile() {
+		fclose(file);
+		file = NULL;
+	}
+	
     void setFlifBlob(char* blobFlif, size_t size) {
         flifBlob = blobFlif;
         fSize = size;

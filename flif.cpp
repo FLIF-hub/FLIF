@@ -227,9 +227,8 @@ int handle_decode_arguments(char **argv, Images &images, int quality, int scale)
     if(!file)
         return 1;
     FileIO fio(file, argv[0]);
-    FlifBlobIO bio(&fio);
 
-    if (!flif_decode(bio, images, quality, scale)) return 3;
+    if (!flif_decode(fio, images, quality, scale)) return 3;
     if (scale>1)
         v_printf(3,"Downscaling output: %ux%u -> %ux%u\n",images[0].cols(),images[0].rows(),images[0].cols()/scale,images[0].rows()/scale);
     if (images.size() == 1) {
