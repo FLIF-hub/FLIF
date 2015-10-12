@@ -1,3 +1,0 @@
-
-The directory "input" contains subdirectories which each contain one test set of images in PNG format.
-Run the script ./do_benchmarks to run all benchmarks. Then run the script ./plot_benchmarks to plot the results.
