@@ -11,4 +11,16 @@ Moreover, FLIF supports a form of progressive interlacing (essentially a general
 
 For more information on FLIF, visit http://flif.info
 
-To build for OS X, install [homebrew](http://brew.sh) and install kegs named "pkg-config" and "libpng"
+* * *
+
+###Build Instructions
+
+**OS X**
+
+* install [homebrew](http://brew.sh)
+* install kegs named "pkg-config" and "libpng"
+
+**Ubuntu**
+
+* `sudo apt-get install libpng-dev`
+* `make`
