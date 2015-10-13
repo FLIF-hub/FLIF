@@ -283,7 +283,26 @@ bool flif_decode(IO& io, Images &images, int quality, int scale)
 
     char buff[5];
     if (!io.gets(buff,5)) { e_printf("Could not read header from file: %s\n",io.getName()); return false; }
-    if (strcmp(buff,"FLIF")) { e_printf("Not a FLIF file: %s\n",io.getName()); return false; }
+    if (!strcmp(buff,"!<ar")) {
+       // FLIF file in an archive, try to find find the main image
+       if (!io.gets(buff,5)) return false;
+       if (strcmp(buff,"ch>\n")) return false;
+       char ar_header[61];
+       while (true) {
+          if (!io.gets(ar_header,61)) { e_printf("Archive does not contain a FLIF image\n"); return false; }
+          if (!strncmp(ar_header,"__image.flif/",13)) {
+            if (!io.gets(buff,5)) { e_printf("Corrupt archive?\n"); return false; }
+            break;
+          }
+          else {
+            long skip = strtol(&ar_header[48],NULL,10);
+            if (skip < 0) return false;
+            if (skip & 1) skip++;
+            io.fseek(skip,SEEK_CUR);
+          }
+       }
+    }
+    if (strcmp(buff,"FLIF")) { e_printf("Not a FLIF file: %s (header: \"%s\")\n",io.getName(),buff); return false; }
     int c = io.getc()-' ';
     int numFrames=1;
     if (c > 47) {

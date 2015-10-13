@@ -106,16 +106,16 @@ bool file_is_flif(const char * filename){
         char buff[5];
         bool result=true;
         if (!fgets(buff,5,file)) result=false;
-        else if (strcmp(buff,"FLIF")) result=false;
+        else if (strcmp(buff,"FLIF") && strcmp(buff,"!<ar")) result=false;  // assuming that it might be a FLIF file if it looks like an ar
         fclose(file);
         return result;
 }
 
 void show_banner() {
     v_printf(3,"  _____  __  (__) _____");
-    v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1 [8 October 2015]");
+    v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1 [13 October 2015]");
     v_printf(3,"\n  (__  ||  |_|__||  __)    Free Lossless Image Format");
-    v_printf(3,"\n    (__||______) |__)      (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
+    v_printf(3,"\n    (__||______) |__)    ");v_printf(2,"  (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
     v_printf(3,"\n");
 }
 

@@ -48,6 +48,9 @@ public:
     int fputc(int c) {
       return ::fputc(c, file);
     }
+    void fseek(long offset, int where) {
+      ::fseek(file, offset,where);
+    }
     const char* getName() {
       return name;
     }
