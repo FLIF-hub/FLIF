@@ -300,10 +300,6 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
            metaCoder.write_int(0, 60000, frame_delay); // time in ms between frames
         }
     }
-//    metaCoder.write_int(1, 65536, image.cols());
-//    metaCoder.write_int(1, 65536, image.rows());
-//    v_printf(2,"Header: %li bytes.\n", ftell(f));
-
 //    v_printf(2,"Header: %li bytes.\n", ftell(f));
 
     std::vector<const ColorRanges*> rangesList;

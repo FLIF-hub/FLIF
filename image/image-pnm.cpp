@@ -51,6 +51,12 @@ bool image_load_pnm(const char *filename, Image& image)
         return false;
     }
     } else maxval=1;
+#ifndef SUPPORT_HDR
+    if (maxval > 0xff) {
+        e_printf("PNM file has more than 8 bit per channel, this FLIF cannot handle that.\n");
+        return false;
+    }
+#endif
     unsigned int nbplanes=(type==6?3:1);
     image.init(width, height, 0, maxval, nbplanes);
     if (type==4) {
