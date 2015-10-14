@@ -178,7 +178,14 @@ template<typename Rac, typename Coder> void flif_decode_FLIF2_inner(Rac &rac, st
                 if (nump>3 && p<3) { begin=0; end=image.cols(z); }
               }
               for (uint32_t c = begin; c < end; c++) {
-                     if (nump>3 && p<3 && image(3,z,r,c) <= 0) { if (image(3,z,r,c) == 0) image.set(p,z,r,c,predict(image,z,p,r,c)); else image.set(p,z,r,c,images[fr+image(3,z,r,c)](p,z,r,c)); continue;}
+                     if (nump>3 && p<3 && image(3,z,r,c) <= 0) {
+                       if (image(3,z,r,c) == 0) {
+                         image.set(p,z,r,c,predict(image,z,p,r,c));
+                       } else {
+                         image.set(p,z,r,c,images[fr+image(3,z,r,c)](p,z,r,c));
+                       }
+                       continue;
+                     }
                      ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
                      if (p==3 && min < -fr) min = -fr;
                      curr = coders[p]->read_int(properties, min - guess, max - guess) + guess;
@@ -309,7 +316,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale)
         c -= 32;
         numFrames = io.getc();
     }
-    int encoding=c/16;
+    const int encoding=c/16;
     if (scale != 1 && encoding==1) { v_printf(1,"Cannot decode non-interlaced FLIF file at lower scale! Ignoring scale...\n");}
     if (quality < 100 && encoding==1) { v_printf(1,"Cannot decode non-interlaced FLIF file at lower quality! Ignoring quality...\n");}
     int numPlanes=c%16;
@@ -370,7 +377,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale)
             return false;
         }
         if (tcount++ > 0) v_printf(4,", ");
-        v_printf(4,"%s", desc.c_str());
+        v_printf(4,"%s  ", desc.c_str());
         if (desc == "FRS") {
                 int unique_frames=images.size()-1; // not considering first frame
                 for (Image& i : images) if (i.seen_before >= 0) unique_frames--;
