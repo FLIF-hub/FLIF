@@ -28,7 +28,7 @@ template<typename RAC> void static write_name(RAC& rac, std::string desc)
 }
 
 
-template<typename Rac, typename Coder> void flif_encode_scanlines_inner(Rac rac, std::vector<Coder*> &coders, const Images &images, const ColorRanges *ranges)
+template<typename Rac, typename Coder> void flif_encode_scanlines_inner(Rac rac, std::vector<Coder> &coders, const Images &images, const ColorRanges *ranges)
 {
     ColorVal min,max;
     long fs = rac.ftell();
@@ -51,7 +51,7 @@ template<typename Rac, typename Coder> void flif_encode_scanlines_inner(Rac rac,
                 ColorVal curr = image(p,r,c);
                 assert(p != 3 || curr >= -fr);
                 if (p==3 && min < -fr) min = -fr;
-                coders[p]->write_int(properties, min - guess, max - guess, curr - guess);
+                coders[p].write_int(properties, min - guess, max - guess, curr - guess);
               }
             }
         }
@@ -66,12 +66,13 @@ template<typename Rac, typename Coder> void flif_encode_scanlines_inner(Rac rac,
 
 template<typename Rac, typename Coder> void flif_encode_scanlines_pass(Rac &rac, const Images &images, const ColorRanges *ranges, std::vector<Tree> &forest, int repeats)
 {
-    std::vector<Coder*> coders;
+    std::vector<Coder> coders;
+    coders.reserve(ranges->numPlanes());
 
     for (int p = 0; p < ranges->numPlanes(); p++) {
         Ranges propRanges;
         initPropRanges_scanlines(propRanges, *ranges, p);
-        coders.push_back(new Coder(rac, propRanges, forest[p]));
+        coders.emplace_back(rac, propRanges, forest[p]);
     }
 
     while(repeats-- > 0) {
@@ -79,19 +80,18 @@ template<typename Rac, typename Coder> void flif_encode_scanlines_pass(Rac &rac,
     }
 
     for (int p = 0; p < ranges->numPlanes(); p++) {
-        coders[p]->simplify();
+        coders[p].simplify();
     }
 
     for (int p = 0; p < ranges->numPlanes(); p++) {
 #ifdef STATS
         indent(0); v_printf(2,"Plane %i\n", p);
-        coders[p]->info(0+1);
+        coders[p].info(0+1);
 #endif
-        delete coders[p];
     }
 }
 
-template<typename Rac, typename Coder> void flif_encode_FLIF2_inner(Rac rac, std::vector<Coder*> &coders, const Images &images, const ColorRanges *ranges, const int beginZL, const int endZL)
+template<typename Rac, typename Coder> void flif_encode_FLIF2_inner(Rac rac, std::vector<Coder> &coders, const Images &images, const ColorRanges *ranges, const int beginZL, const int endZL)
 {
     ColorVal min,max;
     int nump = images[0].numPlanes();
@@ -120,7 +120,7 @@ template<typename Rac, typename Coder> void flif_encode_FLIF2_inner(Rac rac, std
                     ColorVal curr = image(p,z,r,c);
                     if (p==3 && min < -fr) min = -fr;
                     assert (curr <= max); assert (curr >= min);
-                    coders[p]->write_int(properties, min - guess, max - guess, curr - guess);
+                    coders[p].write_int(properties, min - guess, max - guess, curr - guess);
               }
             }
           }
@@ -140,7 +140,7 @@ template<typename Rac, typename Coder> void flif_encode_FLIF2_inner(Rac rac, std
                     ColorVal curr = image(p,z,r,c);
                     if (p==3 && min < -fr) min = -fr;
                     assert (curr <= max); assert (curr >= min);
-                    coders[p]->write_int(properties, min - guess, max - guess, curr - guess);
+                    coders[p].write_int(properties, min - guess, max - guess, curr - guess);
               }
             }
           }
@@ -155,11 +155,12 @@ template<typename Rac, typename Coder> void flif_encode_FLIF2_inner(Rac rac, std
 
 template<typename Rac, typename Coder> void flif_encode_FLIF2_pass(Rac &rac, const Images &images, const ColorRanges *ranges, std::vector<Tree> &forest, const int beginZL, const int endZL, int repeats)
 {
-    std::vector<Coder*> coders;
+    std::vector<Coder> coders;
+    coders.reserve(ranges->numPlanes());
     for (int p = 0; p < ranges->numPlanes(); p++) {
         Ranges propRanges;
         initPropRanges(propRanges, *ranges, p);
-        coders.push_back(new Coder(rac, propRanges, forest[p]));
+        coders.emplace_back(rac, propRanges, forest[p]);
     }
 
     for (const Image& image : images)
@@ -175,15 +176,14 @@ template<typename Rac, typename Coder> void flif_encode_FLIF2_pass(Rac &rac, con
      flif_encode_FLIF2_inner(rac, coders, images, ranges, beginZL, endZL);
     }
     for (int p = 0; p < images[0].numPlanes(); p++) {
-        coders[p]->simplify();
+        coders[p].simplify();
     }
 
     for (int p = 0; p < images[0].numPlanes(); p++) {
 #ifdef STATS
         indent(0); v_printf(2,"Plane %i\n", p);
-        coders[p]->info(0+1);
+        coders[p].info(0+1);
 #endif
-        delete coders[p];
     }
 }
 
@@ -300,10 +300,6 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
            metaCoder.write_int(0, 60000, frame_delay); // time in ms between frames
         }
     }
-//    metaCoder.write_int(1, 65536, image.cols());
-//    metaCoder.write_int(1, 65536, image.rows());
-//    v_printf(2,"Header: %li bytes.\n", ftell(f));
-
 //    v_printf(2,"Header: %li bytes.\n", ftell(f));
 
     std::vector<const ColorRanges*> rangesList;

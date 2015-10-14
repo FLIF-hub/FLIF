@@ -6,7 +6,7 @@ cl /nologo /DFLIF_USE_STB_IMAGE /Feflif-d.exe flif.cpp -I win32 flif-dec.cpp fli
 
 echo test
 if exist output.flif del output.flif
-flif benchmark/input/kodak/kodim01.png output.flif
+flif tools/kodim01.png output.flif
 if exist output.png  del output.png
 flif output.flif output.png
 start output.png

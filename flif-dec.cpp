@@ -22,7 +22,7 @@ template<typename RAC> std::string static read_name(RAC& rac)
     return transforms[nb];
 }
 
-template<typename Coder> void flif_decode_scanlines_inner(std::vector<Coder*> &coders, Images &images, const ColorRanges *ranges)
+template<typename Coder> void flif_decode_scanlines_inner(std::vector<Coder> &coders, Images &images, const ColorRanges *ranges)
 {
 
     ColorVal min,max;
@@ -53,7 +53,7 @@ template<typename Coder> void flif_decode_scanlines_inner(std::vector<Coder*> &c
                 ColorVal guess = predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max);
                 if (p==3 && min < -fr) min = -fr;
                 if (nump>3 && p<3 && image(3,r,c) <= 0) { if (image(3,r,c) == 0) image.set(p,r,c,guess); else image.set(p,r,c,images[fr+image(3,r,c)](p,r,c)); continue;}
-                ColorVal curr = coders[p]->read_int(properties, min - guess, max - guess) + guess;
+                ColorVal curr = coders[p].read_int(properties, min - guess, max - guess) + guess;
                 image.set(p,r,c, curr);
               }
               if (fr>0) {
@@ -71,16 +71,14 @@ template<typename Coder> void flif_decode_scanlines_inner(std::vector<Coder*> &c
 
 template<typename Rac, typename Coder> void flif_decode_scanlines_pass(Rac &rac, Images &images, const ColorRanges *ranges, std::vector<Tree> &forest)
 {
-    std::vector<Coder*> coders;
+    std::vector<Coder> coders;
+    coders.reserve(images[0].numPlanes());
     for (int p = 0; p < images[0].numPlanes(); p++) {
         Ranges propRanges;
         initPropRanges_scanlines(propRanges, *ranges, p);
-        coders.push_back(new Coder(rac, propRanges, forest[p]));
+        coders.emplace_back(rac, propRanges, forest[p]);
     }
     flif_decode_scanlines_inner(coders, images, ranges);
-    for (int p = 0; p < images[0].numPlanes(); p++) {
-        delete coders[p];
-    }
 }
 
 // interpolate rest of the image
@@ -131,7 +129,7 @@ void flif_decode_FLIF2_inner_interpol(Images &images, const ColorRanges *, const
     v_printf(2,"\n");
 }
 
-template<typename Rac, typename Coder> void flif_decode_FLIF2_inner(Rac &rac, std::vector<Coder*> &coders, Images &images, const ColorRanges *ranges, const int beginZL, const int endZL, int quality, int scale)
+template<typename Rac, typename Coder> void flif_decode_FLIF2_inner(Rac &rac, std::vector<Coder> &coders, Images &images, const ColorRanges *ranges, const int beginZL, const int endZL, int quality, int scale)
 {
     ColorVal min,max;
     int nump = images[0].numPlanes();
@@ -178,10 +176,17 @@ template<typename Rac, typename Coder> void flif_decode_FLIF2_inner(Rac &rac, st
                 if (nump>3 && p<3) { begin=0; end=image.cols(z); }
               }
               for (uint32_t c = begin; c < end; c++) {
-                     if (nump>3 && p<3 && image(3,z,r,c) <= 0) { if (image(3,z,r,c) == 0) image.set(p,z,r,c,predict(image,z,p,r,c)); else image.set(p,z,r,c,images[fr+image(3,z,r,c)](p,z,r,c)); continue;}
+                     if (nump>3 && p<3 && image(3,z,r,c) <= 0) {
+                       if (image(3,z,r,c) == 0) {
+                         image.set(p,z,r,c,predict(image,z,p,r,c));
+                       } else {
+                         image.set(p,z,r,c,images[fr+image(3,z,r,c)](p,z,r,c));
+                       }
+                       continue;
+                     }
                      ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
                      if (p==3 && min < -fr) min = -fr;
-                     curr = coders[p]->read_int(properties, min - guess, max - guess) + guess;
+                     curr = coders[p].read_int(properties, min - guess, max - guess) + guess;
                      image.set(p,z,r,c, curr);
               }
             }
@@ -218,7 +223,7 @@ template<typename Rac, typename Coder> void flif_decode_FLIF2_inner(Rac &rac, st
                      if (nump>3 && p<3 && image(3,z,r,c) <= 0) { if (image(3,z,r,c) == 0) image.set(p,z,r,c,predict(image,z,p,r,c)); else image.set(p,z,r,c,images[fr+image(3,z,r,c)](p,z,r,c)); continue;}
                      ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
                      if (p==3 && min < -fr) min = -fr;
-                     curr = coders[p]->read_int(properties, min - guess, max - guess) + guess;
+                     curr = coders[p].read_int(properties, min - guess, max - guess) + guess;
                      image.set(p,z,r,c, curr);
               }
             }
@@ -233,11 +238,12 @@ template<typename Rac, typename Coder> void flif_decode_FLIF2_inner(Rac &rac, st
 
 template<typename Rac, typename Coder> void flif_decode_FLIF2_pass(Rac &rac, Images &images, const ColorRanges *ranges, std::vector<Tree> &forest, const int beginZL, const int endZL, int quality, int scale)
 {
-    std::vector<Coder*> coders;
+    std::vector<Coder> coders;
+    coders.reserve(images[0].numPlanes());
     for (int p = 0; p < images[0].numPlanes(); p++) {
         Ranges propRanges;
         initPropRanges(propRanges, *ranges, p);
-        coders.push_back(new Coder(rac, propRanges, forest[p]));
+        coders.emplace_back(rac, propRanges, forest[p]);
     }
 
     for (Image& image : images)
@@ -250,10 +256,6 @@ template<typename Rac, typename Coder> void flif_decode_FLIF2_pass(Rac &rac, Ima
     }
 
     flif_decode_FLIF2_inner(rac, coders, images, ranges, beginZL, endZL, quality, scale);
-
-    for (int p = 0; p < images[0].numPlanes(); p++) {
-        delete coders[p];
-    }
 }
 
 
@@ -283,14 +285,33 @@ bool flif_decode(IO& io, Images &images, int quality, int scale)
 
     char buff[5];
     if (!io.gets(buff,5)) { e_printf("Could not read header from file: %s\n",io.getName()); return false; }
-    if (strcmp(buff,"FLIF") != 0) { e_printf("Not a FLIF file: %s\n",io.getName()); return false; }
+    if (!strcmp(buff,"!<ar")) {
+       // FLIF file in an archive, try to find find the main image
+       if (!io.gets(buff,5)) return false;
+       if (strcmp(buff,"ch>\n")) return false;
+       char ar_header[61];
+       while (true) {
+          if (!io.gets(ar_header,61)) { e_printf("Archive does not contain a FLIF image\n"); return false; }
+          if (!strncmp(ar_header,"__image.flif/",13)) {
+            if (!io.gets(buff,5)) { e_printf("Corrupt archive?\n"); return false; }
+            break;
+          }
+          else {
+            long skip = strtol(&ar_header[48],NULL,10);
+            if (skip < 0) return false;
+            if (skip & 1) skip++;
+            io.fseek(skip,SEEK_CUR);
+          }
+       }
+    }
+    if (strcmp(buff,"FLIF")) { e_printf("Not a FLIF file: %s (header: \"%s\")\n",io.getName(),buff); return false; }
     int c = io.getc()-' ';
     int numFrames=1;
     if (c > 47) {
         c -= 32;
         numFrames = io.getc();
     }
-    int encoding=c/16;
+    const int encoding=c/16;
     if (scale != 1 && encoding==1) { v_printf(1,"Cannot decode non-interlaced FLIF file at lower scale! Ignoring scale...\n");}
     if (quality < 100 && encoding==1) { v_printf(1,"Cannot decode non-interlaced FLIF file at lower quality! Ignoring quality...\n");}
     int numPlanes=c%16;
@@ -351,7 +372,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale)
             return false;
         }
         if (tcount++ > 0) v_printf(4,", ");
-        v_printf(4,"%s", desc.c_str());
+        v_printf(4,"%s  ", desc.c_str());
         if (desc == "FRS") {
                 int unique_frames=images.size()-1; // not considering first frame
                 for (Image& i : images) if (i.seen_before >= 0) unique_frames--;
