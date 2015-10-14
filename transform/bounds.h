@@ -22,6 +22,12 @@ public:
         ranges->minmax(p, pp, min, max);
         if (min < bounds[p].first) min=bounds[p].first;
         if (max > bounds[p].second) max=bounds[p].second;
+        if (min>max) {
+           // should happen only if alpha=0 interpolation produces YI combination for which Q range from ColorRangesYIQ is outside bounds
+           min=bounds[p].first;
+           max=bounds[p].second;
+        }
+        assert(min <= max);
     }
 };
 

@@ -50,6 +50,10 @@ ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRang
     ColorVal gradientTL = left + top - topleft;
     guess = median3(gradientTL, left, top);
     ranges->snap(p,properties,min,max,guess);
+    assert(min >= ranges->min(p));
+    assert(max <= ranges->max(p));
+    assert(guess >= ranges->min(p));
+    assert(guess <= ranges->max(p));
     if (guess == gradientTL) which = 0;
     else if (guess == left) which = 1;
     else if (guess == top) which = 2;
