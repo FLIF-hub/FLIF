@@ -103,8 +103,6 @@ public:
         
         ::fread(flifBlob, fSize, 1, file);
         memoryPos = 0;
-        
-        printf("read\n");
     }
 	
 	void closeFile() {
