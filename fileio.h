@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdio.h>
+#include <string>
 
 class FileIO
 {
@@ -65,11 +66,10 @@ class BlobIO
 {
 private:
     FILE *file;
-    const char *name;
+    std::string name;
     
-    char* flifBlob;
+	std::vector<char>blob;
     uint64_t memoryPos;
-    size_t fSize;
 
     
     // prevent copy
@@ -84,28 +84,38 @@ public:
 		closeFile();
     }
     
-    BlobIO(FileIO *fio) {
+    BlobIO(FileIO *fio) { //used only for testing - will remove when there's a way to get blobs elsewhere
         file = fio->getFileHandle();
         name = fio->getName();
-        readFlifFromFile(file, name);
+        readFlifFromFile(file, name.c_str());
     }
     
-    BlobIO() {}
+    BlobIO(const char* aname) {
+        name = aname;
+        initializeVars();
+    }
+    
+    BlobIO() {
+        initializeVars();
+    }
     ~BlobIO() {
-        if (flifBlob == NULL) delete [] flifBlob;
     }
     
-    void readFlifFromFile(FILE* fil, const char *aname) {
+    void initializeVars() {
+        memoryPos = 0;
+    }
+    
+    void readFlifFromFile(FILE* fil, const char *aname) { //used only for testing - will remove when there's a way to get blobs elsewhere
         file = fil;
         name = aname;
         ::fseek(file, 0L, SEEK_END);
-        fSize = ::ftell(file);
+        size_t fSize = ::ftell(file);
         ::fseek(file, 0L, SEEK_SET);
         
-        flifBlob = new char[fSize];
-        
-        ::fread(flifBlob, fSize, 1, file);
-        memoryPos = 0;
+        for (size_t i = 0; i < fSize; i++) {
+            blob.push_back(fgetc(file));
+        }
+        initializeVars();
     }
 	
 	void closeFile() {
@@ -113,21 +123,45 @@ public:
 		file = NULL;
 	}
 	
-    void setFlifBlob(char* blobFlif, size_t size) {
-        flifBlob = blobFlif;
-        fSize = size;
+    void setBlob(char* blobFlif, size_t size) {
+        for (size_t i = 0; i < size; i++) {
+            blob.push_back(blobFlif[i]);
+        }
         memoryPos = 0;
     }
     
-    size_t getFlifSize() {
-        return fSize;
+    /**
+     Sets the blob to the vector passed. This actually moves the vector to belong to the BlobIO class.
+     @code
+        std::vector<char> outsideVector = {'a', 'b', 'c'};
+        BlobIO blobIO;
+        blobIO.setBlob(std::move(outsideVector));
+     @endcode
+     @param pBlob
+     Input BLOB
+     */
+    void setBlob(std::vector<char>&& pBlob) {
+        blob = std::move(pBlob);
     }
     
-    const char* getFlifBlob() {
+    size_t getFlifSize() {
+        return blob.size();
+    }
+    
+    const char* getCharBlob() {
+        char* flifBlob = new char[blob.size()];
+        for (size_t i = 0; i < blob.size(); i++) {
+            flifBlob[i] = blob[i];
+        }
         return flifBlob;
     }
     
+    std::vector<char>& getVectorBlob() {
+        return blob;
+    }
+    
     void fseek (long offset, int whence) {
+        size_t fSize = blob.size();
         switch (whence) {
             case SEEK_CUR:
                 memoryPos += offset;
@@ -154,13 +188,13 @@ public:
     }
     
     void write(int byte) {
-//        ::fputc(byte, file);
+        fputc(byte);
     }
     void flush() {
-//        fflush(file);
+//        fflush(file); //// I don't think this would really have an equivalent for writing to memory, since it writes directly to memory in the first place?
     }
     bool isEOF() {
-        return (memoryPos >= fSize); //not sure if >= or >
+        return (memoryPos >= blob.size() ); //not sure if >= or >
     }
     uint64_t ftell() {
         return memoryPos;
@@ -170,15 +204,17 @@ public:
         if (isEOF()) {
             return EOF;
         }
-        unsigned char rVal = flifBlob[memoryPos];
+        unsigned char rVal = blob[memoryPos];
         memoryPos ++;
     
         return rVal;
     }
     
     char * gets(char *buf, int n) {
-        if (memoryPos + n < fSize) {
-            memcpy(buf, flifBlob, n-1);
+        if (memoryPos + n < blob.size()) {
+            for (size_t i = 0; i < (n-1); i++) {
+                buf[i] = blob[memoryPos + i];
+            }
             buf[n - 1] = '\0';
             memoryPos += n - 1;
         } else {
@@ -188,19 +224,37 @@ public:
     }
     
     int fputs(const char *s) {
-        return EOF;
-//        return ::fputs(s, file);
+        size_t count = strlen(s);
+        for (size_t i = 0; i < count; i ++) {
+            blob.push_back(s[i]);
+        }
+        memoryPos += count;
+        return (int)count;
     }
     int fputc(int c) {
-        return EOF;
-//        return ::fputc(c, file);
+        unsigned char tBuffer = c;
+        blob.push_back(tBuffer);
+        memoryPos++;
+        return tBuffer;
     }
     const char* getName() {
-        return name;
+        return name.c_str();
     }
     
     void setName(char* pName) {
         name = pName;
+    }
+    
+    void saveToFile() { //used only for testing - will remove when there's a way to send blobs elsewhere
+        if (name.empty()) {
+            name = "newFile";
+        }
+        
+        FILE* newFile = fopen(name.c_str(),"wb");
+        for (size_t i = 0; i < blob.size(); i++) {
+            ::fputc(blob[i], newFile);
+        }
+        fclose(newFile);
     }
 
 };
