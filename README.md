@@ -18,13 +18,14 @@ For more information on FLIF, visit http://flif.info
 **Window**
 
 * Install Visual Studio ([VS Community 2015](https://www.visualstudio.com/en-us/products/free-developer-offers-vs.aspx) is free for open source projects)
-* Click Start > type in `Developer Command Prompt` > hit enter
-* Navigate to the FLIF repo and run `Make_vs.bat`
+* Click Start > All Programs > Visual Studio > Tools > `Developer Command Prompt`
+* In the command prompt, navigate to the FLIF repo and run `make_vs.bat`
 
 **OS X**
 
 * Install [homebrew](http://brew.sh)
 * Install kegs named `pkg-config` and `libpng`
+* `make`
 
 **Ubuntu**
 
