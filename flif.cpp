@@ -363,14 +363,14 @@ int main(int argc, char **argv)
     }
 
     if (mode == 0) {
-        return handle_encode(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay);
+        if (!handle_encode(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay)) return 2;
     } else if (mode == 1) {
-        return handle_decode(argv, images, quality, scale);
+        if (!handle_decode(argv, images, quality, scale)) return 2;
     } else if (mode == 2) {
         if (scale > 1) {e_printf("Not yet supported: transcoding downscaled image; use decode + encode!\n");}
         if (!decode_flif(argv, images, quality, scale)) return 2;
         argc--; argv++;
-        return encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay);
+        if (!encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay)) return 2;
     }
     return 0;
 }

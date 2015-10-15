@@ -31,7 +31,7 @@ public:
     uint32_t childID;
     uint32_t leafID;
     int64_t count;
-    PropertyDecisionNode(int p=-1, int s=0, int c=0) : property(p), splitval(s), childID(c), leafID(0) {}
+    PropertyDecisionNode(int p=-1, int s=0, int c=0) : property(p), splitval(s), childID(c), leafID(0), count(0) {}
 };
 
 class Tree : public std::vector<PropertyDecisionNode>
