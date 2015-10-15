@@ -15,9 +15,11 @@ For more information on FLIF, visit http://flif.info
 
 ###Build Instructions
 
-**Window**
+**Windows**
 
-* Install Visual Studio ([VS Community 2015](https://www.visualstudio.com/en-us/products/free-developer-offers-vs.aspx) is free for open source projects)
+* Install Visual Studio
+  ([VS Community 2015](https://www.visualstudio.com/en-us/products/free-developer-offers-vs.aspx)
+  is free for open source projects)
 * Click Start > All Programs > Visual Studio > Tools > `Developer Command Prompt`
 * In the command prompt, navigate to the FLIF repo and run `make_vs.bat`
 
@@ -25,12 +27,12 @@ For more information on FLIF, visit http://flif.info
 
 * Install [homebrew](http://brew.sh)
 * Install kegs named `pkg-config` and `libpng`
-* `make`
+* Run `make` in the FLIF directory
 
 **Ubuntu**
 
-* `sudo apt-get install libpng-dev`
-* `make`
+* Install libpng-dev: `sudo apt-get install libpng-dev`
+* Navigate to the FLIF directory and run `make`
 
 * * *
 
