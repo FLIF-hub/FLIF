@@ -75,6 +75,7 @@ void show_help() {
     printf("Usage: (encoding)\n");
     printf("   flif [encode options] <input image(s)> <output.flif>\n");
     printf("   flif [-d] [decode options] <input.flif> <output.pnm | output.pam | output.png>\n");
+    printf("   flif [-t] [decode options] [encode options] <input.flif> <output.flif>\n");
     printf("General Options:\n");
     printf("   -h, --help           show help\n");
     printf("   -v, --verbose        increase verbosity (multiple -v for more output)\n");
@@ -113,7 +114,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  _____  __  (__) _____");
-    v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1 [13 October 2015]");
+    v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1 [15 October 2015]");
     v_printf(3,"\n  (__  ||  |_|__||  __)    Free Lossless Image Format");
     v_printf(3,"\n    (__||______) |__)    ");v_printf(2,"  (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
     v_printf(3,"\n");
@@ -138,31 +139,31 @@ union flifEncodingOptional {
   flifEncodingOptional() : o(Optional::undefined) {}
 };
 
-/********************************************/
-/*   HEAVIER HANDLING                       */
-/********************************************/
 
-bool handle_encode_arguments(int argc, char **argv, Images &images, int palette_size, int acb, flifEncodingOptional method, int lookback, int learn_repeats, int frame_delay) {
+bool encode_load_input_images(int argc, char **argv, Images &images) {
     int nb_input_images = argc-1;
     while(argc>1) {
         Image image;
         v_printf(2,"\r");
         if (!image.load(argv[0])) {
             e_printf("Could not read input file: %s\n", argv[0]);
-            return false;//2
+            return false;
         };
         images.push_back(std::move(image));
         const Image& last_image = images.back();
-		if (last_image.rows() != images[0].rows() || last_image.cols() != images[0].cols() || last_image.numPlanes() != images[0].numPlanes()) {
+        if (last_image.rows() != images[0].rows() || last_image.cols() != images[0].cols() || last_image.numPlanes() != images[0].numPlanes()) {
             e_printf("Dimensions of all input images should be the same!\n");
             e_printf("  First image is %ux%u, %i channels.\n",images[0].cols(),images[0].rows(),images[0].numPlanes());
             e_printf("  This image is %ux%u, %i channels: %s\n",last_image.cols(),last_image.rows(),last_image.numPlanes(),argv[0]);
-            return false;//2
+            return false;
         }
         argc--; argv++;
         if (nb_input_images>1) {v_printf(2,"    (%i/%i)         ",(int)images.size(),nb_input_images); v_printf(4,"\n");}
     }
     v_printf(2,"\n");
+    return true;
+}
+bool encode_flif(int argc, char **argv, Images &images, int palette_size, int acb, flifEncodingOptional method, int lookback, int learn_repeats, int frame_delay) {
     bool flat=true;
     for (Image &image : images) if (image.uses_alpha()) flat=false;
     if (flat && images[0].numPlanes() == 4) {
@@ -204,20 +205,27 @@ bool handle_encode_arguments(int argc, char **argv, Images &images, int palette_
     return flif_encode(fio, images, desc, method.encoding, learn_repeats, acb, frame_delay, palette_size, lookback);
 }
 
-int handle_decode_arguments(char **argv, Images &images, int quality, int scale) {
+bool handle_encode(int argc, char **argv, Images &images, int palette_size, int acb, flifEncodingOptional method, int lookback, int learn_repeats, int frame_delay) {
+    if (!encode_load_input_images(argc,argv,images)) return false;
+    argv += (argc-1);
+    argc = 1;
+    return encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay);
+}
 
+bool decode_flif(char **argv, Images &images, int quality, int scale) {
+    FILE *file = fopen(argv[0],"rb");
+    if(!file) return false;
+    FileIO fio(file, argv[0]);
+    return flif_decode(fio, images, quality, scale);
+}
+
+int handle_decode(char **argv, Images &images, int quality, int scale) {
     char *ext = strrchr(argv[1],'.');
     if (!check_compatible_extension(ext)) {
         e_printf("Error: expected \".png\", \".pnm\" or \".pam\" file name extension for output file\n");
         return 1;
     }
-
-    FILE *file = fopen(argv[0],"rb");
-    if(!file)
-        return 1;
-    FileIO fio(file, argv[0]);
-
-    if (!flif_decode(fio, images, quality, scale)) return 3;
+    if (!decode_flif(argv, images, quality, scale)) return 3;
     if (scale>1)
         v_printf(3,"Downscaling output: %ux%u -> %ux%u\n",images[0].cols(),images[0].rows(),images[0].cols()/scale,images[0].rows()/scale);
     if (images.size() == 1) {
@@ -240,7 +248,7 @@ int handle_decode_arguments(char **argv, Images &images, int quality, int scale)
 int main(int argc, char **argv)
 {
     Images images;
-    int mode = 0; // 0 = encode, 1 = decode
+    int mode = 0; // 0 = encode, 1 = decode, 2 = transcode
     flifEncodingOptional method;
     int quality = 100; // 100 = everything, positive value: partial decode, negative value: only rough data
     int learn_repeats = -1;
@@ -257,6 +265,7 @@ int main(int argc, char **argv)
         {"help", 0, NULL, 'h'},
         {"encode", 0, NULL, 'e'},
         {"decode", 0, NULL, 'd'},
+        {"transcode", 0, NULL, 't'},
         {"first", 1, NULL, 'f'},
         {"verbose", 0, NULL, 'v'},
         {"interlace", 0, NULL, 'i'},
@@ -272,10 +281,11 @@ int main(int argc, char **argv)
         {0, 0, 0, 0}
     };
     int i,c;
-    while ((c = getopt_long (argc, argv, "hedvinabq:s:p:r:f:l:", optlist, &i)) != -1) {
+    while ((c = getopt_long (argc, argv, "hedtvinabq:s:p:r:f:l:", optlist, &i)) != -1) {
         switch (c) {
         case 'e': mode=0; break;
         case 'd': mode=1; break;
+        case 't': mode=2; break;
         case 'v': increase_verbosity(); break;
         case 'i': method.encoding=flifEncoding::interlaced; break;
         case 'n': method.encoding=flifEncoding::nonInterlaced; break;
@@ -313,7 +323,7 @@ int main(int argc, char **argv)
         if (get_verbosity() == 1) show_help();
         return 1;
     }
-    
+
     if (argc == 1) {
         show_help();
         e_printf("\nOutput file missing.\n");
@@ -322,8 +332,15 @@ int main(int argc, char **argv)
 
     if (file_exists(argv[0])) {
         if (mode == 0 && file_is_flif(argv[0])) {
-            v_printf(2,"Input file is a FLIF file, adding implicit -d\n");
-            mode = 1;
+            char *f = strrchr(argv[1],'/');
+            char *ext = f ? strrchr(f,'.') : strrchr(argv[1],'.');
+            if (check_compatible_extension(ext)) {
+                v_printf(2,"Input file is a FLIF file, adding implicit -d\n");
+                mode = 1;
+            } else if ((ext && ( !strcasecmp(ext,".flif")  || ( !strcasecmp(ext,".flf") )))) {
+                v_printf(2,"Input and output file are both FLIF file, adding implicit -t\n");
+                mode = 2;
+            }
         }
         char *f = strrchr(argv[0],'/');
         char *ext = f ? strrchr(f,'.') : strrchr(argv[0],'.');
@@ -340,12 +357,20 @@ int main(int argc, char **argv)
         e_printf("Input file does not exist: %s\n",argv[0]);
         return 1;
     }
+    if (mode > 0 && argc > 2) {
+        e_printf("Too many arguments.\n");
+        return 1;
+    }
 
     if (mode == 0) {
-        handle_encode_arguments(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay);
-    } else {
-        int returnCode = handle_decode_arguments(argv, images, quality, scale);
-        if (returnCode > 0) return returnCode;
+        return handle_encode(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay);
+    } else if (mode == 1) {
+        return handle_decode(argv, images, quality, scale);
+    } else if (mode == 2) {
+        if (scale > 1) {e_printf("Not yet supported: transcoding downscaled image; use decode + encode!\n");}
+        if (!decode_flif(argv, images, quality, scale)) return 2;
+        argc--; argv++;
+        return encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay);
     }
     return 0;
 }
