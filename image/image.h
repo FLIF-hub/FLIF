@@ -49,12 +49,13 @@ class Image {
     template <typename CV>
     using PlanePtr = std::unique_ptr<Plane<CV>>;
 
-    PlanePtr<ColorVal_intern_8> plane_8_1;
-    PlanePtr<ColorVal_intern_8> plane_8_2;
-    PlanePtr<ColorVal_intern_16> plane_16_1;
-    PlanePtr<ColorVal_intern_16> plane_16_2;
-    PlanePtr<ColorVal_intern_32> plane_32_1;
-    PlanePtr<ColorVal_intern_32> plane_32_2;
+    PlanePtr<ColorVal_intern_8> plane_8_1;  // 8-bit Y
+    PlanePtr<ColorVal_intern_8> plane_8_2;  // 8-bit A
+    PlanePtr<ColorVal_intern_16> plane_16_1; // 16-bit Y or 9-bit I
+    PlanePtr<ColorVal_intern_16> plane_16_2; // 16-bit A or 9-bit Q
+    PlanePtr<ColorVal_intern_32> plane_32_1; // 17-bit I
+    PlanePtr<ColorVal_intern_32> plane_32_2; // 17-bit Q
+    PlanePtr<ColorVal_intern_8> plane_frame_lookbacks; // for FRA transform
     uint32_t width, height;
     ColorVal minval,maxval;
     int num;
@@ -94,6 +95,7 @@ public:
       plane_8_2 = std::move(other.plane_8_2);
       plane_16_1 = std::move(other.plane_16_1);
       plane_16_2 = std::move(other.plane_16_2);
+      plane_frame_lookbacks = std::move(other.plane_frame_lookbacks);
 #ifdef SUPPORT_HDR
       plane_32_1 = std::move(other.plane_32_1);
       plane_32_2 = std::move(other.plane_32_2);
@@ -106,7 +108,7 @@ public:
       num = other.num;
 #ifdef SUPPORT_HDR
       depth = other.depth;
-//      other.depth = 0;
+      other.depth = 0;
 #endif
 
       other.width = other.height = 0;
@@ -158,6 +160,7 @@ public:
         if (p>3) plane_16_2 = make_unique<Plane<ColorVal_intern_16>>(width, height); // A
 #endif
       }
+      if (p>4) plane_frame_lookbacks = make_unique<Plane<ColorVal_intern_8>>(width, height); // A
     }
 
     void clear() {
@@ -165,6 +168,7 @@ public:
       plane_8_2.reset(nullptr);
       plane_16_1.reset(nullptr);
       plane_16_2.reset(nullptr);
+      plane_frame_lookbacks.reset(nullptr);
 #ifdef SUPPORT_HDR
       plane_32_1.reset(nullptr);
       plane_32_2.reset(nullptr);
@@ -193,7 +197,12 @@ public:
         }
         num=3;
     }
-    void ensure_alpha() {
+    void drop_frame_lookbacks() {
+        assert(num==5);
+        plane_frame_lookbacks.reset(nullptr);
+        num=4;
+    }
+    void ensure_frame_lookbacks() {
         switch(num) {
             case 1:
               if (depth <= 8) {
@@ -219,15 +228,17 @@ public:
               } else {
                 plane_16_2 = make_unique<Plane<ColorVal_intern_16>>(width, height); // A
               }
-              num=4;
               for (uint32_t r=0; r<height; r++) {
                for (uint32_t c=0; c<width; c++) {
                  set(3,r,c, 1); //(1<<depth)-1);
                }
               }
-            case 4: // nothing to be done, we already have an alpha channel
-              break;
-            default: e_printf("OOPS: ensure_alpha() problem");
+            case 4:
+              plane_frame_lookbacks = make_unique<Plane<ColorVal_intern_8>>(width, height);
+              num=5;
+            default:
+              assert(num==5);
+              num=5;
         }
     }
 
@@ -239,6 +250,7 @@ public:
 
     // access pixel by coordinate
     ColorVal operator()(const int p, const uint32_t r, const uint32_t c) const {
+      assert(p>=0);
       assert(depth == 8 || depth == 16);
 #ifdef SUPPORT_HDR
       if (depth <= 8) {
@@ -247,7 +259,8 @@ public:
           case 0: return plane_8_1->get(r,c);
           case 1: return plane_16_1->get(r,c);
           case 2: return plane_16_2->get(r,c);
-          default: return plane_8_2->get(r,c);
+          case 3: return plane_8_2->get(r,c);
+          default: return plane_frame_lookbacks->get(r,c);
         }
 #ifdef SUPPORT_HDR
       } else {
@@ -255,12 +268,14 @@ public:
           case 0: return plane_16_1->get(r,c);
           case 1: return plane_32_1->get(r,c);
           case 2: return plane_32_2->get(r,c);
-          default: return plane_16_2->get(r,c);
+          case 3: return plane_16_2->get(r,c);
+          default: return plane_frame_lookbacks->get(r,c);
         }
       }
 #endif
     }
     void set(int p, uint32_t r, uint32_t c, ColorVal x) {
+      assert(p>=0);
 #ifdef SUPPORT_HDR
       if (depth <= 8) {
 #endif
@@ -268,7 +283,8 @@ public:
           case 0: return plane_8_1->set(r,c,x);
           case 1: return plane_16_1->set(r,c,x);
           case 2: return plane_16_2->set(r,c,x);
-          default: return plane_8_2->set(r,c,x);
+          case 3: return plane_8_2->set(r,c,x);
+          default: return plane_frame_lookbacks->set(r,c,x);
         }
 #ifdef SUPPORT_HDR
       } else {
@@ -276,7 +292,8 @@ public:
           case 0: return plane_16_1->set(r,c,x);
           case 1: return plane_32_1->set(r,c,x);
           case 2: return plane_32_2->set(r,c,x);
-          default: return plane_16_2->set(r,c,x);
+          case 3: return plane_16_2->set(r,c,x);
+          default: return plane_frame_lookbacks->set(r,c,x);
         }
       }
 #endif

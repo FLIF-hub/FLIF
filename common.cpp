@@ -9,8 +9,10 @@ const std::vector<std::string> transforms = {"YIQ","BND","ACB","PLT","PLA","FRS"
 int64_t pixels_todo = 0;
 int64_t pixels_done = 0;
 
-const int NB_PROPERTIES_scanlines[] = {7,8,9,7};
-const int NB_PROPERTIES_scanlinesA[] = {8,9,10,7};
+const int PLANE_ORDERING[] = {4,3,0,1,2}; // FRA, A, Y, I, Q
+
+const int NB_PROPERTIES_scanlines[] = {7,8,9,7,7};
+const int NB_PROPERTIES_scanlinesA[] = {8,9,10,7,7};
 
 
 void initPropRanges_scanlines(Ranges &propRanges, const ColorRanges &ranges, int p) {
@@ -19,7 +21,7 @@ void initPropRanges_scanlines(Ranges &propRanges, const ColorRanges &ranges, int
     int max = ranges.max(p);
     int mind = min - max, maxd = max - min;
 
-    if (p != 3) {
+    if (p < 3) {
       for (int pp = 0; pp < p; pp++) {
         propRanges.push_back(std::make_pair(ranges.min(pp), ranges.max(pp)));  // pixels on previous planes
       }
@@ -38,7 +40,7 @@ ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRang
     ColorVal guess;
     int which = 0;
     int index=0;
-    if (p != 3) {
+    if (p < 3) {
       for (int pp = 0; pp < p; pp++) {
         properties[index++] = image(pp,r,c);
       }
@@ -74,15 +76,15 @@ ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRang
 }
 
 
-const int NB_PROPERTIES[] = {8,7,8,8};
-const int NB_PROPERTIESA[] = {9,8,9,8};
+const int NB_PROPERTIES[] = {8,7,8,8,8};
+const int NB_PROPERTIESA[] = {9,8,9,8,8};
 
 void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p) {
     propRanges.clear();
     int min = ranges.min(p);
     int max = ranges.max(p);
     int mind = min - max, maxd = max - min;
-    if (p != 3) {       // alpha channel first
+    if (p < 3) {       // alpha channel first
       for (int pp = 0; pp < p; pp++) {
         propRanges.push_back(std::make_pair(ranges.min(pp), ranges.max(pp)));  // pixels on previous planes
       }
@@ -95,7 +97,7 @@ void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p) {
     propRanges.push_back(std::make_pair(mind,maxd));
     propRanges.push_back(std::make_pair(mind,maxd));
 
-    if (p == 0 || p == 3) {
+    if (p == 0 || p >= 3) {
       propRanges.push_back(std::make_pair(mind,maxd));
       propRanges.push_back(std::make_pair(mind,maxd));
     }
@@ -107,7 +109,7 @@ ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges
     int which = 0;
     int index = 0;
 
-    if (p != 3) {
+    if (p < 3) {
       for (int pp = 0; pp < p; pp++) {
         properties[index++] = image(pp,z,r,c);
       }
@@ -155,7 +157,7 @@ ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges
     if (c+1 < image.cols(z) && r > 0) properties[index++]=top - topright;
                  else   properties[index++]=0;
 
-    if (p == 0 || p == 3) {
+    if (p == 0 || p >= 3) {
      if (r > 1) properties[index++]=image(p,z,r-2,c)-top;    // toptop - top
          else properties[index++]=0;
      if (c > 1) properties[index++]=image(p,z,r,c-2)-left;    // leftleft - left
@@ -176,10 +178,10 @@ std::pair<int, int> plane_zoomlevel(const Image &image, const int beginZL, const
 //    int zl = beginZL - (i / image.numPlanes());
 
     // more advanced order: give priority to more important plane(s)
-    // assumption: plane 0 is Y, plane 1 is I, plane 2 is Q, plane 3 is perhaps alpha, next planes (not used at the moment) are not important
-    const int max_behind[] = {0, 2, 4, 0, 16, 18, 20, 22};
+    // assumption: plane 0 is Y, plane 1 is I, plane 2 is Q, plane 3 is perhaps alpha, plane 4 are frame lookbacks (FRA transform, animation only)
+    const int max_behind[] = {0, 2, 4, 0, 0};
     int np = image.numPlanes();
-    if (np>7) {
+    if (np>5) {
       // too many planes, do something simple
       int p = i % image.numPlanes();
       int zl = beginZL - (i / image.numPlanes());
@@ -189,6 +191,7 @@ std::pair<int, int> plane_zoomlevel(const Image &image, const int beginZL, const
     for (int &pzl : czl) pzl = beginZL+1;
     int highest_priority_plane = 0;
     if (np >= 4) highest_priority_plane = 3; // alpha first
+    if (np >= 5) highest_priority_plane = 4; // lookbacks first
     int nextp = highest_priority_plane;
     while (i >= 0) {
       czl[nextp]--;
@@ -197,7 +200,7 @@ std::pair<int, int> plane_zoomlevel(const Image &image, const int beginZL, const
       nextp=highest_priority_plane;
       for (int p=0; p<np; p++) {
         if (czl[p] > czl[highest_priority_plane] + max_behind[p]) {
-          nextp = p; break;
+          nextp = p; //break;
         }
       }
       // ensure that nextp is not at the most detailed zoomlevel yet

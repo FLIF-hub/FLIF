@@ -36,8 +36,10 @@ template<typename Rac, typename Coder> void flif_encode_scanlines_inner(Rac rac,
     long fs = rac.ftell();
     long pixels = images[0].cols()*images[0].rows()*images.size();
     int nump = images[0].numPlanes();
-    int beginp = (nump>3 ? 3 : 0);
-    for (int p = beginp, i=0; i++ < nump; p = (p+1)%nump) {
+    for (int k=0,i=0; k < 5; k++) {
+        int p=PLANE_ORDERING[k];
+        if (p>=nump) continue;
+        i++;
         Properties properties((nump>3?NB_PROPERTIES_scanlinesA[p]:NB_PROPERTIES_scanlines[p]));
         v_printf(2,"\r%i%% done [%i/%i] ENC[%ux%u]    ",(int)(100*pixels_done/pixels_todo),i,nump,images[0].cols(),images[0].rows());
         pixels_done += images[0].cols()*images[0].rows();
@@ -48,11 +50,12 @@ template<typename Rac, typename Coder> void flif_encode_scanlines_inner(Rac rac,
               if (image.seen_before >= 0) continue;
               uint32_t begin=image.col_begin[r], end=image.col_end[r];
               for (uint32_t c = begin; c < end; c++) {
-                if (nump>3 && p<3 && image(3,r,c) <= 0) continue;
+                if (nump>3 && p<3 && image(3,r,c) == 0) continue;
+                if (nump>4 && p<4 && image(4,r,c) > 0) continue;
                 ColorVal guess = predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max);
                 ColorVal curr = image(p,r,c);
                 assert(p != 3 || curr >= -fr);
-                if (p==3 && min < -fr) min = -fr;
+                if (p==4 && max > fr) max = fr;
                 coders[p].write_int(properties, min - guess, max - guess, curr - guess);
               }
             }
@@ -117,10 +120,11 @@ template<typename Rac, typename Coder> void flif_encode_FLIF2_inner(Rac rac, std
               uint32_t begin=(image.col_begin[r*image.zoom_rowpixelsize(z)]/image.zoom_colpixelsize(z)),
                          end=(1+(image.col_end[r*image.zoom_rowpixelsize(z)]-1)/image.zoom_colpixelsize(z));
               for (uint32_t c = begin; c < end; c++) {
-                    if (nump>3 && p<3 && image(3,z,r,c) <= 0) continue;
+                    if (nump>3 && p<3 && image(3,z,r,c) == 0) continue;
+                    if (nump>4 && p<4 && image(4,z,r,c) > 0) continue;
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
                     ColorVal curr = image(p,z,r,c);
-                    if (p==3 && min < -fr) min = -fr;
+                    if (p==4 && max > fr) max = fr;
                     assert (curr <= max); assert (curr >= min);
                     coders[p].write_int(properties, min - guess, max - guess, curr - guess);
               }
@@ -138,9 +142,10 @@ template<typename Rac, typename Coder> void flif_encode_FLIF2_inner(Rac rac, std
               if (begin==0) begin=1;
               for (uint32_t c = begin; c < end; c+=2) {
                     if (nump>3 && p<3 && image(3,z,r,c) <= 0) continue;
+                    if (nump>4 && p<4 && image(4,z,r,c) > 0) continue;
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
                     ColorVal curr = image(p,z,r,c);
-                    if (p==3 && min < -fr) min = -fr;
+                    if (p==4 && max > fr) max = fr;
                     assert (curr <= max); assert (curr >= min);
                     coders[p].write_int(properties, min - guess, max - guess, curr - guess);
               }
@@ -196,7 +201,7 @@ void flif_encode_FLIF2_interpol_zero_alpha(Images &images, const ColorRanges *, 
       std::pair<int, int> pzl = plane_zoomlevel(image, beginZL, endZL, i);
       int p = pzl.first;
       int z = pzl.second;
-      if (p == 3) continue;
+      if (p >= 3) continue;
 //      v_printf(2,"[%i] interpol_zero_alpha ",p);
 //      fflush(stdout);
       if (z % 2 == 0) {
@@ -359,7 +364,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     std::vector<Tree> forest(ranges->numPlanes(), Tree());
     RacDummy dummy;
 
-    if (ranges->numPlanes() > 3) {
+    if (ranges->numPlanes() > 3 && ranges->min(3) <= 0) {
       v_printf(4,"Replacing fully transparent pixels with predicted pixel values at the other planes\n");
       switch(encoding) {
         case flifEncoding::nonInterlaced: flif_encode_scanlines_interpol_zero_alpha(images, ranges); break;

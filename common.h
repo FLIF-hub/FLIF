@@ -49,6 +49,8 @@ extern const int NB_PROPERTIESA[];
 extern const int NB_PROPERTIES_scanlines[];
 extern const int NB_PROPERTIES_scanlinesA[];
 
+extern const int PLANE_ORDERING[];
+
 void initPropRanges_scanlines(Ranges &propRanges, const ColorRanges &ranges, int p);
 
 ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRanges *ranges, const Image &image, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max);
@@ -58,6 +60,7 @@ void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p);
 // Prediction used for interpolation. Does not have to be the same as the guess used for encoding/decoding.
 inline ColorVal predict(const Image &image, int z, int p, uint32_t r, uint32_t c)
 {
+    if (p==4) return 0;
     if (z%2 == 0) { // filling horizontal lines
       ColorVal top = image(p,z,r-1,c);
       ColorVal bottom = (r+1 < image.rows(z) ? image(p,z,r+1,c) : top); //grey[p]);

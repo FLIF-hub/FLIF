@@ -27,8 +27,10 @@ template<typename Coder> void flif_decode_scanlines_inner(std::vector<Coder> &co
 
     ColorVal min,max;
     int nump = images[0].numPlanes();
-    int beginp = (nump>3 ? 3 : 0);
-    for (int p = beginp, i=0; i++ < nump; p = (p+1)%nump) {
+    for (int k=0,i=0; k < 5; k++) {
+        int p=PLANE_ORDERING[k];
+        if (p>=nump) continue;
+        i++;
         Properties properties((nump>3?NB_PROPERTIES_scanlinesA[p]:NB_PROPERTIES_scanlines[p]));
         v_printf(2,"\r%i%% done [%i/%i] DEC[%ux%u]    ",(int)(100*pixels_done/pixels_todo),i,nump,images[0].cols(),images[0].rows());
         v_printf(4,"\n");
@@ -42,27 +44,34 @@ template<typename Coder> void flif_decode_scanlines_inner(std::vector<Coder> &co
               if (fr>0) {
                 for (uint32_t c = 0; c < begin; c++)
                    if (nump>3 && p<3 && image(3,r,c) == 0) image.set(p,r,c,predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max));
+                   else if (p !=4 ) image.set(p,r,c,images[fr-1](p,r,c));
+                   /*
+                   else if (nump>4 && p<4 && image(4,r,c) > 0) image.set(p,r,c,images[fr-image(4,r,c)](p,r,c));
                    else {
                      int oldframe=fr-1;  image.set(p,r,c,images[oldframe](p,r,c));
-                     while(p == 3 && image(p,r,c) < 0) {oldframe += image(p,r,c); assert(oldframe>=0); image.set(p,r,c,images[oldframe](p,r,c));}
+                     while(p == 4 && image(p,r,c) > 0) {oldframe -= image(p,r,c); assert(oldframe>=0); image.set(p,r,c,images[oldframe](p,r,c));}
                    }
+                   */
               } else {
                 if (nump>3 && p<3) { begin=0; end=image.cols(); }
               }
               for (uint32_t c = begin; c < end; c++) {
                 ColorVal guess = predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max);
-                if (p==3 && min < -fr) min = -fr;
-                if (nump>3 && p<3 && image(3,r,c) <= 0) { if (image(3,r,c) == 0) image.set(p,r,c,guess); else image.set(p,r,c,images[fr+image(3,r,c)](p,r,c)); continue;}
+                if (p==4 && max > fr) max = fr;
+                if (nump>3 && p<3 && image(3,r,c) == 0) {image.set(p,r,c,guess); continue;}
+                if (nump>4 && p<4 && image(4,r,c) > 0) {image.set(p,r,c,images[fr-image(4,r,c)](p,r,c)); continue;}
                 ColorVal curr = coders[p].read_int(properties, min - guess, max - guess) + guess;
                 image.set(p,r,c, curr);
               }
               if (fr>0) {
                 for (uint32_t c = end; c < image.cols(); c++)
                    if (nump>3 && p<3 && image(3,r,c) == 0) image.set(p,r,c,predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max));
+                   else if (p !=4 ) image.set(p,r,c,images[fr-1](p,r,c));
+/*                   else if (nump>4 && p<4 && image(4,r,c) > 0) image.set(p,r,c,images[fr-image(4,r,c)](p,r,c));
                    else {
                      int oldframe=fr-1;  image.set(p,r,c,images[oldframe](p,r,c));
-                     while(p == 3 && image(p,r,c) < 0) {oldframe += image(p,r,c); assert(oldframe>=0); image.set(p,r,c,images[oldframe](p,r,c));}
-                   }
+                     while(p == 4 && image(p,r,c) > 0) {oldframe -= image(p,r,c); assert(oldframe>=0); image.set(p,r,c,images[oldframe](p,r,c));}
+                   }*/
               }
             }
         }
@@ -166,26 +175,26 @@ template<typename Rac, typename Coder> void flif_decode_FLIF2_inner(Rac &rac, st
               if (fr>0) {
                 for (uint32_t c = 0; c < begin; c++)
                             if (nump>3 && p<3 && image(3,z,r,c) == 0) image.set(p,z,r,c, predict(image,z,p,r,c));
+                            else if (p !=4 ) image.set(p,z,r,c,images[fr-1](p,z,r,c));
+/*                            else if (nump>4 && p<4 && image(4,z,r,c) > 0) image.set(p,z,r,c,images[fr-image(4,z,r,c)](p,z,r,c));
                             else { int oldframe=fr-1;  image.set(p,z,r,c,images[oldframe](p,z,r,c));
-                                   while(p == 3 && image(p,z,r,c) < 0) {oldframe += image(p,z,r,c); assert(oldframe>=0); image.set(p,z,r,c,images[oldframe](p,z,r,c));}}
+                                   while(p == 4 && image(p,z,r,c) > 0) {oldframe -= image(p,z,r,c); assert(oldframe>=0); image.set(p,z,r,c,images[oldframe](p,z,r,c));}}
+*/
                 for (uint32_t c = end; c < image.cols(z); c++)
                             if (nump>3 && p<3 && image(3,z,r,c) == 0) image.set(p,z,r,c, predict(image,z,p,r,c));
+                            else if (p !=4 ) image.set(p,z,r,c,images[fr-1](p,z,r,c));
+/*                            else if (nump>4 && p<4 && image(4,z,r,c) > 0) image.set(p,z,r,c,images[fr-image(4,z,r,c)](p,z,r,c));
                             else { int oldframe=fr-1;  image.set(p,z,r,c,images[oldframe](p,z,r,c));
-                                   while(p == 3 && image(p,z,r,c) < 0) {oldframe += image(p,z,r,c); assert(oldframe>=0); image.set(p,z,r,c,images[oldframe](p,z,r,c));}}
+                                   while(p == 4 && image(p,z,r,c) > 0) {oldframe -= image(p,z,r,c); assert(oldframe>=0); image.set(p,z,r,c,images[oldframe](p,z,r,c));}}
+*/
               } else {
-                if (nump>3 && p<3) { begin=0; end=image.cols(z); }
+                if (nump>3 && p<3) {begin=0; end=image.cols(z);}
               }
               for (uint32_t c = begin; c < end; c++) {
-                     if (nump>3 && p<3 && image(3,z,r,c) <= 0) {
-                       if (image(3,z,r,c) == 0) {
-                         image.set(p,z,r,c,predict(image,z,p,r,c));
-                       } else {
-                         image.set(p,z,r,c,images[fr+image(3,z,r,c)](p,z,r,c));
-                       }
-                       continue;
-                     }
+                     if (nump>3 && p<3 && image(3,z,r,c) == 0) { image.set(p,z,r,c,predict(image,z,p,r,c)); continue;}
+                     if (nump>4 && p<4 && image(4,z,r,c) > 0) { image.set(p,z,r,c,images[fr-image(4,z,r,c)](p,z,r,c)); continue;}
                      ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
-                     if (p==3 && min < -fr) min = -fr;
+                     if (p==4 && max > fr) max = fr;
                      curr = coders[p].read_int(properties, min - guess, max - guess) + guess;
                      image.set(p,z,r,c, curr);
               }
@@ -209,20 +218,27 @@ template<typename Rac, typename Coder> void flif_decode_FLIF2_inner(Rac &rac, st
               if (begin==0) begin=1;
               if (fr>0) {
                 for (uint32_t c = 1; c < begin; c+=2)
-                     if (nump>3 && p<3 && image(3,z,r,c) == 0) image.set(p,z,r,c, predict(image,z,p,r,c));
-                     else { int oldframe=fr-1;  image.set(p,z,r,c,images[oldframe](p,z,r,c));
-                            while(p == 3 && image(p,z,r,c) < 0) {oldframe += image(p,z,r,c); assert(oldframe>=0); image.set(p,z,r,c,images[oldframe](p,z,r,c));}}
+                            if (nump>3 && p<3 && image(3,z,r,c) == 0) image.set(p,z,r,c, predict(image,z,p,r,c));
+                            else if (p !=4 ) image.set(p,z,r,c,images[fr-1](p,z,r,c));
+/*                            else if (nump>4 && p<4 && image(4,z,r,c) > 0) image.set(p,z,r,c,images[fr-image(4,z,r,c)](p,z,r,c));
+                            else { int oldframe=fr-1;  image.set(p,z,r,c,images[oldframe](p,z,r,c));
+                                   while(p == 4 && image(p,z,r,c) > 0) {oldframe -= image(p,z,r,c); assert(oldframe>=0); image.set(p,z,r,c,images[oldframe](p,z,r,c));}}
+*/
                 for (uint32_t c = end; c < image.cols(z); c+=2)
-                     if (nump>3 && p<3 && image(3,z,r,c) == 0) image.set(p,z,r,c, predict(image,z,p,r,c));
-                     else { int oldframe=fr-1;  image.set(p,z,r,c,images[oldframe](p,z,r,c));
-                            while(p == 3 && image(p,z,r,c) < 0) {oldframe += image(p,z,r,c); assert(oldframe>=0); image.set(p,z,r,c,images[oldframe](p,z,r,c));}}
+                            if (nump>3 && p<3 && image(3,z,r,c) == 0) image.set(p,z,r,c, predict(image,z,p,r,c));
+                            else if (p !=4 ) image.set(p,z,r,c,images[fr-1](p,z,r,c));
+/*                            else if (nump>4 && p<4 && image(4,z,r,c) > 0) image.set(p,z,r,c,images[fr-image(4,z,r,c)](p,z,r,c));
+                            else { int oldframe=fr-1;  image.set(p,z,r,c,images[oldframe](p,z,r,c));
+                                   while(p == 4 && image(p,z,r,c) > 0) {oldframe -= image(p,z,r,c); assert(oldframe>=0); image.set(p,z,r,c,images[oldframe](p,z,r,c));}}
+*/
               } else {
-                if (nump>3 && p<3) { begin=1; end=image.cols(z); }
+                if (nump>3 && p<3) {begin=1; end=image.cols(z);}
               }
               for (uint32_t c = begin; c < end; c+=2) {
-                     if (nump>3 && p<3 && image(3,z,r,c) <= 0) { if (image(3,z,r,c) == 0) image.set(p,z,r,c,predict(image,z,p,r,c)); else image.set(p,z,r,c,images[fr+image(3,z,r,c)](p,z,r,c)); continue;}
+                     if (nump>3 && p<3 && image(3,z,r,c) == 0) { image.set(p,z,r,c,predict(image,z,p,r,c)); continue;}
+                     if (nump>4 && p<4 && image(4,z,r,c) > 0) { image.set(p,z,r,c,images[fr-image(4,z,r,c)](p,z,r,c)); continue;}
                      ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
-                     if (p==3 && min < -fr) min = -fr;
+                     if (p==4 && max > fr) max = fr;
                      curr = coders[p].read_int(properties, min - guess, max - guess) + guess;
                      image.set(p,z,r,c, curr);
               }
