@@ -8,6 +8,7 @@
 #include "crc32k.h"
 
 #include "../io.h"
+#include "../config.h"
 
 typedef int32_t ColorVal;  // used in computations
 
@@ -105,7 +106,7 @@ public:
       num = other.num;
 #ifdef SUPPORT_HDR
       depth = other.depth;
-      other.depth = 0;
+//      other.depth = 0;
 #endif
 
       other.width = other.height = 0;
@@ -175,6 +176,7 @@ public:
         init(0,0,0,0,0);
     }
     bool uses_alpha() const {
+        assert(depth == 8 || depth == 16);
         if (num<4) return false;
         for (uint32_t r=0; r<height; r++)
            for (uint32_t c=0; c<width; c++)
@@ -235,6 +237,7 @@ public:
 
     // access pixel by coordinate
     ColorVal operator()(const int p, const uint32_t r, const uint32_t c) const {
+      assert(depth == 8 || depth == 16);
 #ifdef SUPPORT_HDR
       if (depth <= 8) {
 #endif

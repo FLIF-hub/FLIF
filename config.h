@@ -1,7 +1,7 @@
 #pragma once
 
 // define this flag if you want support for > 8 bit per channel
-//#define SUPPORT_HDR 1
+#define SUPPORT_HDR 1
 
 // output the first K zoomlevels without building trees (too little data anyway to learn much from it)
 #define NB_NOLEARN_ZOOMS 12
