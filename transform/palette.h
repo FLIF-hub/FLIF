@@ -57,7 +57,21 @@ public:
         for (Image& image : images) image.palette=true;
         return new ColorRangesPalette(srcRanges, Palette_vector.size());
     }
+    void invData(Images& images) const {
+        for (Image& image : images) {
+          for (uint32_t r=0; r<image.rows(); r++) {
+            for (uint32_t c=0; c<image.cols(); c++) {
+                int P=image(0,r,c);
+                image.set(0,r,c, std::get<0>(Palette_vector[P]));
+                image.set(1,r,c, std::get<1>(Palette_vector[P]));
+                image.set(2,r,c, std::get<2>(Palette_vector[P]));
+            }
+          }
+          image.palette=false;
+        }
+    }
 
+#ifdef HAS_ENCODER
     bool process(const ColorRanges *, const Images &images) {
         for (const Image& image : images)
         for (uint32_t r=0; r<image.rows(); r++) {
@@ -86,21 +100,6 @@ public:
           }
         }
     }
-    void invData(Images& images) const {
-        for (Image& image : images) {
-          for (uint32_t r=0; r<image.rows(); r++) {
-            for (uint32_t c=0; c<image.cols(); c++) {
-                int P=image(0,r,c);
-                image.set(0,r,c, std::get<0>(Palette_vector[P]));
-                image.set(1,r,c, std::get<1>(Palette_vector[P]));
-                image.set(2,r,c, std::get<2>(Palette_vector[P]));
-            }
-          }
-          image.palette=false;
-        }
-    }
-
-#ifdef HAS_ENCODER
     void save(const ColorRanges *srcRanges, RacOut<IO> &rac) const {
         SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> coder(rac);
         SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> coderY(rac);

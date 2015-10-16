@@ -71,7 +71,6 @@ protected:
             v_printf(5,"[%i:%i..%i]",p,min,max);
         }
     }
-#endif
 
     bool process(const ColorRanges *srcRanges, const Images &images) {
         bounds.clear();
@@ -95,4 +94,5 @@ protected:
         }
         return !trivialbounds;
     }
+#endif
 };

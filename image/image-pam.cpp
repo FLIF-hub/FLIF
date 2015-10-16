@@ -10,8 +10,8 @@
 
 #define PPMREADBUFLEN 256
 
-bool image_load_pam(const char *filename, Image& image)
-{
+#ifdef HAS_ENCODER
+bool image_load_pam(const char *filename, Image& image) {
     FILE *fp = fopen(filename,"rb");
     char buf[PPMREADBUFLEN], *t;
 
@@ -79,6 +79,7 @@ bool image_load_pam(const char *filename, Image& image)
     fclose(fp);
     return true;
 }
+#endif
 
 bool image_save_pam(const char *filename, const Image& image)
 {

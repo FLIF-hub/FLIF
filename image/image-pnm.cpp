@@ -10,6 +10,7 @@
 
 #define PPMREADBUFLEN 256
 
+#ifdef HAS_ENCODER
 bool image_load_pnm(const char *filename, Image& image)
 {
     FILE *fp = fopen(filename,"rb");
@@ -91,6 +92,7 @@ bool image_load_pnm(const char *filename, Image& image)
     fclose(fp);
     return true;
 }
+#endif
 
 bool image_save_pnm(const char *filename, const Image& image)
 {

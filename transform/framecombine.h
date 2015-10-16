@@ -52,7 +52,6 @@ protected:
         SimpleSymbolCoder<SimpleBitChance, RacOut<IO>, 24> coder(rac);
         coder.write_int(1,256,max_lookback);
     }
-#endif
 
 // a heuristic to figure out if this is going to help (it won't help if we introduce more entropy than what is eliminated)
     bool process(const ColorRanges *srcRanges, const Images &images) {
@@ -97,8 +96,6 @@ protected:
 
         return (found_pixels[0] * pixel_cost > new_pixels * (2 + max_lookback));
     };
-
-    void configure(int setting) { user_max_lookback=setting; }
     void data(Images &images) const {
         for (int fr=1; fr < (int)images.size(); fr++) {
             uint32_t ipixels=0;
@@ -124,6 +121,9 @@ protected:
 //            printf("frame %i: found %u pixels from previous frames\n", fr, ipixels);
         }
     }
+#endif
+
+    void configure(int setting) { user_max_lookback=setting; }
     void invData(Images &images) const {
         // has to be done on the fly for all channels except A
         for (int fr=1; fr<(int)images.size(); fr++) {

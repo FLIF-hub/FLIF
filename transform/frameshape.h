@@ -48,7 +48,6 @@ protected:
         for (unsigned int i=0; i<nb; i+=1) { coder.write_int(0,cols-b[i],cols-e[i]); }
 //        for (unsigned int i=0; i<nb; i+=1) { coder.write_int(b[i],cols,e[i]); }
     }
-#endif
 
     bool process(const ColorRanges *srcRanges, const Images &images) {
         if (images.size()<2) return false;
@@ -87,4 +86,5 @@ protected:
         */
         return true;
     }
+#endif
 };

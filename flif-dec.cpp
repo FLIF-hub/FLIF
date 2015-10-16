@@ -372,7 +372,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale)
             return false;
         }
         if (tcount++ > 0) v_printf(4,", ");
-        v_printf(4,"%s  ", desc.c_str());
+        v_printf(4,"%s", desc.c_str());
         if (desc == "FRS") {
                 int unique_frames=images.size()-1; // not considering first frame
                 for (Image& i : images) if (i.seen_before >= 0) unique_frames--;

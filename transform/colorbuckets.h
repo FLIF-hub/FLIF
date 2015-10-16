@@ -502,7 +502,6 @@ protected:
 //          printf("\n");
         }
     }
-#endif
 
     bool process(const ColorRanges *, const Images &images) {
             std::vector<ColorVal> pixel(images[0].numPlanes());
@@ -556,4 +555,5 @@ protected:
             }
             return true;
     }
+#endif
 };

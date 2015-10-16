@@ -38,7 +38,6 @@ protected:
         for (unsigned int i=1; i<seen_before.size(); i++) coder.write_int(-1,nb-2,seen_before[i]);
         int count=0; for(int i : seen_before) { if(i>=0) count++; } v_printf(5,"[%i]",count);
     }
-#endif
 
     bool process(const ColorRanges *srcRanges, const Images &images) {
         int np=srcRanges->numPlanes();
@@ -65,4 +64,5 @@ protected:
         }
         return dupes_found;
     }
+#endif
 };

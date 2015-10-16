@@ -231,7 +231,9 @@ public:
         }
     }
 
+#ifdef HAS_ENCODER
     bool load(const char *name);
+#endif
     bool save(const char *name) const;
     bool save(const char *name, const int scale) const;
 

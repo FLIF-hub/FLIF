@@ -10,6 +10,7 @@
 #define strcasecmp stricmp
 #endif
 
+#ifdef HAS_ENCODER
 bool Image::load(const char *filename)
 {
     const char *f = strrchr(filename,'/');
@@ -37,6 +38,7 @@ bool Image::load(const char *filename)
     e_printf("ERROR: Unknown input file type to read from: %s\n",ext ? ext : "(none)");
     return false;
 }
+#endif
 
 bool Image::save(const char *filename) const
 {

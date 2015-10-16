@@ -1,3 +1,5 @@
+#include "config.h"
+#ifdef HAS_ENCODER
 #include <string>
 #include <string.h>
 
@@ -5,10 +7,10 @@
 #include "maniac/compound.h"
 #include "maniac/util.h"
 
+#include "flif_config.h"
 #include "image/color_range.h"
 #include "transform/factory.h"
 
-#include "flif_config.h"
 
 #include "common.h"
 #include "fileio.h"
@@ -443,3 +445,4 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
 
 template bool flif_encode(FileIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int frame_delay, int palette_size, int lookback);
 
+#endif

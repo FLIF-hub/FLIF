@@ -19,13 +19,13 @@ public:
 
     bool virtual init(const ColorRanges *) { return true; }
     void virtual configure(const int) { }
-    bool virtual process(const ColorRanges *, const Images &) { return true; };
     void virtual load(const ColorRanges *, RacIn<IO> &) {};
 #ifdef HAS_ENCODER
+    bool virtual process(const ColorRanges *, const Images &) { return true; };
     void virtual save(const ColorRanges *, RacOut<IO> &) const {};
+    void virtual data(Images&) const {}
 #endif
     const ColorRanges virtual *meta(Images&, const ColorRanges *srcRanges) { return new DupColorRanges(srcRanges); }
-    void virtual data(Images&) const {}
     void virtual invData(Images&) const {}
 
 };
