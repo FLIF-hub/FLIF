@@ -26,7 +26,7 @@ bool image_load_pnm(const char *filename, Image& image)
     if ( (!strncmp(buf, "P4\n", 3)) ) type=4;
     if ( (!strncmp(buf, "P5\n", 3)) ) type=5;
     if ( (!strncmp(buf, "P6\n", 3)) ) type=6;
-    if ( (!strncmp(buf, "P7\n", 3)) ) {fclose(fp); fp=NULL; image_load_pam(filename, image);}
+    if ( (!strncmp(buf, "P7\n", 3)) ) {fclose(fp); return image_load_pam(filename, image);}
     if (type==0) {
         e_printf("PNM file is not of type P4, P5 or P6, cannot read other types.\n");
         if (fp) {
