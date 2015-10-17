@@ -276,7 +276,7 @@ template<typename Rac, typename Coder> void flif_decode_FLIF2_pass(Rac &rac, Ima
 
 
 
-template<typename BitChance, typename Rac> void flif_decode_tree(Rac &rac, const ColorRanges *ranges, std::vector<Tree> &forest, const int encoding)
+template<typename BitChance, typename Rac> bool flif_decode_tree(Rac &rac, const ColorRanges *ranges, std::vector<Tree> &forest, const int encoding)
 {
     for (int p = 0; p < ranges->numPlanes(); p++) {
         Ranges propRanges;
@@ -284,9 +284,10 @@ template<typename BitChance, typename Rac> void flif_decode_tree(Rac &rac, const
         else initPropRanges(propRanges, *ranges, p);
         MetaPropertySymbolCoder<BitChance, Rac> metacoder(rac, propRanges);
         if (ranges->min(p)<ranges->max(p))
-        metacoder.read_tree(forest[p]);
+        if (!metacoder.read_tree(forest[p])) {return false;}
 //        forest[p].print(stdout);
     }
+    return true;
 }
 
 
@@ -404,6 +405,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale)
     for (int p = 0; p < ranges->numPlanes(); p++) grey.push_back((ranges->min(p)+ranges->max(p))/2);
 
     pixels_todo = width*height*ranges->numPlanes()/scale/scale;
+    pixels_done = 0;
 
     for (int p = 0; p < ranges->numPlanes(); p++) {
       v_printf(7,"Plane %i: %i..%i\n",p,ranges->min(p),ranges->max(p));
@@ -450,7 +452,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale)
       v_printf(3,"Not decoding MANIAC tree\n");
     } else {
       v_printf(3,"Decoded header + rough data. Decoding MANIAC tree.\n");
-      flif_decode_tree<FLIFBitChanceTree, RacIn<IO>>(rac, ranges, forest, encoding);
+      if (!flif_decode_tree<FLIFBitChanceTree, RacIn<IO>>(rac, ranges, forest, encoding)) return false;
     }
 //    if (encoding == 1 || quality > 0) {
       switch(encoding) {

@@ -359,6 +359,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     if (mbits > bits) { e_printf("OOPS: this FLIF only supports 8-bit RGBA (not compiled with SUPPORT_HDR)\n"); return false;}
 
     pixels_todo = image.rows()*image.cols()*ranges->numPlanes()*(learn_repeats+1);
+    pixels_done = 0;
 
     // two passes
     std::vector<Tree> forest(ranges->numPlanes(), Tree());

@@ -236,7 +236,7 @@ int handle_decode(char **argv, Images &images, int quality, int scale) {
         e_printf("Error: expected \".png\", \".pnm\" or \".pam\" file name extension for output file\n");
         return 1;
     }
-    if (!decode_flif(argv, images, quality, scale)) return 3;
+    if (!decode_flif(argv, images, quality, scale)) {e_printf("Error: could not decode FLIF file\n"); return 3; }
     if (scale>1)
         v_printf(3,"Downscaling output: %ux%u -> %ux%u\n",images[0].cols(),images[0].rows(),images[0].cols()/scale,images[0].rows()/scale);
     if (images.size() == 1) {
@@ -254,7 +254,7 @@ int handle_decode(char **argv, Images &images, int quality, int scale) {
         }
     }
     v_printf(2,"\n");
-    return -1;
+    return 0;
 }
 int main(int argc, char **argv)
 {
@@ -391,7 +391,7 @@ int main(int argc, char **argv)
         if (!handle_encode(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay)) return 2;
     } else if (mode == 1) {
 #endif
-        if (!handle_decode(argv, images, quality, scale)) return 2;
+        return handle_decode(argv, images, quality, scale);
 #ifdef HAS_ENCODER
     } else if (mode == 2) {
         if (scale > 1) {e_printf("Not yet supported: transcoding downscaled image; use decode + encode!\n");}

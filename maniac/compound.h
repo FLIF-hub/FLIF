@@ -662,7 +662,7 @@ public:
     }
 #endif
 
-    int read_subtree(int pos, Ranges &subrange, Tree &tree) {
+    bool read_subtree(int pos, Ranges &subrange, Tree &tree) {
         PropertyDecisionNode &n = tree[pos];
         int p = n.property = coder.read_int(0,nb_properties)-1;
 
@@ -671,7 +671,7 @@ public:
             int oldmax = subrange[p].second;
             if (oldmin >= oldmax) {
               e_printf( "Invalid tree. Aborting tree decoding.\n");
-              return -1;
+              return false;
             }
             n.count = coder.read_int(CONTEXT_TREE_MIN_COUNT, CONTEXT_TREE_MAX_COUNT); // * CONTEXT_TREE_COUNT_QUANTIZATION;
             assert(oldmin < oldmax);
@@ -682,21 +682,21 @@ public:
             tree.push_back(PropertyDecisionNode());
             // > splitval
             subrange[p].first = splitval+1;
-            if (read_subtree(childID, subrange, tree) == -1) return -1;
+            if (!read_subtree(childID, subrange, tree)) return false;
 
             // <= splitval
             subrange[p].first = oldmin;
             subrange[p].second = splitval;
-            if (read_subtree(childID+1, subrange, tree) == -1) return -1;
+            if (!read_subtree(childID+1, subrange, tree)) return false;
 
             subrange[p].second = oldmax;
         }
-        return 0;
+        return true;
     }
-    void read_tree(Tree &tree) {
+    bool read_tree(Tree &tree) {
           Ranges rootrange(range);
           tree.clear();
           tree.push_back(PropertyDecisionNode());
-          read_subtree(0, rootrange, tree);
+          return read_subtree(0, rootrange, tree);
     }
 };
