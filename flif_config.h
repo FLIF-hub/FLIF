@@ -4,16 +4,24 @@
 
 #include "fileio.h"
 
-template <typename IO>
-using RacIn = RacInput40<IO>;
-
-#ifdef HAS_ENCODER
-template <typename IO>
-using RacOut = RacOutput40<IO>;
+#ifdef FAST_BUT_WORSE_COMPRESSION
+template <typename IO> using RacIn = RacInput24<IO>;
+#else
+template <typename IO> using RacIn = RacInput40<IO>;
 #endif
 
-//typedef RacInput24 RacIn;
-//typedef RacOutput24 RacOut;
+#ifdef HAS_ENCODER
+#ifdef FAST_BUT_WORSE_COMPRESSION
+template <typename IO> using RacOut = RacOutput24<IO>;
+#else
+template <typename IO> using RacOut = RacOutput40<IO>;
+#endif
+#endif
+
 
 #include "maniac/compound.h"
+#ifdef FAST_BUT_WORSE_COMPRESSION
+typedef SimpleBitChance  FLIFBitChanceMeta;
+#else
 typedef MultiscaleBitChance<6,SimpleBitChance>  FLIFBitChanceMeta;
+#endif

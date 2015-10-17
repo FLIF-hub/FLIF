@@ -34,14 +34,16 @@ extern const std::vector<std::string> transforms;
 typedef SimpleBitChance                         FLIFBitChancePass1;
 
 // faster:
-//typedef SimpleBitChance                         FLIFBitChancePass2;
+#ifdef FAST_BUT_WORSE_COMPRESSION
+typedef SimpleBitChance                         FLIFBitChancePass2;
 //typedef SimpleBitChance                         FLIFBitChanceParities;
-
+typedef SimpleBitChance                         FLIFBitChanceTree;
+#else
 // better compression:
 typedef MultiscaleBitChance<6,SimpleBitChance>  FLIFBitChancePass2;
-typedef MultiscaleBitChance<6,SimpleBitChance>  FLIFBitChanceParities;
-
+//typedef MultiscaleBitChance<6,SimpleBitChance>  FLIFBitChanceParities;
 typedef MultiscaleBitChance<6,SimpleBitChance>  FLIFBitChanceTree;
+#endif
 
 extern const int NB_PROPERTIES[];
 extern const int NB_PROPERTIESA[];

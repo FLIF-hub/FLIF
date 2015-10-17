@@ -111,6 +111,8 @@ public:
 };
 
 
+#ifndef FAST_BUT_WORSE_COMPRESSION
+
 static const uint32_t MULTISCALE_ALPHAS[] = {
                                                      21590903, 66728412, 214748365, 7413105, 106514140, 10478104,
                                                      //41729744, 5081644, 154536134, 53610361, 14808157, 83024800,
@@ -240,3 +242,5 @@ public:
     }
 #endif
 };
+
+#endif
