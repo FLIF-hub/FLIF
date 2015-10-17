@@ -36,12 +36,10 @@ typedef SimpleBitChance                         FLIFBitChancePass1;
 // faster:
 #ifdef FAST_BUT_WORSE_COMPRESSION
 typedef SimpleBitChance                         FLIFBitChancePass2;
-//typedef SimpleBitChance                         FLIFBitChanceParities;
 typedef SimpleBitChance                         FLIFBitChanceTree;
 #else
 // better compression:
 typedef MultiscaleBitChance<6,SimpleBitChance>  FLIFBitChancePass2;
-//typedef MultiscaleBitChance<6,SimpleBitChance>  FLIFBitChanceParities;
 typedef MultiscaleBitChance<6,SimpleBitChance>  FLIFBitChanceTree;
 #endif
 

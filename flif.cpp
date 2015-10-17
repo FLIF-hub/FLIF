@@ -122,7 +122,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  _____  __  (__) _____");
-    v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1 [16 October 2015]");
+    v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1 [17 October 2015]");
     v_printf(3,"\n  (__  ||  |_|__||  __)    Free Lossless Image Format");
     v_printf(3,"\n    (__||______) |__)    ");v_printf(2,"  (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
     v_printf(3,"\n");
@@ -306,7 +306,7 @@ int main(int argc, char **argv)
         case 'd': mode=1; break;
         case 'v': increase_verbosity(); break;
         case 'q': quality=atoi(optarg);
-                  if (quality < -1 || quality > 100) {e_printf("Not a sensible number for option -q\n"); return 1; }
+                  if (quality < 0 || quality > 100) {e_printf("Not a sensible number for option -q\n"); return 1; }
                   break;
         case 's': scale=atoi(optarg);
                   if (scale < 1 || scale > 128) {e_printf("Not a sensible number for option -s\n"); return 1; }
