@@ -20,15 +20,15 @@ public:
 
     ColorVal min(int p) const { if (p<3) return 0; else if (p==3) return 1; else return ranges->min(p); }
     ColorVal max(int p) const { switch(p) {
-                                        case 0: return nb_colors-1;
-                                        case 1: return 0;
+                                        case 0: return 0;
+                                        case 1: return nb_colors-1;
                                         case 2: return 0;
                                         case 3: return 1;
                                         default: return ranges->max(p);
                                          };
                               }
     void minmax(const int p, const prevPlanes &pp, ColorVal &minv, ColorVal &maxv) const {
-         if (p==0) { minv=0; maxv=nb_colors-1; return;}
+         if (p==1) { minv=0; maxv=nb_colors-1; return;}
          else if (p<3) { minv=0; maxv=0; return;}
          else if (p==3) { minv=1; maxv=1; return;}
          else ranges->minmax(p,pp,minv,maxv);
@@ -63,7 +63,7 @@ public:
         for (Image& image : images) {
           for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
-                int P=image(0,r,c);
+                int P=image(1,r,c);
                 image.set(0,r,c, std::get<1>(Palette_vector[P]));
                 image.set(1,r,c, std::get<2>(Palette_vector[P]));
                 image.set(2,r,c, std::get<3>(Palette_vector[P]));
@@ -98,8 +98,8 @@ public:
                 if (std::get<0>(C) == 0) { std::get<1>(C) = std::get<2>(C) = std::get<3>(C) = 0; }
                 ColorVal P=0;
                 for (Color c : Palette_vector) {if (c==C) break; else P++;}
-                image.set(0,r,c, P);
-                image.set(1,r,c, 0);
+                image.set(0,r,c, 0);
+                image.set(1,r,c, P);
                 image.set(2,r,c, 0);
                 image.set(3,r,c, 1);
             }

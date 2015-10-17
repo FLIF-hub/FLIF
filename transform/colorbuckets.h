@@ -320,7 +320,7 @@ protected:
     bool init(const ColorRanges *srcRanges) {
         really_used = false;
         if(srcRanges->numPlanes() < 3) return false;
-        if (srcRanges->min(1) == 0 && srcRanges->max(1) == 0 && srcRanges->min(2) == 0 && srcRanges->max(2) == 0) return false; // probably palette image
+        if (srcRanges->min(0) == 0 && srcRanges->max(0) == 0 && srcRanges->min(2) == 0 && srcRanges->max(2) == 0) return false; // probably palette image
         if (srcRanges->min(0) == srcRanges->max(0) &&
             srcRanges->min(1) == srcRanges->max(1) &&
             srcRanges->min(2) == srcRanges->max(2)) return false; // only alpha plane contains information

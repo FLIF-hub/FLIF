@@ -35,4 +35,4 @@
 // this is enough to get a reasonable thumbnail/icon before the tree gets built/transmitted (at most 64x64 pixels)
 
 // faster decoding, less compression (disable multi-scale bitchances, use 24-bit rac)
-//#define FAST_BUT_WORSE_COMPRESSION 1
+#define FAST_BUT_WORSE_COMPRESSION 1
