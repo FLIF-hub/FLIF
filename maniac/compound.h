@@ -30,7 +30,7 @@ public:
     PropertyVal splitval;
     uint32_t childID;
     uint32_t leafID;
-    int64_t count;
+    int32_t count;
     PropertyDecisionNode(int p=-1, int s=0, int c=0) : property(p), splitval(s), childID(c), leafID(0), count(0) {}
 };
 
@@ -115,7 +115,7 @@ public:
     uint64_t realSize;
     std::vector<uint64_t> virtSize;
     std::vector<int64_t> virtPropSum;
-    int64_t count;
+    int32_t count;
     int8_t best_property;
 
     void resetCounters() {
@@ -192,7 +192,7 @@ private:
         real.estim(bit, chances.realSize);
         real.put(bit, table);
 
-        signed short int best_property = -1;
+        int8_t best_property = -1;
         uint64_t best_size = chances.realSize;
 /*
         if (best_size > (1ULL<<60)) {
