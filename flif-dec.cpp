@@ -298,8 +298,8 @@ template <typename IO>
 bool flif_decode(IO& io, Images &images, int quality, int scale)
 {
     if (scale != 1 && scale != 2 && scale != 4 && scale != 8 && scale != 16 && scale != 32 && scale != 64 && scale != 128) {
-                e_printf("Invalid scale down factor: %i\n", scale);
-                return false;
+        e_printf("Invalid scale down factor: %i\n", scale);
+        return false;
     }
 
     char buff[5];
@@ -379,8 +379,8 @@ bool flif_decode(IO& io, Images &images, int quality, int scale)
     }
 
     for (int i=0; i<numFrames; i++) {
-      images.push_back(Image());
-      images[i].init(width,height,0,maxmax,numPlanes);
+        images.push_back(Image());
+        images[i].init(width,height,0,maxmax,numPlanes);
     }
     std::vector<const ColorRanges*> rangesList;
     std::vector<Transform<IO>*> transforms;
@@ -519,3 +519,4 @@ bool flif_decode(IO& io, Images &images, int quality, int scale)
 
 
 template bool flif_decode(FileIO& io, Images &images, int quality, int scale);
+template bool flif_decode(BlobIO& io, Images &images, int quality, int scale);

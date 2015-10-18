@@ -128,16 +128,27 @@ void show_banner() {
     v_printf(3,"\n");
 }
 
-bool check_compatible_extension (char *ext) {
-    if (!(ext && ( !strcasecmp(ext,".png") // easy to add or remove formats
-                  || !strcasecmp(ext,".pnm")
-                  || !strcasecmp(ext,".ppm")
-                  || !strcasecmp(ext,".pgm")
-                  || !strcasecmp(ext,".pbm")
-                  || !strcasecmp(ext,".pam")))) {
+bool stringMatch (const char* aString, const char* bString, bool caseSenstive = true) {
+    if (!aString || !bString) {
         return false;
+    }
+    if (caseSenstive) {
+        return (strcasecmp(aString, bString) == 0);
     } else {
+        return (strcmp(aString, bString) == 0);
+    }
+}
+
+bool check_compatible_extension (char *ext) {
+    if (stringMatch(ext, ".png") // easy to add or remove formats
+        || stringMatch(ext, ".pnm")
+        || stringMatch(ext, ".ppm")
+        || stringMatch(ext, ".pgm")
+        || stringMatch(ext, ".pbm")
+        || stringMatch(ext, ".pam") ) {
         return true;
+    } else {
+        return false;
     }
 }
 
