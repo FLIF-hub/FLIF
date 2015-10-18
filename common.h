@@ -30,6 +30,7 @@ extern int64_t pixels_done;
 #define MAX_TRANSFORM 8
 
 extern const std::vector<std::string> transforms;
+extern uint8_t transform_l;
 
 typedef SimpleBitChance                         FLIFBitChancePass1;
 

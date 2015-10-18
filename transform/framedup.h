@@ -23,19 +23,20 @@ protected:
 
     void configure(const int setting) { nb=setting; }
 
-    void load(const ColorRanges *, RacIn<IO> &rac) {
+    bool load(const ColorRanges *, RacIn<IO> &rac) {
         SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> coder(rac);
         seen_before.clear();
         seen_before.push_back(-1);
-        for (unsigned int i=1; i<nb; i++) seen_before.push_back(coder.read_int(-1,nb-2));
+        for (unsigned int i=1; i<nb; i++) seen_before.push_back(coder.read_int(-1,i-1));
         int count=0; for(int i : seen_before) { if(i>=0) count++; } v_printf(5,"[%i]",count);
+        return true;
     }
 
 #ifdef HAS_ENCODER
     void save(const ColorRanges *, RacOut<IO> &rac) const {
         SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> coder(rac);
         assert(nb == seen_before.size());
-        for (unsigned int i=1; i<seen_before.size(); i++) coder.write_int(-1,nb-2,seen_before[i]);
+        for (unsigned int i=1; i<seen_before.size(); i++) coder.write_int(-1,i-1,seen_before[i]);
         int count=0; for(int i : seen_before) { if(i>=0) count++; } v_printf(5,"[%i]",count);
     }
 

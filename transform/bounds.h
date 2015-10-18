@@ -45,7 +45,7 @@ protected:
         }
     }
 
-    void load(const ColorRanges *srcRanges, RacIn<IO> &rac) {
+    bool load(const ColorRanges *srcRanges, RacIn<IO> &rac) {
         SimpleSymbolCoder<SimpleBitChance, RacIn<IO>, 24> coder(rac);
         bounds.clear();
         for (int p=0; p<srcRanges->numPlanes(); p++) {
@@ -53,9 +53,13 @@ protected:
 //            ColorVal max = coder.read_int(0, srcRanges->max(p) - min) + min;
             ColorVal min = coder.read_int(srcRanges->min(p), srcRanges->max(p));
             ColorVal max = coder.read_int(min, srcRanges->max(p));
+            if (min > max) return false;
+            if (min < srcRanges->min(p)) return false;
+            if (max > srcRanges->max(p)) return false;
             bounds.push_back(std::make_pair(min,max));
             v_printf(5,"[%i:%i..%i]",p,min,max);
         }
+        return true;
     }
 
 #ifdef HAS_ENCODER

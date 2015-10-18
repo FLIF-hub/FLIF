@@ -19,14 +19,15 @@ using namespace maniac::util;
 
 template<typename RAC> void static write_name(RAC& rac, std::string desc)
 {
-    int nb=0;
+    int nb = transform_l;
     while (nb <= MAX_TRANSFORM) {
         if (transforms[nb] == desc) break;
         nb++;
     }
-    if (transforms[nb] != desc) { e_printf("ERROR: Unknown transform description string!\n"); return;}
+    if (transforms[nb] != desc) { e_printf("ERROR: Invalid transform: '%s'\n",desc.c_str()); return;}
     UniformSymbolCoder<RAC> coder(rac);
-    coder.write_int(0, MAX_TRANSFORM, nb);
+    coder.write_int(0, MAX_TRANSFORM-transform_l, nb-transform_l);
+    transform_l = nb+1;
 }
 
 
@@ -315,6 +316,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     rangesList.push_back(getRanges(image));
     int tcount=0;
     v_printf(4,"Transforms: ");
+    transform_l=0;
     for (unsigned int i=0; i<transDesc.size(); i++) {
         Transform<IO> *trans = create_transform<IO>(transDesc[i]);
         if (transDesc[i] == "PLT" || transDesc[i] == "PLA") trans->configure(palette_size);

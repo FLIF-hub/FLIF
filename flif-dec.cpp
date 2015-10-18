@@ -18,7 +18,9 @@ using namespace maniac::util;
 template<typename RAC> std::string static read_name(RAC& rac)
 {
     UniformSymbolCoder<RAC> coder(rac);
-    int nb = coder.read_int(0, MAX_TRANSFORM);
+    int nb = transform_l + coder.read_int(0, MAX_TRANSFORM-transform_l);
+    if (nb>MAX_TRANSFORM) nb=MAX_TRANSFORM;
+    transform_l = nb+1;
     return transforms[nb];
 }
 
@@ -385,7 +387,9 @@ bool flif_decode(IO& io, Images &images, int quality, int scale)
     rangesList.push_back(getRanges(images[0]));
     v_printf(4,"Transforms: ");
     int tcount=0;
+    transform_l=0;
     while (rac.read()) {
+        if (transform_l > MAX_TRANSFORM) return false;
         std::string desc = read_name(rac);
         Transform<IO> *trans = create_transform<IO>(desc);
         if (!trans) {
@@ -404,7 +408,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale)
                 if (unique_frames < 1) {return false;}
                 trans->configure(unique_frames*images[0].rows()); trans->configure(images[0].cols()); }
         if (desc == "DUP") { trans->configure(images.size()); }
-        trans->load(rangesList.back(), rac);
+        if (!trans->load(rangesList.back(), rac)) return false;
         rangesList.push_back(trans->meta(images, rangesList.back()));
         transforms.push_back(trans);
     }

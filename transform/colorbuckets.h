@@ -263,7 +263,7 @@ public:
         const ColorBucket& b = bucket(p,pp);
         minv=b.min;
         maxv=b.max;
-//        if (b.min > b.max) { printf("UGH!! HOW? Shouldn't happen!\n"); assert(false); minv=0; maxv=0; v=0; }
+        if (b.min > b.max) { e_printf("Corruption detected!\n"); exit(4); } // printf("UGH!! HOW? Shouldn't happen!\n"); assert(false); minv=0; maxv=0; v=0; }
         v=b.snapColor(v);
     }
     void minmax(const int p, const prevPlanes &pp, ColorVal &minv, ColorVal &maxv) const {
@@ -399,7 +399,7 @@ protected:
 //        b.print();
         return b;
     }
-    void load(const ColorRanges *srcRanges, RacIn<IO> &rac) {
+    bool load(const ColorRanges *srcRanges, RacIn<IO> &rac) {
 //        printf("Loading Color Buckets\n");
         SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> coder(rac);
         prevPlanes pixelL, pixelU;
@@ -421,6 +421,7 @@ protected:
                 pixelL[0] += CB0b; pixelU[0] += CB0b; 
         }
         if (srcRanges->numPlanes() > 3) cb->bucket3 = load_bucket(coder, srcRanges, 3, pixelL, pixelU);
+        return true;
     }
 
 #ifdef HAS_ENCODER

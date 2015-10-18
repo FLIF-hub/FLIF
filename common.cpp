@@ -4,7 +4,8 @@ using namespace maniac::util;
 
 std::vector<ColorVal> grey; // a pixel with values in the middle of the bounds
 
-const std::vector<std::string> transforms = {"YIQ","BND","ACB","PLT","PLA","FRS","DUP","FRA","???"};
+const std::vector<std::string> transforms = {"YIQ","BND","PLA","PLT","ACB","DUP","FRS","FRA","???"};
+uint8_t transform_l = 0;
 
 int64_t pixels_todo = 0;
 int64_t pixels_done = 0;

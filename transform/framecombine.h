@@ -31,6 +31,7 @@ protected:
     int max_lookback;
     int user_max_lookback;
     const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) {
+        if (max_lookback >= (int)images.size()) { e_printf("Bad value for FRA lookback\n"); exit(4);}
         was_flat = srcRanges->numPlanes() < 4;
         for (unsigned int fr=0; fr<images.size(); fr++) {
             Image& image = images[fr];
@@ -41,10 +42,11 @@ protected:
         return new ColorRangesFC(lookback, (srcRanges->numPlanes() == 4 ? srcRanges->min(3) : 1), (srcRanges->numPlanes() == 4 ? srcRanges->max(3) : 1), srcRanges);
     }
 
-    void load(const ColorRanges *, RacIn<IO> &rac) {
+    bool load(const ColorRanges *, RacIn<IO> &rac) {
         SimpleSymbolCoder<SimpleBitChance, RacIn<IO>, 24> coder(rac);
         max_lookback = coder.read_int(1, 256);
         v_printf(5,"[%i]",max_lookback);
+        return true;
     }
 
 #ifdef HAS_ENCODER
@@ -70,10 +72,11 @@ protected:
             for (uint32_t r=0; r<image.rows(); r++) {
                 for (uint32_t c=image.col_begin[r]; c<image.col_end[r]; c++) {
                     new_pixels++;
-                    if (nump>3 && image(3,r,c) == 0) { continue; }
                     for (int prev=1; prev <= fr; prev++) {
                         if (prev>user_max_lookback) break;
                         bool identical=true;
+                        if (nump>3 && image(3,r,c) == 0 && images[fr-prev](3,r,c) == 0) identical=true;
+                        else
                         for (int p=0; p<nump; p++) {
                           if(image(p,r,c) != images[fr-prev](p,r,c)) { identical=false; break;}
                         }

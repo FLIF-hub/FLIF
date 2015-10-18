@@ -138,7 +138,7 @@ public:
         v_printf(5,"[%lu]",Palette_vector.size());
     }
 #endif
-    void load(const ColorRanges *srcRanges, RacIn<IO> &rac) {
+    bool load(const ColorRanges *srcRanges, RacIn<IO> &rac) {
         SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> coder(rac);
         SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> coderY(rac);
         SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> coderI(rac);
@@ -166,5 +166,6 @@ public:
         }
 //        printf("\nLoaded palette of size: %lu\n",Palette_vector.size());
         v_printf(5,"[%lu]",Palette_vector.size());
+        return true;
     }
 };

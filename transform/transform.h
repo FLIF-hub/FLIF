@@ -19,7 +19,7 @@ public:
 
     bool virtual init(const ColorRanges *) { return true; }
     void virtual configure(const int) { }
-    void virtual load(const ColorRanges *, RacIn<IO> &) {};
+    bool virtual load(const ColorRanges *, RacIn<IO> &) { return true; };
 #ifdef HAS_ENCODER
     bool virtual process(const ColorRanges *, const Images &) { return true; };
     void virtual save(const ColorRanges *, RacOut<IO> &) const {};
