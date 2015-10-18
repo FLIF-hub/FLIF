@@ -303,6 +303,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     if (numFrames>1) v_printf(3,", frames: %i",numFrames);
     v_printf(3,"\n");
     if (numFrames>1) {
+        metaCoder.write_int(0, 100, 0); // repeats (0=infinite)
         for (int i=0; i<numFrames; i++) {
            metaCoder.write_int(0, 60000, frame_delay); // time in ms between frames
         }
