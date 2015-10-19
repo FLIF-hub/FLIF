@@ -98,12 +98,13 @@ bool image_load_rggb(const char *filename, Image& image)
 
 bool image_save_rggb(const char *filename, const Image& image)
 {
+    if (image.numPlanes() != 4) return false;
+
     FILE *fp = fopen(filename,"wb");
     if (!fp) {
         return false;
     }
 
-    if (image.numPlanes() != 4) return false;
         ColorVal max = image.max(0);
 
         if (max > 0xffff) {

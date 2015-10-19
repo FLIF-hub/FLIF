@@ -9,6 +9,7 @@ set(IMAGE_SOURCES
     image/image-pam.cpp
     image/image-png.cpp
     image/image-pnm.cpp
+    image/image-rggb.cpp
     image/image.cpp
 )
 
