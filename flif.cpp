@@ -122,7 +122,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  _____  __  (__) _____");
-    v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1 [17 October 2015]");
+    v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1 [19 October 2015]");
     v_printf(3,"\n  (__  ||  |_|__||  __)    Free Lossless Image Format");
     v_printf(3,"\n    (__||______) |__)    ");v_printf(2,"  (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
     v_printf(3,"\n");
@@ -134,7 +134,8 @@ bool check_compatible_extension (char *ext) {
                   || !strcasecmp(ext,".ppm")
                   || !strcasecmp(ext,".pgm")
                   || !strcasecmp(ext,".pbm")
-                  || !strcasecmp(ext,".pam")))) {
+                  || !strcasecmp(ext,".pam")
+                  || !strcasecmp(ext,".rggb")))) {
         return false;
     } else {
         return true;

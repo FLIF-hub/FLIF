@@ -4,6 +4,7 @@
 #include "image-png.h"
 #include "image-pnm.h"
 #include "image-pam.h"
+#include "image-rggb.h"
 #include "../common.h"
 
 #ifdef _MSC_VER
@@ -34,6 +35,9 @@ bool Image::load(const char *filename)
     if (ext && !strcasecmp(ext,".pam")) {
         return image_load_pam(filename,*this);
     }
+    if (ext && !strcasecmp(ext,".rggb")) {
+        return image_load_rggb(filename,*this);
+    }
     if (image_load_pnm(filename,*this) || !image_load_png(filename,*this)) return true;
     e_printf("ERROR: Unknown input file type to read from: %s\n",ext ? ext : "(none)");
     return false;
@@ -59,6 +63,9 @@ bool Image::save(const char *filename) const
     }
     if (ext && !strcasecmp(ext,".pam")) {
         return image_save_pam(filename,*this);
+    }
+    if (ext && !strcasecmp(ext,".rggb")) {
+        return image_save_rggb(filename,*this);
     }
     e_printf("ERROR: Unknown extension to write to: %s\n",ext ? ext : "(none)");
     return false;

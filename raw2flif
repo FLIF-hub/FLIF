@@ -1,0 +1,29 @@
+#!/bin/bash
+
+FLIF="./flif -vvv"
+TMPDIR="tmp_raw2flif"
+
+if [ $# -lt 2 ]
+then
+    echo "Usage: $0  input_raw_file  output.flif"
+else
+    mkdir -p $TMPDIR
+    rm -f $TMPDIR/*
+    if dcraw -i $1 > $TMPDIR/__dcraw_id
+    then
+        # extract metadata
+        exiv2 ex -l $TMPDIR $1
+        # extract raw data, presumably in some kind of RGGB format
+        dcraw -E -4 -c $1 > $TMPDIR/_image_tmp.rggb
+        # flif it
+        $FLIF $TMPDIR/_image_tmp.rggb $TMPDIR/__image.flif
+        # remove the uncompressed data
+        rm $TMPDIR/_image_tmp.rggb
+        # put it all (id, metadata, compressed raw data) in an archive
+        ar r $2 $TMPDIR/*
+    else
+        echo "Not a camera raw file: $1"
+    fi
+    rm -f $TMPDIR/*
+    rmdir $TMPDIR
+fi
