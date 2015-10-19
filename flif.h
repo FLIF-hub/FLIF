@@ -22,8 +22,6 @@ extern "C" {
     typedef struct FLIF_DECODER FLIF_DECODER;
     typedef struct FLIF_ENCODER FLIF_ENCODER;
 
-    #define FLIF_API __attribute__((cdecl))
-
     FLIF_IMAGE* FLIF_API flif_create_image(uint32_t width, uint32_t height);
     void FLIF_API flif_destroy_image(FLIF_IMAGE* image);
 
