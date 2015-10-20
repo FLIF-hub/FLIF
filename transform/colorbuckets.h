@@ -504,18 +504,18 @@ protected:
         }
     }
 
-    bool process(const ColorRanges *, const Images &images) {
+    bool process(const ColorRanges *srcRanges, const Images &images) {
             std::vector<ColorVal> pixel(images[0].numPlanes());
             // fill buckets
             for (const Image& image : images)
             for (uint32_t r=0; r<image.rows(); r++) {
                 for (uint32_t c=0; c<image.cols(); c++) {
-//                  pixel.clear();
-                  for (int p=0; p<image.numPlanes(); p++) {
+                  int p;
+                  for (p=0; p<image.numPlanes(); p++) {
                     ColorVal v = image(p,r,c);
-//                    pixel.push_back(v);
                     pixel[p] = v;
                   }
+                  if (p>3 && pixel[3]==0) { cb->findBucket(3, pixel).addColor(0,max_per_colorbucket[3]); continue;}
                   cb->addColor(pixel);
                 }
             }
@@ -535,7 +535,9 @@ protected:
 
 //            printf("Filled color buckets with %i discrete colors + %i continous buckets\n",totaldiscretecolors,totalcontinuousbuckets);
             bool doing_it=false;
-            if (totaldiscretecolors < 10000 && totalcontinuousbuckets < 500) doing_it=true;
+            int64_t total_pixels = (int64_t) images.size() * images[0].rows() * images[0].cols();
+            v_printf(7,"[D=%i,C=%i,P=%i]",totaldiscretecolors,totalcontinuousbuckets,(int) (total_pixels/100));
+            if (totaldiscretecolors < total_pixels/50 && totalcontinuousbuckets < total_pixels/100) doing_it=true;
 
             // simplify buckets
             if (!doing_it) {

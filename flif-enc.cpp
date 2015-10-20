@@ -197,8 +197,13 @@ template<typename Rac, typename Coder> void flif_encode_FLIF2_pass(Rac &rac, con
 
 void flif_encode_FLIF2_interpol_zero_alpha(Images &images, const ColorRanges *, const int beginZL, const int endZL)
 {
-    for (Image& image : images)
-    for (int i = 0; i < plane_zoomlevels(image, beginZL, endZL); i++) {
+    for (Image& image : images) {
+     if (image(3,0,0) == 0) {
+        image.set(0,0,0,grey[0]);
+        image.set(1,0,0,grey[1]);
+        image.set(2,0,0,grey[2]);
+     }
+     for (int i = 0; i < plane_zoomlevels(image, beginZL, endZL); i++) {
       std::pair<int, int> pzl = plane_zoomlevel(image, beginZL, endZL, i);
       int p = pzl.first;
       int z = pzl.second;
@@ -220,6 +225,7 @@ void flif_encode_FLIF2_interpol_zero_alpha(Images &images, const ColorRanges *, 
             }
           }
       }
+     }
     }
 //    v_printf(2,"\n");
 }
