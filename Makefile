@@ -8,13 +8,13 @@ FILES_H := maniac/*.h maniac/*.cpp image/*.h transform/*.h flif-enc.h flif-dec.h
 FILES_CPP := maniac/chance.cpp image/crc32k.cpp image/image.cpp image/image-png.cpp image/image-pnm.cpp image/image-pam.cpp image/image-rggb.cpp image/color_range.cpp transform/factory.cpp common.cpp flif-enc.cpp flif-dec.cpp io.cpp
 
 flif: $(FILES_H) $(FILES_CPP) flif.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) -DNDEBUG -O3 -g0 -Wall $(FILES_CPP) flif.cpp -o flif $(LDFLAGS)
+	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LDFLAGS) -DNDEBUG -O3 -g0 -Wall $(FILES_CPP) flif.cpp -o flif
 
 flif.prof: $(FILES_H) $(FILES_CPP) flif.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LDFLAGS) -DNDEBUG -O3 -g0 -pg -Wall $(FILES_CPP) flif.cpp -o flif.prof $(LDFLAGS)
+	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LDFLAGS) -DNDEBUG -O3 -g0 -pg -Wall $(FILES_CPP) flif.cpp -o flif.prof
 
 flif.dbg: $(FILES_H) $(FILES_CPP) flif.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LDFLAGS) -O0 -ggdb3 -Wall $(FILES_CPP) flif.cpp -o flif.dbg $(LDFLAGS)
+	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LDFLAGS) -O0 -ggdb3 -Wall $(FILES_CPP) flif.cpp -o flif.dbg
 
 libflif.so: $(FILES_H) $(FILES_CPP) flif.h flif-interface-private.h flif-interface.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) -DNDEBUG -O3 -g0 -Wall -shared -fPIC $(FILES_CPP) flif-interface.cpp -o libflif.so $(LDFLAGS)

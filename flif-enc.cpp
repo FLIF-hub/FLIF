@@ -239,7 +239,7 @@ void flif_encode_scanlines_interpol_zero_alpha(Images &images, const ColorRanges
     for (Image& image : images)
     for (int p = 0; p < 3; p++) {
         Properties properties((nump>3?NB_PROPERTIES_scanlinesA[p]:NB_PROPERTIES_scanlines[p]));
-        if (ranges->min(p) >= ranges->max(p)) continue;
+//        if (ranges->min(p) >= ranges->max(p)) continue;  // nope, gives problem with fully A=0 image
 //          v_printf(2,"[%i] interpol_zero_alpha ",p);
 //        fflush(stdout);
         for (uint32_t r = 0; r < image.rows(); r++) {
@@ -445,6 +445,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     metaCoder.write_int(0, 0xFFFF, checksum / 0x10000);
     metaCoder.write_int(0, 0xFFFF, checksum & 0xFFFF);
     rac.flush();
+//    images[0].save("debug.pam");
 
     for (int i=transforms.size()-1; i>=0; i--) {
         delete transforms[i];

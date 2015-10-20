@@ -94,6 +94,7 @@ protected:
                     assert(v >= srcRanges->min(p));
                 }
             }
+            if (min > max) min = max = (min+max)/2; // this can happen if the image is fully transparent
             bounds.push_back(std::make_pair(min,max));
             if (min > srcRanges->min(p)) trivialbounds=false;
             if (max < srcRanges->max(p)) trivialbounds=false;
