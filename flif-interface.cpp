@@ -55,6 +55,12 @@ void FLIF_IMAGE::read_row_RGBA8(uint32_t row, void* buffer, size_t buffer_size_b
             buffer_rgba[c].a = image(3, row, c);
         }
     }
+    else
+    {
+        for (size_t c = 0; c < (size_t) image.cols(); c++) {
+            buffer_rgba[c].a = 255;
+        }
+    }
 }
 
 //=============================================================================

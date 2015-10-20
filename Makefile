@@ -22,8 +22,12 @@ libflif.so: $(FILES_H) $(FILES_CPP) flif.h flif-interface-private.h flif-interfa
 libflifd.so: $(FILES_H) $(FILES_CPP) flif.h flif-interface-private.h flif-interface.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) -O0 -ggdb3 -Wall -shared -fPIC $(FILES_CPP) flif-interface.cpp -o libflifd.so $(LDFLAGS)
 
-test-interface: libflifd.so flif.h
+viewflif: libflif.so flif.h tools/viewer.c
+	gcc -O2 -ggdb3 $(shell sdl2-config --cflags) $(shell sdl2-config --libs) -Wall -I. tools/viewer.c -o viewflif -L. -lflif
+
+test-interface: libflifd.so flif.h tools/test.c
 	gcc -O0 -ggdb3 -Wall -I. tools/test.c -o test-interface -L. -lflifd
+
 
 test: flif test-interface
 	mkdir -p testFiles
