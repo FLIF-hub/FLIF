@@ -15,6 +15,8 @@ protected:
     uint32_t cols;
     uint32_t nb;
 
+    bool undo_redo_during_decode() { return false; }
+
     const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) {
         uint32_t pos=0;
         for (unsigned int fr=1; fr<images.size(); fr++) {

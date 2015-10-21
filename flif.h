@@ -7,7 +7,9 @@
 #ifdef _MSC_VER
 #define FLIF_API __cdecl
 #else
-#define FLIF_API __attribute__((cdecl))
+// is this needed?
+#define FLIF_API
+//#define FLIF_API __attribute__((cdecl))
 #endif
 
 /*!
@@ -37,6 +39,7 @@ extern "C" {
 
     void FLIF_API flif_decoder_set_quality(FLIF_DECODER* decoder, int32_t quality);
     void FLIF_API flif_decoder_set_scale(FLIF_DECODER* decoder, uint32_t scale);
+    void FLIF_API flif_decoder_set_callback(FLIF_DECODER* decoder, uint32_t (*callback)(int quality,int bytes_read));
 
     int32_t FLIF_API flif_decoder_decode_file(FLIF_DECODER* decoder, const char* filename);
     int32_t FLIF_API flif_decoder_decode_memory(FLIF_DECODER* decoder, const void* buffer, size_t buffer_size_bytes);

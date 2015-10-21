@@ -37,6 +37,8 @@ class TransformBounds : public Transform<IO> {
 protected:
     std::vector<std::pair<ColorVal, ColorVal> > bounds;
 
+    bool undo_redo_during_decode() { return false; }
+
     const ColorRanges *meta(Images&, const ColorRanges *srcRanges) {
         if (srcRanges->isStatic()) {
             return new StaticColorRanges(bounds);

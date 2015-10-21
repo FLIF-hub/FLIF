@@ -25,6 +25,8 @@ libflifd.so: $(FILES_H) $(FILES_CPP) flif.h flif-interface-private.h flif-interf
 viewflif: libflif.so flif.h tools/viewer.c
 	gcc -O2 -ggdb3 $(shell sdl2-config --cflags) $(shell sdl2-config --libs) -Wall -I. tools/viewer.c -o viewflif -L. -lflif
 
+all: flif libflif.so viewflif
+
 test-interface: libflifd.so flif.h tools/test.c
 	gcc -O0 -ggdb3 -Wall -I. tools/test.c -o test-interface -L. -lflifd
 

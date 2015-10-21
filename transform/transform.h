@@ -14,10 +14,16 @@ protected:
 public:
     virtual ~Transform() {};
 
-    // On encode: init, process, save, meta, data, <processing>
-    // On decode: init,          load, meta,       <processing>, invData           ( + optional configure anywhere)
+    // On encode: init, process, save, meta, data, <encoding>
+    // On decode: init,          load, meta,       <decoding>, invData           ( + optional configure anywhere)
+    // Progressive decode: init, load, meta,       <decoding>, invData, <render>, data,
+    //                                             <decoding>, invData, <render>, data,
+    //                                             ...
+    //                                             <decoding>, invData
+
 
     bool virtual init(const ColorRanges *) { return true; }
+    bool virtual undo_redo_during_decode() { return true; }
     void virtual configure(const int) { }
     bool virtual load(const ColorRanges *, RacIn<IO> &) { return true; };
 #ifdef HAS_ENCODER

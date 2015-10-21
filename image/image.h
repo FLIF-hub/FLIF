@@ -407,13 +407,15 @@ public:
           crc32k_transform(crc,height & 255);
           crc32k_transform(crc,height / 256);
           for (int p=0; p<num; p++) {
-//            for (ColorVal d : p.data) {
+//            printf("\nPlane %i\n",p);
             for (uint32_t r=0; r<height; r++) {
                for (uint32_t c=0; c<width; c++) {
                  ColorVal d = operator()(p,r,c);
+//                 printf("%c",' ' + (d & 63));
                  crc32k_transform(crc,d & 255);
                  crc32k_transform(crc,d / 256);
-              }
+               }
+//               printf("\n");
             }
           }
 //          printf("Computed checksum: %X\n", (~crc & 0xFFFFFFFF));

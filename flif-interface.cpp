@@ -44,21 +44,21 @@ void FLIF_IMAGE::read_row_RGBA8(uint32_t row, void* buffer, size_t buffer_size_b
     if(image.numPlanes() >= 3)
     {
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
-            buffer_rgba[c].r = image(0, row, c);
-            buffer_rgba[c].g = image(1, row, c);
-            buffer_rgba[c].b = image(2, row, c);
+            buffer_rgba[c].r = image(0, row, c) & 0xFF;
+            buffer_rgba[c].g = image(1, row, c) & 0xFF;
+            buffer_rgba[c].b = image(2, row, c) & 0xFF;
         }
     }
     if(image.numPlanes() == 4)
     {
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
-            buffer_rgba[c].a = image(3, row, c);
+            buffer_rgba[c].a = image(3, row, c) & 0xFF;
         }
     }
     else
     {
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
-            buffer_rgba[c].a = 255;
+            buffer_rgba[c].a = 0xFF;
         }
     }
 }
@@ -68,23 +68,27 @@ void FLIF_IMAGE::read_row_RGBA8(uint32_t row, void* buffer, size_t buffer_size_b
 FLIF_DECODER::FLIF_DECODER()
 : quality(100)
 , scale(1)
+, callback(NULL)
 {
 }
 
 int32_t FLIF_DECODER::decode_file(const char* filename)
 {
+    internal_images.clear();
     images.clear();
-    requested_images.clear();
+//    requested_images.clear();
 
     FILE *file = fopen(filename,"rb");
     if(!file)
         return 0;
     FileIO fio(file, filename);
 
-    if(!flif_decode(fio, images, quality, scale))
+    if(!flif_decode(fio, internal_images, quality, scale, reinterpret_cast<uint32_t (*)(int,int)>(callback), images))
         return 0;
 
-    requested_images.resize(images.size());
+    images.clear();
+    for (Image& image : internal_images) images.emplace_back(std::move(image));
+//    requested_images.resize(images.size());
 
     return 1;
 }
@@ -106,17 +110,20 @@ FLIF_IMAGE* FLIF_DECODER::get_image(size_t index)
 {
     if(index >= images.size())
         return 0;
+    FLIF_IMAGE *i = new FLIF_IMAGE();
+    i->image = images[index].clone();
+    return i;
 
-    if(requested_images[index].get() == 0)
-    {
-        requested_images[index].reset(new FLIF_IMAGE());
+//    if(requested_images[index].get() == 0)
+//    {
+//        requested_images[index].reset(new FLIF_IMAGE());
 
         // this line invalidates images[index]
         // but we aren't using it afterwards, so it is ok
-        requested_images[index]->image = std::move(images[index]);
-    }
+//        requested_images[index]->image = std::move(images[index]);
+//    }
 
-    return requested_images[index].get();
+//   return requested_images[index].get();
 }
 
 //=============================================================================
@@ -309,6 +316,17 @@ FLIF_DLLEXPORT void FLIF_API flif_decoder_set_scale(FLIF_DECODER* decoder, uint3
     try
     {
         decoder->scale = scale;
+    }
+    catch(...)
+    {
+    }
+}
+
+FLIF_DLLEXPORT void FLIF_API flif_decoder_set_callback(FLIF_DECODER* decoder, uint32_t (*callback)(int quality,int bytes_read))
+{
+    try
+    {
+        decoder->callback = (void*) callback;
     }
     catch(...)
     {

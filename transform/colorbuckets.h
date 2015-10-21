@@ -285,6 +285,7 @@ protected:
     bool really_used;
 
     ~TransformCB() {if (!really_used) delete cb;}
+    bool undo_redo_during_decode() { return false; }
 
     const ColorRanges* meta(Images&, const ColorRanges *srcRanges) {
 //        cb->print();
@@ -523,40 +524,25 @@ protected:
             cb->bucket0.simplify_lossless();
             cb->bucket3.simplify_lossless();
 
-//                  if (totaldiscretecolors > 20000 && totalcontinuousbuckets > 2000) {
-//                        printf("Too many colors, not using color buckets.\n");
-//                        return false;
-//                  }
-
 
         // TODO: IMPROVE THESE HEURISTICS!
         // TAKE IMAGE SIZE INTO ACCOUNT!
         // CONSIDER RELATIVE AREA OF BUCKETS / BOUNDS!
 
 //            printf("Filled color buckets with %i discrete colors + %i continous buckets\n",totaldiscretecolors,totalcontinuousbuckets);
-            bool doing_it=false;
+
             int64_t total_pixels = (int64_t) images.size() * images[0].rows() * images[0].cols();
-            v_printf(7,"[D=%i,C=%i,P=%i]",totaldiscretecolors,totalcontinuousbuckets,(int) (total_pixels/100));
-            if (totaldiscretecolors < total_pixels/50 && totalcontinuousbuckets < total_pixels/100) doing_it=true;
+            v_printf(7,", [D=%i,C=%i,P=%i]",totaldiscretecolors,totalcontinuousbuckets,(int) (total_pixels/100));
+            if (totaldiscretecolors < total_pixels/100 && totalcontinuousbuckets < total_pixels/50) return true;
 
             // simplify buckets
-            if (!doing_it) {
-              for (auto& b : cb->bucket1) b.simplify(80);
-              for (auto& bv : cb->bucket2) for (auto& b : bv) b.simplify(60);
-
-//              printf("Filled color buckets with %i discrete colors + %i continous buckets\n",totaldiscretecolors,totalcontinuousbuckets);
-              if (totaldiscretecolors > 1000) {
-//                printf("Too many colors, simplifying...\n");
-                for (auto& b : cb->bucket1) b.simplify(50);
-                for (auto& bv : cb->bucket2) for (auto& b : bv) b.simplify(20);
-//                printf("Filled color buckets with %i discrete colors + %i continous buckets\n",totaldiscretecolors,totalcontinuousbuckets);
-                if (totaldiscretecolors > 2000 || totalcontinuousbuckets > 2000) {
-//                  printf("Still too many colors, not using auto-indexing.\n");
-                  return false;
-                }
-              }
+            for (int factor = 95; factor >= 35; factor -= 10) {
+                for (auto& b : cb->bucket1) b.simplify(factor);
+                for (auto& bv : cb->bucket2) for (auto& b : bv) b.simplify(factor-20);
+                v_printf(8,"->[D=%i,C=%i]",totaldiscretecolors,totalcontinuousbuckets);
+                if (totaldiscretecolors < total_pixels/200 && totalcontinuousbuckets < total_pixels/100) return true;
             }
-            return true;
+            return false;
     }
 #endif
 };
