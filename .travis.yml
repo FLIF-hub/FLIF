@@ -1,13 +1,29 @@
- language: c++
- script: "make test"
- sudo: false
- addons:
-  apt:
-   sources:
-    - ubuntu-toolchain-r-test
-   packages:
-    - g++-4.8
-    - libpng12-dev
-    - imagemagick
- install:
-  - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
+language: cpp
+
+compiler:
+  - gcc
+  - clang
+
+sudo: true
+
+
+before_install:
+  - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+  - sudo apt-get update -qq
+  - sudo apt-get install g++-4.8 libpng12-dev imagemagick
+ 
+
+
+env:
+  matrix:
+    - BUILDTYPE=CMAKE
+    - BUILDTYPE=GNUMAKE
+    - BUILDTYPE=ASAN
+    - BUILDTYPE=SHARED
+
+script:
+  - if [[ "$BUILDTYPE" == "ASAN" ]] && [[ "$CXX" == "g++" ]]; then export CXX="g++-4.8" CC="gcc-4.8"; cmake -DUSE_ASAN=ON . ; make ; fi
+  - if [[ "$CXX" == "g++" ]]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
+  - if [[ "$BUILDTYPE" == "CMAKE" ]]; then cmake . ; make ; fi
+  - if [[ "$BUILDTYPE" == "GNUMAKE" ]]; then make ; make test ;  fi
+  - if [[ "$BUILDTYPE" == "SHARED" ]] ; then cmake -DSHARED=ON .;  make ; fi 
