@@ -95,10 +95,20 @@ int32_t FLIF_DECODER::decode_file(const char* filename)
 
 int32_t FLIF_DECODER::decode_memory(const void* buffer, size_t buffer_size_bytes)
 {
-    (void)buffer;
-    (void)buffer_size_bytes;
-    // TODO
-    return 0;
+    internal_images.clear();
+    images.clear();
+//    requested_images.clear();
+
+    BlobReader reader(reinterpret_cast<const uint8_t*>(buffer), buffer_size_bytes);
+
+    if(!flif_decode(reader, internal_images, quality, scale, reinterpret_cast<uint32_t (*)(int,int)>(callback), images))
+        return 0;
+
+    images.clear();
+    for (Image& image : internal_images) images.emplace_back(std::move(image));
+//    requested_images.resize(images.size());
+
+    return 1;
 }
 
 size_t FLIF_DECODER::num_images()
@@ -180,11 +190,30 @@ int32_t FLIF_ENCODER::encode_file(const char* filename)
 */
 int32_t FLIF_ENCODER::encode_memory(void** buffer, size_t* buffer_size_bytes)
 {
-    (void)buffer;
-    (void)buffer_size_bytes;
-    // TODO
+    BlobIO io;
 
-    return 0;
+    // TODO: need to change flif_encode() so these expensive copies can be avoided
+    Images copies;
+    for(size_t i = 0; i < images.size(); ++i)
+        copies.push_back(images[i]->image.clone());
+
+    std::vector<std::string> transDesc = {"YIQ","BND","PLA","PLT","ACB","DUP","FRS","FRA"};
+
+    if(!flif_encode(io, copies,
+        transDesc,
+        interlaced != 0 ? flifEncoding::interlaced : flifEncoding::nonInterlaced,
+        learn_repeats,
+        acb,
+        frame_delay,
+        palette_size,
+        loopback))
+    {
+        return 0;
+    }
+
+    *buffer = io.release(buffer_size_bytes);
+
+    return 1;
 }
 
 //=============================================================================

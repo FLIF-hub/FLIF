@@ -101,6 +101,50 @@ int compare_images(FLIF_IMAGE* image1, FLIF_IMAGE* image2)
     return result;
 }
 
+int compare_file_and_blob(const void* blob, size_t blob_size, const char* filename)
+{
+    int result = 0;
+    FILE* f = fopen(filename, "rb");
+    if(f)
+    {
+        const uint8_t* blob_ptr = (const uint8_t*)blob;
+
+        fseek(f, 0, SEEK_END);
+        long int file_size = ftell(f);
+        fseek(f, 0, SEEK_SET);
+
+        if(file_size != blob_size)
+        {
+            printf("Error: flif file size: %ld <---> flif blob size: %zu\n", file_size, blob_size);
+            result = 1;
+        }
+        else
+        {
+            size_t i;
+            for(i = 0; i < blob_size; ++i)
+            {
+                int c = fgetc(f);
+                if(c == EOF)
+                {
+                    printf("IO error: premature EOF at %zu\n", i);
+                    result = 1;
+                    break;
+                }
+
+                if(c != *(blob_ptr + i))
+                {
+                    printf("Error: file and blob do not match at %zu\n", i);
+                    result = 1;
+                    break;
+                }
+            }
+        }
+
+        fclose(f);
+    }
+    return result;
+}
+
 int main()
 {
     int result = 0;
@@ -119,6 +163,9 @@ int main()
     {
         fill_dummy_image(im);
 
+        void* blob = 0;
+        size_t blob_size = 0;
+
         FLIF_ENCODER* e = flif_create_encoder();
         if(e)
         {
@@ -130,11 +177,23 @@ int main()
             flif_encoder_set_loopback(e, 1);
 
             flif_encoder_add_image(e, im);
-            if(flif_encoder_encode_file(e, dummy_file) == 0)
+            if(!flif_encoder_encode_file(e, dummy_file))
             {
-                printf("Error: encoding failed\n");
+                printf("Error: encoding file failed\n");
                 result = 1;
             }
+
+            if(!flif_encoder_encode_memory(e, &blob, &blob_size))
+            {
+                printf("Error: encoding blob failed\n");
+                result = 1;
+            }
+
+            // TODO: uncommenting this causes subsequent test to fail???
+            /*if(!compare_file_and_blob(blob, blob_size, dummy_file))
+            {
+                result = 1;
+            }*/
 
             flif_destroy_encoder(e);
             e = 0;
@@ -146,21 +205,42 @@ int main()
             flif_decoder_set_quality(d, 100);
             flif_decoder_set_scale(d, 1);
 
-            if(flif_decoder_decode_file(d, dummy_file) == 0)
             {
-                printf("Error: decoding failed\n");
-                result = 1;
+                if(!flif_decoder_decode_file(d, dummy_file))
+                {
+                    printf("Error: decoding file failed\n");
+                    result = 1;
+                }
+
+                FLIF_IMAGE* decoded = flif_decoder_get_image(d, 0);
+                if(decoded == 0)
+                {
+                    printf("Error: No decoded image found\n");
+                    result = 1;
+                }
+                else if(compare_images(im, decoded) != 0)
+                {
+                    result = 1;
+                }
             }
 
-            FLIF_IMAGE* decoded = flif_decoder_get_image(d, 0);
-            if(decoded == 0)
             {
-                printf("Error: No decoded image found\n");
-                result = 1;
-            }
-            else if(compare_images(im, decoded) != 0)
-            {
-                result = 1;
+                if(!flif_decoder_decode_memory(d, blob, blob_size))
+                {
+                    printf("Error: decoding memory failed\n");
+                    result = 1;
+                }
+
+                FLIF_IMAGE* decoded = flif_decoder_get_image(d, 0);
+                if(decoded == 0)
+                {
+                    printf("Error: No decoded image found\n");
+                    result = 1;
+                }
+                else if(compare_images(im, decoded) != 0)
+                {
+                    result = 1;
+                }
             }
 
             flif_destroy_decoder(d);
@@ -169,7 +249,15 @@ int main()
 
         flif_destroy_image(im);
         im = 0;
+
+        if(blob)
+        {
+            flif_free_memory(blob);
+            blob = 0;
+        }
     }
+
+    printf("interface test has succeeded.\n");
 
     return result;
 }

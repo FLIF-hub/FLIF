@@ -460,5 +460,6 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
 
 
 template bool flif_encode(FileIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int frame_delay, int palette_size, int lookback);
+template bool flif_encode(BlobIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int frame_delay, int palette_size, int lookback);
 
 #endif
