@@ -13,6 +13,7 @@ protected:
     std::vector<int> seen_before;
     uint32_t nb;
 
+    bool undo_redo_during_decode() { return false; }
     const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) {
         for (unsigned int fr=0; fr<images.size(); fr++) {
             Image& image = images[fr];

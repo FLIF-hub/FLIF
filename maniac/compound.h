@@ -6,15 +6,8 @@
 #include "symbol.h"
 #include "../image/image.h"
 
-//#define CONTEXT_TREE_SPLIT_THRESHOLD 5461*1
-#define CONTEXT_TREE_SPLIT_THRESHOLD 5461*8*5
-// 5 byte improvement needed before splitting
 
-#define CONTEXT_TREE_MIN_SUBTREE_SIZE 50
-#define CONTEXT_TREE_COUNT_DIV 30
 
-#define CONTEXT_TREE_MIN_COUNT 1
-#define CONTEXT_TREE_MAX_COUNT 4096
 
 typedef  ColorVal  PropertyVal;
 typedef  std::vector<std::pair<PropertyVal,PropertyVal> > Ranges;
@@ -375,7 +368,7 @@ private:
     }
 
 public:
-    FinalPropertySymbolCoder(RAC& racIn, Ranges &rangeIn, Tree &treeIn) :
+    FinalPropertySymbolCoder(RAC& racIn, Ranges &rangeIn, Tree &treeIn, int ignored_split_threshold = 0) :
         coder(racIn),
         range(rangeIn),
         nb_properties(range.size()),
@@ -424,7 +417,7 @@ public:
         }
     }
 #endif
-    void simplify() const {}
+    void simplify(int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE) {}
 };
 
 
@@ -442,6 +435,7 @@ private:
     std::vector<CompoundSymbolChances<BitChance,bits> > leaf_node;
     Tree &inner_node;
     std::vector<bool> selection;
+    int split_threshold;
 #ifdef STATS
     uint64_t symbols;
 #endif
@@ -464,7 +458,7 @@ private:
 
         // split leaf node if some virtual context is performing (significantly) better
         if(result.best_property != -1
-           && result.realSize > result.virtSize[result.best_property] + CONTEXT_TREE_SPLIT_THRESHOLD
+           && result.realSize > result.virtSize[result.best_property] + split_threshold
            && current_ranges[result.best_property].first < current_ranges[result.best_property].second) {
 
           int8_t p = result.best_property;
@@ -516,14 +510,15 @@ private:
     }
 
 public:
-    PropertySymbolCoder(RAC& racIn, Ranges &rangeIn, Tree &treeIn) :
+    PropertySymbolCoder(RAC& racIn, Ranges &rangeIn, Tree &treeIn, int st=CONTEXT_TREE_SPLIT_THRESHOLD) :
         rac(racIn),
         coder(racIn),
         range(rangeIn),
         nb_properties(range.size()),
         leaf_node(1,CompoundSymbolChances<BitChance,bits>(nb_properties)),
         inner_node(treeIn),
-        selection(nb_properties,false) {
+        selection(nb_properties,false),
+        split_threshold(st) {
 #ifdef STATS
             symbols = 0;
 #endif
@@ -576,7 +571,7 @@ public:
 
 
     // destructive simplification procedure, prunes subtrees with too low counts
-    long long int simplify_subtree(int pos) {
+    long long int simplify_subtree(int pos, int divisor, int min_size) {
         PropertyDecisionNode &n = inner_node[pos];
         if (n.property == -1) {
 //            printf("* leaf %i : count=%lli, size=%llu bits, bits per int: %f\n", n.leafID, (long long int)leaf_node[n.leafID].count, (unsigned long long int)leaf_node[n.leafID].realSize/5461, (leaf_node[n.leafID].count > 0 ? leaf_node[n.leafID].realSize/leaf_node[n.leafID].count*1.0/5461 : -1));
@@ -586,24 +581,23 @@ public:
 //            printf("* split on prop %i at val %i after %lli steps\n", n.property, n.splitval, (long long int)n.count);
 //            printf("* split on prop %i\n", n.property);
             long long int subtree_size = 0;
-            subtree_size += simplify_subtree(n.childID);
-            subtree_size += simplify_subtree(n.childID+1);
-            n.count /= CONTEXT_TREE_COUNT_DIV;
+            subtree_size += simplify_subtree(n.childID, divisor, min_size);
+            subtree_size += simplify_subtree(n.childID+1, divisor, min_size);
+            n.count /= divisor;
             if (n.count > CONTEXT_TREE_MAX_COUNT) {
-//               e_printf( "Unexpected high count in context tree.\n");
                n.count = CONTEXT_TREE_MAX_COUNT;
             }
             if (n.count < CONTEXT_TREE_MIN_COUNT) n.count=CONTEXT_TREE_MIN_COUNT;
 //            printf("%li COUNT\n",n.count);
-            if (subtree_size < CONTEXT_TREE_MIN_SUBTREE_SIZE) {
+            if (subtree_size < min_size) {
 //                printf("  PRUNING THE ABOVE SUBTREE\n");
                 n.property = -1; // procedure is destructive because the leafID is not set
             }
             return subtree_size;
         }
     }
-    void simplify() {
-        simplify_subtree(0);
+    void simplify(int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE) {
+        simplify_subtree(0, divisor, min_size);
     }
 
 };

@@ -7,7 +7,9 @@
 #ifdef _MSC_VER
 #define FLIF_API __cdecl
 #else
-#define FLIF_API __attribute__((cdecl))
+// is this needed?
+#define FLIF_API
+//#define FLIF_API __attribute__((cdecl))
 #endif
 
 /*!
@@ -27,6 +29,7 @@ extern "C" {
 
     uint32_t FLIF_API flif_image_get_width(FLIF_IMAGE* image);
     uint32_t FLIF_API flif_image_get_height(FLIF_IMAGE* image);
+    uint8_t  FLIF_API flif_image_get_nb_channels(FLIF_IMAGE* image);
     // TODO: tentative
     void FLIF_API flif_image_write_row_RGBA8(FLIF_IMAGE* image, uint32_t row, const void* buffer, size_t buffer_size_bytes);
     // TODO: tentative
@@ -37,6 +40,7 @@ extern "C" {
 
     void FLIF_API flif_decoder_set_quality(FLIF_DECODER* decoder, int32_t quality);
     void FLIF_API flif_decoder_set_scale(FLIF_DECODER* decoder, uint32_t scale);
+    void FLIF_API flif_decoder_set_callback(FLIF_DECODER* decoder, uint32_t (*callback)(int quality,int bytes_read));
 
     int32_t FLIF_API flif_decoder_decode_file(FLIF_DECODER* decoder, const char* filename);
     int32_t FLIF_API flif_decoder_decode_memory(FLIF_DECODER* decoder, const void* buffer, size_t buffer_size_bytes);
@@ -51,7 +55,10 @@ extern "C" {
     void FLIF_API flif_encoder_set_auto_color_buckets(FLIF_ENCODER* encoder, uint32_t acb);
     void FLIF_API flif_encoder_set_frame_delay(FLIF_ENCODER* encoder, uint32_t frame_delay);
     void FLIF_API flif_encoder_set_palette_size(FLIF_ENCODER* encoder, int32_t palette_size);
-    void FLIF_API flif_encoder_set_loopback(FLIF_ENCODER* encoder, int32_t loopback);
+    void FLIF_API flif_encoder_set_lookback(FLIF_ENCODER* encoder, int32_t loopback);
+    void FLIF_API flif_encoder_set_divisor(FLIF_ENCODER* encoder, int32_t divisor);
+    void FLIF_API flif_encoder_set_min_size(FLIF_ENCODER* encoder, int32_t min_size);
+    void FLIF_API flif_encoder_set_split_threshold(FLIF_ENCODER* encoder, int32_t split_threshold);
 
     void FLIF_API flif_encoder_add_image(FLIF_ENCODER* encoder, FLIF_IMAGE* image);
     int32_t FLIF_API flif_encoder_encode_file(FLIF_ENCODER* encoder, const char* filename);

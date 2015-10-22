@@ -30,6 +30,8 @@ protected:
     bool was_flat;
     int max_lookback;
     int user_max_lookback;
+
+    bool undo_redo_during_decode() { return false; }
     const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) {
         if (max_lookback >= (int)images.size()) { e_printf("Bad value for FRA lookback\n"); exit(4);}
         was_flat = srcRanges->numPlanes() < 4;

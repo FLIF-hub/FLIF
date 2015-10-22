@@ -37,6 +37,8 @@ class TransformBounds : public Transform<IO> {
 protected:
     std::vector<std::pair<ColorVal, ColorVal> > bounds;
 
+    bool undo_redo_during_decode() { return false; }
+
     const ColorRanges *meta(Images&, const ColorRanges *srcRanges) {
         if (srcRanges->isStatic()) {
             return new StaticColorRanges(bounds);
@@ -94,6 +96,7 @@ protected:
                     assert(v >= srcRanges->min(p));
                 }
             }
+            if (min > max) min = max = (min+max)/2; // this can happen if the image is fully transparent
             bounds.push_back(std::make_pair(min,max));
             if (min > srcRanges->min(p)) trivialbounds=false;
             if (max < srcRanges->max(p)) trivialbounds=false;

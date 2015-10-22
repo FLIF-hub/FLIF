@@ -28,10 +28,12 @@ struct FLIF_DECODER
 
     int32_t quality;
     uint32_t scale;
+    void* callback;
 
 private:
+    Images internal_images;
     Images images;
-    std::vector<std::unique_ptr<FLIF_IMAGE>> requested_images;
+//    std::vector<std::unique_ptr<FLIF_IMAGE>> requested_images;
 };
 
 struct FLIF_ENCODER
@@ -47,7 +49,10 @@ struct FLIF_ENCODER
     uint32_t acb;
     uint32_t frame_delay;
     int32_t palette_size;
-    int32_t loopback;
+    int32_t lookback;
+    int32_t divisor;
+    int32_t min_size;
+    int32_t split_threshold;
 
 private:
     std::vector<FLIF_IMAGE*> images;
