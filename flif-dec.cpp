@@ -529,3 +529,4 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
 
 
 template bool flif_decode(FileIO& io, Images &images, int quality, int scale, uint32_t (*callback)(int,int), Images &partial_images);
+template bool flif_decode(BlobReader& io, Images &images, int quality, int scale, uint32_t (*callback)(int,int), Images &partial_images);

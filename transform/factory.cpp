@@ -34,3 +34,5 @@ Transform<IO> *create_transform(std::string desc)
 }
 
 template Transform<FileIO> *create_transform(std::string desc);
+template Transform<BlobReader> *create_transform(std::string desc);
+template Transform<BlobIO> *create_transform(std::string desc);
