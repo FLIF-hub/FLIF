@@ -174,7 +174,7 @@ int main()
             flif_encoder_set_auto_color_buckets(e, 1);
             flif_encoder_set_frame_delay(e, 100);
             flif_encoder_set_palette_size(e, 512);
-            flif_encoder_set_loopback(e, 1);
+            flif_encoder_set_lookback(e, 1);
 
             flif_encoder_add_image(e, im);
             if(!flif_encoder_encode_file(e, dummy_file))
