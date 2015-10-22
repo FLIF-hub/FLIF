@@ -23,7 +23,7 @@ uint32_t progressive_render(int quality, int bytes_read) {
     if (!window) window = SDL_CreateWindow("FLIF Viewer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, w, h, 0);
     if (!window) { printf("Error: Could not create window\n"); return 2; }
     char title[100];
-    sprintf(title,"FLIF Viewer: %i bytes read, quality=%.2f%%\n",bytes_read, 0.01*quality);
+    sprintf(title,"%ix%i FLIF image [read %i bytes, quality=%.2f%%]",w,h,bytes_read, 0.01*quality);
     SDL_SetWindowTitle(window,title);
     SDL_Surface *canvas = SDL_GetWindowSurface(window);
     if (!canvas) { printf("Error: Could not get canvas\n"); return 2; }
@@ -34,9 +34,16 @@ uint32_t progressive_render(int quality, int bytes_read) {
         flif_image_read_row_RGBA8(image, r, pp, w * sizeof(RGBA));
         pp += surf->pitch;
     }
+    if (flif_image_get_nb_channels(image) > 3) {
+      // SDL_FillRect(canvas,NULL,0);
+      // Draw checkerboard background for image with alpha channel
+      SDL_Rect sq; sq.w=20; sq.h=20;
+      for (sq.y=0; sq.y<h; sq.y+=sq.h) for (sq.x=0; sq.x<w; sq.x+=sq.w)
+          SDL_FillRect(canvas,&sq,((sq.y/sq.h + sq.x/sq.w)&1 ? 0xFF606060 : 0xFFA0A0A0));
+    }
     SDL_BlitSurface(surf,NULL,canvas,NULL);
     SDL_UpdateWindowSurface(window);
-    //SDL_Delay(1000);
+    //SDL_Delay(500);
     return quality + 200; // call me back when you have at least 2% better quality
 }
 

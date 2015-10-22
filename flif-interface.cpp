@@ -18,16 +18,14 @@ void FLIF_IMAGE::write_row_RGBA8(uint32_t row, const void* buffer, size_t buffer
 
     const FLIF_RGBA* buffer_rgba = reinterpret_cast<const FLIF_RGBA*>(buffer);
 
-    if(image.numPlanes() >= 3)
-    {
+    if(image.numPlanes() >= 3) {
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
             image.set(0, row, c, buffer_rgba[c].r);
             image.set(1, row, c, buffer_rgba[c].g);
             image.set(2, row, c, buffer_rgba[c].b);
         }
     }
-    if(image.numPlanes() == 4)
-    {
+    if(image.numPlanes() >= 4) {
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
             image.set(3, row, c, buffer_rgba[c].a);
         }
@@ -41,22 +39,26 @@ void FLIF_IMAGE::read_row_RGBA8(uint32_t row, void* buffer, size_t buffer_size_b
 
     FLIF_RGBA* buffer_rgba = reinterpret_cast<FLIF_RGBA*>(buffer);
 
-    if(image.numPlanes() >= 3)
-    {
+    if(image.numPlanes() >= 3) {
+        // color
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
             buffer_rgba[c].r = image(0, row, c) & 0xFF;
             buffer_rgba[c].g = image(1, row, c) & 0xFF;
             buffer_rgba[c].b = image(2, row, c) & 0xFF;
         }
+    } else {
+        // grayscale
+        for (size_t c = 0; c < (size_t) image.cols(); c++) {
+            buffer_rgba[c].r =
+            buffer_rgba[c].g =
+            buffer_rgba[c].b = image(0, row, c) & 0xFF;
+        }
     }
-    if(image.numPlanes() == 4)
-    {
+    if(image.numPlanes() >= 4) {
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
             buffer_rgba[c].a = image(3, row, c) & 0xFF;
         }
-    }
-    else
-    {
+    } else {
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
             buffer_rgba[c].a = 0xFF;
         }
@@ -277,6 +279,21 @@ FLIF_DLLEXPORT uint32_t FLIF_API flif_image_get_height(FLIF_IMAGE* image)
     try
     {
         return image->image.rows();
+    }
+    catch(...)
+    {
+    }
+
+    return 0;
+}
+
+FLIF_DLLEXPORT uint8_t FLIF_API flif_image_get_nb_channels(FLIF_IMAGE* image)
+{
+    try
+    {
+        int nb = image->image.numPlanes();
+        if (nb > 4) nb = 4; // there could be an extra plane for FRA
+        return nb;
     }
     catch(...)
     {

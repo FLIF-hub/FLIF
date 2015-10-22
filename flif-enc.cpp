@@ -109,7 +109,7 @@ template<typename Rac, typename Coder> void flif_encode_FLIF2_inner(Rac rac, std
       if (endZL==0) {
           v_printf(2,"\r%i%% done [%i/%i] ENC[%i,%ux%u]  ",(int) (100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
       }
-      pixels_done += images[0].cols(z)*images[0].rows(z)/2;
+      pixels_done += (images[0].cols(z)/(z%2==0?1:2))*(images[0].rows(z)/(z%2==0?2:1));
       if (ranges->min(p) >= ranges->max(p)) continue;
       Properties properties((nump>3?NB_PROPERTIESA[p]:NB_PROPERTIES[p]));
       if (z % 2 == 0) {
@@ -178,6 +178,7 @@ template<typename Rac, typename Coder> void flif_encode_FLIF2_pass(Rac &rac, con
       for (int p = 0; p < image.numPlanes(); p++) {
         ColorVal curr = image(p,0,0);
         metaCoder.write_int(ranges->min(p), ranges->max(p), curr);
+        pixels_done++;
       }
     }
     while(repeats-- > 0) {
