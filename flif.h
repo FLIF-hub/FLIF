@@ -55,7 +55,10 @@ extern "C" {
     void FLIF_API flif_encoder_set_auto_color_buckets(FLIF_ENCODER* encoder, uint32_t acb);
     void FLIF_API flif_encoder_set_frame_delay(FLIF_ENCODER* encoder, uint32_t frame_delay);
     void FLIF_API flif_encoder_set_palette_size(FLIF_ENCODER* encoder, int32_t palette_size);
-    void FLIF_API flif_encoder_set_loopback(FLIF_ENCODER* encoder, int32_t loopback);
+    void FLIF_API flif_encoder_set_lookback(FLIF_ENCODER* encoder, int32_t loopback);
+    void FLIF_API flif_encoder_set_divisor(FLIF_ENCODER* encoder, int32_t divisor);
+    void FLIF_API flif_encoder_set_min_size(FLIF_ENCODER* encoder, int32_t min_size);
+    void FLIF_API flif_encoder_set_split_threshold(FLIF_ENCODER* encoder, int32_t split_threshold);
 
     void FLIF_API flif_encoder_add_image(FLIF_ENCODER* encoder, FLIF_IMAGE* image);
     int32_t FLIF_API flif_encoder_encode_file(FLIF_ENCODER* encoder, const char* filename);

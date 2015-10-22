@@ -22,6 +22,12 @@
 // more repeats makes encoding more expensive, but results in better trees (smaller files)
 #define TREE_LEARN_REPEATS 3
 
+// 5 byte improvement needed before splitting a MANIAC leaf node
+#define CONTEXT_TREE_SPLIT_THRESHOLD 5461*8*5
+
+#define CONTEXT_TREE_COUNT_DIV 30
+#define CONTEXT_TREE_MIN_SUBTREE_SIZE 50
+
 
 
 /**************************************************/
@@ -36,3 +42,7 @@
 
 // faster decoding, less compression (disable multi-scale bitchances, use 24-bit rac)
 #define FAST_BUT_WORSE_COMPRESSION 1
+
+// bounds for node counters
+#define CONTEXT_TREE_MIN_COUNT 1
+#define CONTEXT_TREE_MAX_COUNT 4096
