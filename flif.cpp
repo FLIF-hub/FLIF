@@ -90,21 +90,21 @@ void show_help() {
     v_printf(1,"Encode options:\n");
     v_printf(1,"   -i, --interlace          interlacing (default, except for tiny images)\n");
     v_printf(1,"   -n, --no-interlace       force no interlacing\n");
-    v_printf(1,"   -f, --frame-delay=D      delay between animation frames, in ms (default: D=100)\n");
+    v_printf(1,"   -f, --frame-delay=N      delay between animation frames, in ms; default: -f100\n");
 //    v_printf(1,"Multiple input images (for animated FLIF) must have the same dimensions.\n");
     v_printf(2,"Advanced encode options: (useful for flifcrushing)\n");
     v_printf(2,"   -a, --acb                force auto color buckets (ACB)\n");
     v_printf(2,"   -b, --no-acb             force no auto color buckets\n");
-    v_printf(2,"   -p, --palette=P          max palette size=P (default: P=512)\n");
-    v_printf(2,"   -l, --lookback=L         max lookback between animation frames (default: L=1)\n");
-    v_printf(2,"   -r, --repeats=N          MANIAC learning iterations (default: N=%i)\n",TREE_LEARN_REPEATS);
-    v_printf(2,"   -S, --split-threshold=T  MANIAC tree growth control (default: T=%i)\n",CONTEXT_TREE_SPLIT_THRESHOLD/5461);
-    v_printf(2,"   -D, --divisor=D          MANIAC node count divisor (default: D=%i)\n",CONTEXT_TREE_COUNT_DIV);
-    v_printf(2,"   -M, --min-size=M         MANIAC leaves post-pruning (default: M=%i)\n",CONTEXT_TREE_MIN_SUBTREE_SIZE);
+    v_printf(2,"   -p, --palette=N          max palette size for PLT and PLA; default: -p512\n");
+    v_printf(2,"   -l, --lookback=N         max lookback between animation frames (for FRA); default: -l1\n");
+    v_printf(2,"   -r, --repeats=N          MANIAC learning iterations; default: -r%i\n",TREE_LEARN_REPEATS);
+    v_printf(2,"   -S, --split-threshold=N  MANIAC tree growth criterion, in bits saved; default: -S%i\n",CONTEXT_TREE_SPLIT_THRESHOLD/5461);
+    v_printf(2,"   -D, --divisor=N          MANIAC inner node count divisor; default: -D%i\n",CONTEXT_TREE_COUNT_DIV);
+    v_printf(2,"   -M, --min-size=N         MANIAC post-pruning threshold; default: -M%i\n",CONTEXT_TREE_MIN_SUBTREE_SIZE);
 #endif
     v_printf(1,"Decode options:\n");
-    v_printf(1,"   -q, --quality=Q          lossy decode quality at Q percent (0..100)\n");
-    v_printf(1,"   -s, --scale=S            lossy downscaled image at scale 1:S (2,4,8,16,32)\n");
+    v_printf(1,"   -q, --quality=N          lossy decode quality percentage; default -q100\n");
+    v_printf(1,"   -s, --scale=N            lossy downscaled image at scale 1:N (2,4,8,16,32); default -s1\n");
 }
 
 bool file_exists(const char * filename){
@@ -126,7 +126,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  _____  __  (__) _____");
-    v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1.1 [22 October 2015]");
+    v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1.1 [23 October 2015]");
     v_printf(3,"\n  (__  ||  |_|__||  __)    Free Lossless Image Format");
     v_printf(3,"\n    (__||______) |__)    ");v_printf(2,"  (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
     v_printf(3,"\n");
