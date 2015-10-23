@@ -11,48 +11,57 @@
 #define PPMREADBUFLEN 256
 
 #ifdef HAS_ENCODER
-bool image_load_pnm(const char *filename, Image& image)
-{
+
+// auxiliary function to read a non-zero number from a PNM header, ignoring whitespace and comments
+unsigned int read_pnm_int(FILE *fp, char* buf, char** t) {
+    long result = strtol(*t,t,10);
+    if (result == 0) {
+        // no valid int found here, try next line
+        do {
+          *t = fgets(buf, PPMREADBUFLEN, fp);
+          if ( *t == NULL ) {return false;}
+        } while ( strncmp(buf, "#", 1) == 0 || strncmp(buf, "\n", 1) == 0);
+        result = strtol(*t,t,10);
+        if (result == 0) { e_printf("Invalid PNM file.\n"); fclose(fp); }
+    }
+    return result;
+}
+
+bool image_load_pnm(const char *filename, Image& image) {
     FILE *fp = fopen(filename,"rb");
     char buf[PPMREADBUFLEN], *t;
-    int r;
     if (!fp) {
+        e_printf("Could not open file: %s\n", filename);
         return false;
     }
     unsigned int width=0,height=0;
     unsigned int maxval=0;
-    t = fgets(buf, PPMREADBUFLEN, fp);
-    int type=0;
-    if ( (!strncmp(buf, "P4\n", 3)) ) type=4;
-    if ( (!strncmp(buf, "P5\n", 3)) ) type=5;
-    if ( (!strncmp(buf, "P6\n", 3)) ) type=6;
-    if ( (!strncmp(buf, "P7\n", 3)) ) {fclose(fp); return image_load_pam(filename, image);}
-    if (type==0) {
-        e_printf("PNM file is not of type P4, P5 or P6, cannot read other types.\n");
-        if (fp) {
-            fclose(fp);
-        }
-        return false;
-    }
     do {
-        /* Px formats can have # comments after first line */
+        /* # comments before the first line */
         t = fgets(buf, PPMREADBUFLEN, fp);
         if ( t == NULL ) return 1;
     } while ( strncmp(buf, "#", 1) == 0 || strncmp(buf, "\n", 1) == 0);
-    r = sscanf(buf, "%u %u", &width, &height);
-    if ( r < 2 ) {
+    int type=0;
+    if ( (!strncmp(buf, "P4", 2)) ) type=4;
+    if ( (!strncmp(buf, "P5", 2)) ) type=5;
+    if ( (!strncmp(buf, "P6", 2)) ) type=6;
+    if ( (!strncmp(buf, "P7", 2)) ) {fclose(fp); return image_load_pam(filename, image);}
+    if (type==0) {
+        if (buf[0] == 'P') e_printf("PNM file is not of type P4, P5, P6 or P7, cannot read other types.\n");
+        else e_printf("This does not look like a PNM file.\n");
         fclose(fp);
         return false;
     }
-
+    t += 2;
+    if (!(width = read_pnm_int(fp,buf,&t))) return false;
+    if (!(height = read_pnm_int(fp,buf,&t))) return false;
     if (type>4) {
-    char bla;
-    r = fscanf(fp, "%u%c", &maxval, &bla);
-    if ( (r < 2) || maxval<1 || maxval > 0xffff ) {
-        e_printf("Invalid PNM file.\n");
+      if (!(maxval = read_pnm_int(fp,buf,&t))) return false;
+      if ( maxval > 0xffff ) {
+        e_printf("Invalid PNM file (more than 16-bit?)\n");
         fclose(fp);
         return false;
-    }
+      }
     } else maxval=1;
 #ifndef SUPPORT_HDR
     if (maxval > 0xff) {
