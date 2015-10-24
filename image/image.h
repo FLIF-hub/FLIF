@@ -198,7 +198,7 @@ public:
       if (p>4) plane_frame_lookbacks = make_unique<Plane<ColorVal_intern_8>>(width, height); // A
       }
       catch (std::bad_alloc& ba) {
-        e_printf("Error: could not allocate enough memory.\n");
+        e_printf("Error: could not allocate enough memory for image data.\n");
         return false;
       }
       return true;

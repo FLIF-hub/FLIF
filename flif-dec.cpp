@@ -310,7 +310,8 @@ template<typename IO, typename Rac, typename Coder> void flif_decode_FLIF2_pass(
 
 template<typename BitChance, typename Rac> bool flif_decode_tree(Rac &rac, const ColorRanges *ranges, std::vector<Tree> &forest, const int encoding)
 {
-    for (int p = 0; p < ranges->numPlanes(); p++) {
+    try {
+      for (int p = 0; p < ranges->numPlanes(); p++) {
         Ranges propRanges;
         if (encoding==1) initPropRanges_scanlines(propRanges, *ranges, p);
         else initPropRanges(propRanges, *ranges, p);
@@ -318,7 +319,11 @@ template<typename BitChance, typename Rac> bool flif_decode_tree(Rac &rac, const
         if (ranges->min(p)<ranges->max(p))
         if (!metacoder.read_tree(forest[p])) {return false;}
 //        forest[p].print(stdout);
-    }
+      }
+    } catch (std::bad_alloc& ba) {
+        e_printf("Error: could not allocate enough memory for MANIAC trees.\n");
+        return false;
+      }
     return true;
 }
 
