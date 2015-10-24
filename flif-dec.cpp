@@ -431,12 +431,14 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
         }
         if (tcount++ > 0) v_printf(4,", ");
         v_printf(4,"%s", desc.c_str());
+        if (desc == "FRA" && images.size()<2) return false;
         if (desc == "FRS") {
+                if (images.size()<2) return false;
                 int unique_frames=images.size()-1; // not considering first frame
                 for (Image& i : images) if (i.seen_before >= 0) unique_frames--;
                 if (unique_frames < 1) {return false;}
                 trans->configure(unique_frames*images[0].rows()); trans->configure(images[0].cols()); }
-        if (desc == "DUP") { trans->configure(images.size()); }
+        if (desc == "DUP") { if (images.size()<2) return false; else trans->configure(images.size()); }
         if (!trans->load(rangesList.back(), rac)) return false;
         rangesList.push_back(trans->meta(images, rangesList.back()));
         transforms.push_back(trans);
