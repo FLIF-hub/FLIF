@@ -159,7 +159,7 @@ public:
       return *this;
     }
 
-    void init(uint32_t w, uint32_t h, ColorVal min, ColorVal max, int p) {
+    bool init(uint32_t w, uint32_t h, ColorVal min, ColorVal max, int p) {
       width = w;
       height = h;
       minval = min;
@@ -181,6 +181,7 @@ public:
       assert(max < (1<<depth));
       assert(p <= 4);
       clear();
+      try {
       if (depth <= 8) {
         if (p>0) plane_8_1 = make_unique<Plane<ColorVal_intern_8>>(width, height); // R,Y
         if (p>1) plane_16_1 = make_unique<Plane<ColorVal_intern_16>>(width, height); // G,I
@@ -195,6 +196,12 @@ public:
 #endif
       }
       if (p>4) plane_frame_lookbacks = make_unique<Plane<ColorVal_intern_8>>(width, height); // A
+      }
+      catch (std::bad_alloc& ba) {
+        e_printf("Error: could not allocate enough memory.\n");
+        return false;
+      }
+      return true;
     }
 
     // Copy constructor is private to avoid mistakes.

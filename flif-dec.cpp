@@ -408,7 +408,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
 
     for (int i=0; i<numFrames; i++) {
       images.push_back(Image());
-      images[i].init(width,height,0,maxmax,numPlanes);
+      if (!images[i].init(width,height,0,maxmax,numPlanes)) return false;
       if (callback) partial_images.push_back(Image());
     }
     std::vector<const ColorRanges*> rangesList;
