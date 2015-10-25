@@ -20,14 +20,6 @@ public:
     ~FileIO() {
         if (file) fclose(file);
     }
-    int read() {
-        int r = fgetc(file);
-        if (r < 0) return 0;
-        return r;
-    }
-    void write(int byte) {
-        ::fputc(byte, file);
-    }
     void flush() {
         fflush(file);
     }
@@ -74,15 +66,6 @@ public:
     {
     }
 
-    int read() {
-        int c = getc();
-        if(c == EOF)
-            return 0;
-        return c;
-    }
-    void write(int byte) {
-        // cannot write on const memory
-    }
     bool isEOF() const {
         return seek_pos >= data_array_size;
     }
@@ -105,6 +88,10 @@ public:
             return 0;
         else
             return buf;
+    }
+    int fputc(int c) {
+      // cannot write on const memory
+      return EOF;
     }
     void fseek(long offset, int where) {
         switch(where) {
@@ -185,15 +172,6 @@ public:
         return ptr;
     }
 
-    int read() {
-        int c = getc();
-        if(c == EOF)
-            return 0;
-        return c;
-    }
-    void write(int byte) {
-        fputc(byte);
-    }
     void flush() {
         // nothing to do
     }
