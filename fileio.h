@@ -20,11 +20,6 @@ public:
     ~FileIO() {
         if (file) fclose(file);
     }
-    int read() {
-        int r = fgetc(file);
-        if (r < 0) return 0;
-        return r;
-    }
     void write(int byte) {
         ::fputc(byte, file);
     }
@@ -74,12 +69,6 @@ public:
     {
     }
 
-    int read() {
-        int c = getc();
-        if(c == EOF)
-            return 0;
-        return c;
-    }
     void write(int byte) {
         // cannot write on const memory
     }
@@ -185,12 +174,6 @@ public:
         return ptr;
     }
 
-    int read() {
-        int c = getc();
-        if(c == EOF)
-            return 0;
-        return c;
-    }
     void write(int byte) {
         fputc(byte);
     }

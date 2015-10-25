@@ -40,7 +40,7 @@ private:
         while (range <= Config::MIN_RANGE) {
             low <<= 8;
             range <<= 8;
-            low |= io.read();
+            low |= read_catch_eof();
         }
     }
     bool inline get(rac_t chance) {
@@ -57,12 +57,19 @@ private:
             return 0;
         }
     }
+    int read_catch_eof()
+    {
+        int c = io.getc();
+        if(c == EOF)
+            return 0;
+        return c;
+    }
 public:
     RacInput(IO& ioin) : io(ioin), range(Config::BASE_RANGE), low(0) {
         rac_t r = Config::BASE_RANGE;
         while (r > 1) {
             low <<= 8;
-            low |= io.read();
+            low |= read_catch_eof();
             r >>= 8;
         }
     }
