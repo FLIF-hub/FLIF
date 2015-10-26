@@ -1,6 +1,6 @@
 #pragma once
 
-#include "image.h"
+#include "image.hpp"
 
 #ifdef HAS_ENCODER
 int image_load_png(const char *filename, Image &image);

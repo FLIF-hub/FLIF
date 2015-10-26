@@ -6,8 +6,8 @@
 
 #include <vector>
 #include <assert.h>
-#include "util.h"
-#include "chance.h"
+#include "util.hpp"
+#include "chance.hpp"
 
 template <typename RAC> class UniformSymbolCoder
 {

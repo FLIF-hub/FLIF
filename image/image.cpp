@@ -1,11 +1,11 @@
 #include <string.h>
 
-#include "image.h"
-#include "image-png.h"
-#include "image-pnm.h"
-#include "image-pam.h"
-#include "image-rggb.h"
-#include "../common.h"
+#include "image.hpp"
+#include "image-png.hpp"
+#include "image-pnm.hpp"
+#include "image-pam.hpp"
+#include "image-rggb.hpp"
+#include "../common.hpp"
 
 #ifdef _MSC_VER
 #define strcasecmp stricmp

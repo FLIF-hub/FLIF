@@ -5,9 +5,9 @@
 #include <stdint.h>
 #include <valarray>
 #include <memory>
-#include "crc32k.h"
+#include "crc32k.hpp"
 
-#include "../io.h"
+#include "../io.hpp"
 #include "../config.h"
 
 typedef int32_t ColorVal;  // used in computations

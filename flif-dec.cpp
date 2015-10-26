@@ -1,17 +1,17 @@
 #include <string>
 #include <string.h>
 
-#include "maniac/rac.h"
-#include "maniac/compound.h"
-#include "maniac/util.h"
+#include "maniac/rac.hpp"
+#include "maniac/compound.hpp"
+#include "maniac/util.hpp"
 
-#include "image/color_range.h"
-#include "transform/factory.h"
+#include "image/color_range.hpp"
+#include "transform/factory.hpp"
 
 #include "flif_config.h"
 
-#include "common.h"
-#include "fileio.h"
+#include "common.hpp"
+#include "fileio.hpp"
 
 using namespace maniac::util;
 

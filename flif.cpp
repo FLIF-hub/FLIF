@@ -26,12 +26,12 @@
 #include <string>
 #include <string.h>
 
-#include "maniac/rac.h"
-#include "maniac/compound.h"
-#include "maniac/util.h"
+#include "maniac/rac.hpp"
+#include "maniac/compound.hpp"
+#include "maniac/util.hpp"
 
-#include "image/color_range.h"
-#include "transform/factory.h"
+#include "image/color_range.hpp"
+#include "transform/factory.hpp"
 
 #include "flif_config.h"
 
@@ -43,11 +43,11 @@
 
 #include <stdarg.h>
 
-#include "common.h"
+#include "common.hpp"
 #ifdef HAS_ENCODER
-#include "flif-enc.h"
+#include "flif-enc.hpp"
 #endif
-#include "flif-dec.h"
+#include "flif-dec.hpp"
 
 #ifdef _MSC_VER
 #define strcasecmp stricmp

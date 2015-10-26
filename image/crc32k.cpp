@@ -1,4 +1,4 @@
-#include "crc32k.h"
+#include "crc32k.hpp"
 
 CRC32KTable::CRC32KTable() {
     uint32_t x[8];

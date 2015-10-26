@@ -2,8 +2,8 @@
 
 #include <vector>
 
-#include "transform.h"
-#include "../maniac/symbol.h"
+#include "transform.hpp"
+#include "../maniac/symbol.hpp"
 
 
 
@@ -39,7 +39,7 @@ protected:
         for (unsigned int i=0; i<nb; i+=1) {b.push_back(coder.read_int(0,cols));}
         for (unsigned int i=0; i<nb; i+=1) {
             e.push_back(cols-coder.read_int(0,cols-b[i]));
-            if (e[i] > cols || e[i] <= b[i]) {
+            if (e[i] > cols || e[i] < b[i]) {
                 e_printf("\nError: FRS transform: invalid end column\n");
                 return false;
             }

@@ -3,8 +3,8 @@
 #include <vector>
 #include <math.h>
 #include <stdint.h>
-#include "symbol.h"
-#include "../image/image.h"
+#include "symbol.hpp"
+#include "../image/image.hpp"
 
 
 

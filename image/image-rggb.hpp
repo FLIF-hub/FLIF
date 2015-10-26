@@ -1,6 +1,6 @@
 #pragma once
 
-#include "image.h"
+#include "image.hpp"
 
 #ifdef HAS_ENCODER
 bool image_load_rggb(const char *filename, Image& image);

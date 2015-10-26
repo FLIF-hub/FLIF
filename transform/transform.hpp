@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../image/image.h"
-#include "../image/color_range.h"
-#include "../maniac/rac.h"
+#include "../image/image.hpp"
+#include "../image/color_range.hpp"
+#include "../maniac/rac.hpp"
 #include "../flif_config.h"
-#include "../common.h"
+#include "../common.hpp"
 
 
 template <typename IO>

@@ -1,8 +1,8 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "chance.h"
-#include "bit.h"
+#include "chance.hpp"
+#include "bit.hpp"
 
 void build_table(uint16_t *zero_state, uint16_t *one_state, size_t size, int factor, unsigned int max_p)
 {

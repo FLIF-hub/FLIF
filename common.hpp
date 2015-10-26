@@ -4,15 +4,15 @@
 #include <string>
 #include <string.h>
 
-#include "maniac/rac.h"
-#include "maniac/compound.h"
-#include "maniac/util.h"
+#include "maniac/rac.hpp"
+#include "maniac/compound.hpp"
+#include "maniac/util.hpp"
 
-#include "image/color_range.h"
+#include "image/color_range.hpp"
 
 #include "flif_config.h"
 
-#include "io.h"
+#include "io.hpp"
 
 enum class Optional : uint8_t {
   undefined = 0

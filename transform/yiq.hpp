@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../image/image.h"
-#include "../image/color_range.h"
-#include "transform.h"
+#include "../image/image.hpp"
+#include "../image/color_range.hpp"
+#include "transform.hpp"
 #include <algorithm>
 
 #define clip(x,l,u)   if (x < l) x=l; if (x > u) x=u

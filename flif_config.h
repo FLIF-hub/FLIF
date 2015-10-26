@@ -1,8 +1,8 @@
 #pragma once
 #include "config.h"
-#include "maniac/rac.h"
+#include "maniac/rac.hpp"
 
-#include "fileio.h"
+#include "fileio.hpp"
 
 #ifdef FAST_BUT_WORSE_COMPRESSION
 template <typename IO> using RacIn = RacInput24<IO>;
@@ -19,7 +19,7 @@ template <typename IO> using RacOut = RacOutput40<IO>;
 #endif
 
 
-#include "maniac/compound.h"
+#include "maniac/compound.hpp"
 #ifdef FAST_BUT_WORSE_COMPRESSION
 typedef SimpleBitChance  FLIFBitChanceMeta;
 #else

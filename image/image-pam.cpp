@@ -3,10 +3,10 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "image.h"
-#include "image-pam.h"
-#include "image-pnm.h"
-#include "../common.h"
+#include "image.hpp"
+#include "image-pam.hpp"
+#include "image-pnm.hpp"
+#include "../common.hpp"
 
 #define PPMREADBUFLEN 256
 

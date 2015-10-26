@@ -2,10 +2,10 @@
 
 #include "flif.h"
 
-#include "image/image.h"
-#include "flif-dec.h"
-#include "flif-enc.h"
-#include "fileio.h"
+#include "image/image.hpp"
+#include "flif-dec.hpp"
+#include "flif-enc.hpp"
+#include "fileio.hpp"
 
 struct FLIF_IMAGE
 {

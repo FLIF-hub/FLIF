@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "image.h"
+#include "image.hpp"
 
 typedef std::vector<ColorVal> prevPlanes;
 

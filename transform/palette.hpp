@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../image/image.h"
-#include "../image/color_range.h"
-#include "transform.h"
+#include "../image/image.hpp"
+#include "../image/color_range.hpp"
+#include "transform.hpp"
 #include <tuple>
 #include <set>
 

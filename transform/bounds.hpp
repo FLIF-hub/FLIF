@@ -2,8 +2,8 @@
 
 #include <vector>
 
-#include "transform.h"
-#include "../maniac/symbol.h"
+#include "transform.hpp"
+#include "../maniac/symbol.hpp"
 
 class ColorRangesBounds : public ColorRanges
 {

@@ -2,8 +2,8 @@
 
 #include <vector>
 
-#include "transform.h"
-#include "../maniac/symbol.h"
+#include "transform.hpp"
+#include "../maniac/symbol.hpp"
 
 
 #define MAX_PER_BUCKET_0 255

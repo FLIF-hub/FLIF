@@ -21,10 +21,10 @@ enum {
 
 #include <vector>
 
-#include "image.h"
-#include "image-png.h"
+#include "image.hpp"
+#include "image-png.hpp"
 
-#include "../common.h"
+#include "../common.hpp"
 
 #ifdef HAS_ENCODER
 int image_load_png(const char *filename, Image &image) {

@@ -5,6 +5,7 @@
 #include "../config.h"
 
 /* RAC configuration for 40-bit RAC */
+#ifndef FAST_BUT_WORSE_COMPRESSION
 class RacConfig40
 {
 public:
@@ -14,6 +15,7 @@ public:
     static const data_t MIN_RANGE = (1ULL << (data_t)(MIN_RANGE_BITS));
     static const data_t BASE_RANGE = (1ULL << MAX_RANGE_BITS);
 };
+#endif
 
 /* RAC configuration for 24-bit RAC */
 class RacConfig24
@@ -212,6 +214,8 @@ public:
     }
 };
 
+
+#ifndef FAST_BUT_WORSE_COMPRESSION
 template <typename IO> class RacInput40 : public RacInput<RacConfig40, IO>
 {
 public:
@@ -224,6 +228,7 @@ template <typename IO> class RacOutput40 : public RacOutput<RacConfig40, IO>
 public:
     RacOutput40(IO& io) : RacOutput<RacConfig40, IO>(io) { }
 };
+#endif
 #endif
 
 template <typename IO> class RacInput24 : public RacInput<RacConfig24, IO>
