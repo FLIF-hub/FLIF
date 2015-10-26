@@ -13,6 +13,13 @@ typedef struct RGBA
 FLIF_DECODER* d = NULL;
 SDL_Window *window = NULL;
 SDL_Surface *surf = NULL;
+int quit = 0;
+
+int do_event(SDL_Event e) {
+       if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE) {printf("Closed\n"); quit=1; return 0;}
+       if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_q) {printf("Quit\n"); quit=1; return 0;}
+       return 1;
+}
 
 uint32_t progressive_render(int quality, int bytes_read) {
     printf("%i bytes read, rendering at quality=%.2f%%\n",bytes_read, 0.01*quality);
@@ -43,8 +50,10 @@ uint32_t progressive_render(int quality, int bytes_read) {
     }
     SDL_BlitSurface(surf,NULL,canvas,NULL);
     SDL_UpdateWindowSurface(window);
+    SDL_Event e;
+    while (SDL_PollEvent(&e)) {if (!do_event(e)) return 0;} // stop decoding
     //SDL_Delay(500);
-    return quality + 200; // call me back when you have at least 2% better quality
+    return quality + 500; // call me back when you have at least 5% better quality
 }
 
 int main(int argc, char **argv) {
@@ -65,15 +74,14 @@ int main(int argc, char **argv) {
         printf("Error: decoding failed\n");
         return 1;
     }
-    printf("Done.\n");
-
-    SDL_Event e;
-    while (1) {
+    if (!quit) {
+      printf("Done.\n");
+      SDL_Event e;
+      while (1) {
         SDL_WaitEvent(&e);
-        if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE) {printf("Closed\n"); break;}
-        if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_q) {printf("Quit\n"); break;}
+        if (!do_event(e)) break;
+      }
     }
-
     flif_destroy_decoder(d);
     SDL_DestroyWindow(window);
     SDL_Quit();
