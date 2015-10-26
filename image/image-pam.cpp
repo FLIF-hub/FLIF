@@ -25,8 +25,13 @@ bool image_load_pam(const char *filename, Image& image) {
     int type=0;
     if ( (!strncmp(buf, "P7\n", 3)) ) type=7;
     if (type==0) {
-        e_printf("PAM file is not of type P7, cannot read other types.\n");
         fclose(fp);
+        if ( (!strncmp(buf, "P4", 2))
+          || (!strncmp(buf, "P5", 2))
+          || (!strncmp(buf, "P6", 2))) {
+            return image_load_pnm(filename, image);
+        }
+        e_printf("PAM file is not of type P7, cannot read other types.\n");
         return false;
     }
     int maxlines=100;

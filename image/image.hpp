@@ -278,7 +278,7 @@ public:
               }
               for (uint32_t r=0; r<height; r++) {
                for (uint32_t c=0; c<width; c++) {
-                 set(3,r,c, 1); //(1<<depth)-1);
+                 set(3,r,c, 255); //(1<<depth)-1);
                }
               }
             case 4:
