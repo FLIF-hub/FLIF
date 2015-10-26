@@ -37,7 +37,13 @@ protected:
     bool load(const ColorRanges *, RacIn<IO> &rac) {
         SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> coder(rac);
         for (unsigned int i=0; i<nb; i+=1) {b.push_back(coder.read_int(0,cols));}
-        for (unsigned int i=0; i<nb; i+=1) {e.push_back(cols-coder.read_int(0,cols-b[i]));}
+        for (unsigned int i=0; i<nb; i+=1) {
+            e.push_back(cols-coder.read_int(0,cols-b[i]));
+            if (e[i] > cols || e[i] <= b[i]) {
+                e_printf("\nError: FRS transform: invalid end column\n");
+                return false;
+            }
+        }
         return true;
     }
 
