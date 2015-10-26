@@ -76,7 +76,7 @@
 void show_help() {
     v_printf(1,"Usage:\n");
 #ifdef HAS_ENCODER
-    v_printf(1,"   flif [encode options] <input image(s)> <output.flif>\n");
+    v_printf(1,"   flif [-e] [encode options] <input image(s)> <output.flif>\n");
 #endif
     v_printf(1,"   flif [-d] [decode options] <input.flif> <output.pnm | output.pam | output.png>\n");
 #ifdef HAS_ENCODER
@@ -126,7 +126,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  _____  __  (__) _____");
-    v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1.1 [23 October 2015]");
+    v_printf(3,"\n (___  ||  | |  ||  ___)   ");v_printf(2,"FLIF 0.1.1 [26 October 2015]");
     v_printf(3,"\n  (__  ||  |_|__||  __)    Free Lossless Image Format");
     v_printf(3,"\n    (__||______) |__)    ");v_printf(2,"  (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
     v_printf(3,"\n");
@@ -379,6 +379,17 @@ int main(int argc, char **argv)
         char *f = strrchr(argv[0],'/');
         char *ext = f ? strrchr(f,'.') : strrchr(argv[0],'.');
 #ifdef HAS_ENCODER
+        if (mode == 0 && file_is_flif(argv[0])) {
+            char *f = strrchr(argv[1],'/');
+            char *ext = f ? strrchr(f,'.') : strrchr(argv[1],'.');
+            if (check_compatible_extension(ext)) {
+                v_printf(3,"Input file is a FLIF file, adding implicit -d\n");
+                mode = 1;
+            } else if ((ext && ( !strcasecmp(ext,".flif")  || ( !strcasecmp(ext,".flf") )))) {
+                v_printf(3,"Input and output file are both FLIF file, adding implicit -t\n");
+                mode = 2;
+            }
+        }
         if (mode != 0) {
 #endif
             if (!(ext && ( !strcasecmp(ext,".flif")  || ( !strcasecmp(ext,".flf") )))) {
@@ -387,18 +398,7 @@ int main(int argc, char **argv)
 #ifdef HAS_ENCODER
         } else {
             if (!check_compatible_extension(ext)) {
-                e_printf("Warning: expected \".png\" or \".pnm\" file name extension for input file, trying anyway...\n");
-            }
-        }
-        if (mode == 0 && file_is_flif(argv[0])) {
-            char *f = strrchr(argv[1],'/');
-            char *ext = f ? strrchr(f,'.') : strrchr(argv[1],'.');
-            if (check_compatible_extension(ext)) {
-                v_printf(2,"Input file is a FLIF file, adding implicit -d\n");
-                mode = 1;
-            } else if ((ext && ( !strcasecmp(ext,".flif")  || ( !strcasecmp(ext,".flf") )))) {
-                v_printf(2,"Input and output file are both FLIF file, adding implicit -t\n");
-                mode = 2;
+                e_printf("Warning: expected \".png\", \".pnm\" or \".pam\" file name extension for input file, trying anyway...\n");
             }
         }
 #endif

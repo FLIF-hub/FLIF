@@ -16,6 +16,16 @@ For more information on FLIF, visit http://flif.info
 
 ###Build Instructions
 
+**GNU/Linux**
+
+* Install the dependencies:
+  * for the encoder/decoder: `sudo apt-get install libpng-dev`
+  * for the viewer: `sudo apt-get install libsdl2-dev`
+* Navigate to the FLIF directory and run `make` to build `flif`
+  * `make libflif.so` to build the shared library
+  * `make viewflif` to build the example viewer
+* `sudo make install` if you want to install it globally
+
 **Windows**
 
 * Install Visual Studio
@@ -30,10 +40,6 @@ For more information on FLIF, visit http://flif.info
 * Install kegs named `pkg-config` and `libpng`
 * Run `make` in the FLIF directory
 
-**Ubuntu**
-
-* Install libpng-dev: `sudo apt-get install libpng-dev`
-* Navigate to the FLIF directory and run `make`
 
 * * *
 
@@ -45,7 +51,7 @@ These will be available on the Release page
 
 * * *
 
-###Other Projects
+###Related Projects
 
 * **[Poly-FLIF](https://uprootlabs.github.io/poly-flif)** - A javascript polyfill that allows you to use FLIF files in the browser.
 * **[UGUI: FLIF](https://github.com/FLIF-hub/UGUI_FLIF/releases)** - A GUI that allows you to convert and view FLIF files.

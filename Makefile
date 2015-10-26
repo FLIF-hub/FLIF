@@ -1,3 +1,4 @@
+PREFIX := /usr
 CXXFLAGS := $(shell pkg-config --cflags zlib libpng)
 LDFLAGS := $(shell pkg-config --libs zlib libpng)
 
@@ -33,6 +34,12 @@ all: flif libflif.so viewflif
 test-interface: libflifd.so flif.h tools/test.c
 	gcc -O0 -ggdb3 -Wall -I. tools/test.c -o test-interface -L. -lflifd
 
+install: all
+	install -s -m 755 flif viewflif $(PREFIX)/bin
+	install -s -m 755 libflif.so $(PREFIX)/lib
+
+clean:
+	rm -f flif libflif*.so viewflif
 
 test: flif test-interface
 	mkdir -p testFiles
