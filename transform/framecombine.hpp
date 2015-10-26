@@ -41,7 +41,7 @@ protected:
         }
         int lookback = (int)images.size()-1;
         if (lookback > max_lookback) lookback=max_lookback;
-        return new ColorRangesFC(lookback, (srcRanges->numPlanes() == 4 ? srcRanges->min(3) : 1), (srcRanges->numPlanes() == 4 ? srcRanges->max(3) : 1), srcRanges);
+        return new ColorRangesFC(lookback, (srcRanges->numPlanes() == 4 ? srcRanges->min(3) : 255), (srcRanges->numPlanes() == 4 ? srcRanges->max(3) : 255), srcRanges);
     }
 
     bool load(const ColorRanges *, RacIn<IO> &rac) {
