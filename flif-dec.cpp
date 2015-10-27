@@ -519,11 +519,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
 #endif
                 break;
     }
-    if (numFrames==1)
-      v_printf(2,"\rDecoding done, %li bytes for %ux%u pixels (%.4fbpp)   \n",rac.ftell(), images[0].cols()/scale, images[0].rows()/scale, 8.0*rac.ftell()/images[0].rows()/images[0].cols()/scale/scale);
-    else
-      v_printf(2,"\rDecoding done, %li bytes for %i frames of %ux%u pixels (%.4fbpp)   \n",rac.ftell(), numFrames, images[0].cols()/scale, images[0].rows()/scale, 8.0*rac.ftell()/numFrames/images[0].rows()/images[0].cols()/scale/scale);
-
+ 
 
     if (quality==100 && scale==1) {
       uint32_t checksum = images[0].checksum();
@@ -538,7 +534,13 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
       v_printf(2,"Not checking checksum, lossy partial decoding was chosen.\n");
     }
 
-    for (int i=transforms.size()-1; i>=0; i--) {
+   if (numFrames==1)
+      v_printf(2,"\rDecoding done, %li bytes for %ux%u pixels (%.4fbpp)   \n",rac.ftell(), images[0].cols()/scale, images[0].rows()/scale, 8.0*rac.ftell()/images[0].rows()/images[0].cols()/scale/scale);
+    else
+      v_printf(2,"\rDecoding done, %li bytes for %i frames of %ux%u pixels (%.4fbpp)   \n",rac.ftell(), numFrames, images[0].cols()/scale, images[0].rows()/scale, 8.0*rac.ftell()/numFrames/images[0].rows()/images[0].cols()/scale/scale);
+
+
+    for (int i=(int)transforms.size()-1; i>=0; i--) {
         transforms[i]->invData(images);
         delete transforms[i];
     }
