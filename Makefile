@@ -8,6 +8,8 @@ export LD_LIBRARY_PATH=$(shell pwd):$LD_LIBRARY_PATH
 FILES_H := maniac/*.hpp maniac/*.cpp image/*.hpp transform/*.hpp flif-enc.hpp flif-dec.hpp common.hpp flif_config.h fileio.hpp io.hpp io.cpp config.h
 FILES_CPP := maniac/chance.cpp image/crc32k.cpp image/image.cpp image/image-png.cpp image/image-pnm.cpp image/image-pam.cpp image/image-rggb.cpp image/color_range.cpp transform/factory.cpp common.cpp flif-enc.cpp flif-dec.cpp io.cpp
 
+all: flif libflif.so viewflif
+
 flif: $(FILES_H) $(FILES_CPP) flif.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) -DNDEBUG -O3 -g0 -Wall $(FILES_CPP) flif.cpp -o flif $(LDFLAGS)
 
@@ -29,14 +31,19 @@ libflifd.so: $(FILES_H) $(FILES_CPP) flif.h flif-interface-private.h flif-interf
 viewflif: libflif.so flif.h tools/viewer.c
 	gcc -O2 -ggdb3 $(shell sdl2-config --cflags) $(shell sdl2-config --libs) -Wall -I. tools/viewer.c -o viewflif -L. -lflif
 
-all: flif libflif.so viewflif
-
 test-interface: libflifd.so flif.h tools/test.c
 	gcc -O0 -ggdb3 -Wall -I. tools/test.c -o test-interface -L. -lflifd
 
 install: all
 	install -s -m 755 flif viewflif $(PREFIX)/bin
 	install -s -m 755 libflif.so $(PREFIX)/lib
+	install -m 644 flif.1 $(PREFIX)/share/man/man1
+
+remove:
+	rm -f $(PREFIX)/bin/flif
+	rm -f $(PREFIX)/bin/viewflif
+	rm -f $(PREFIX)/lib/libflif.so
+	rm -f $(PREFIX)/share/man/man1/flif.1
 
 clean:
 	rm -f flif libflif*.so viewflif
