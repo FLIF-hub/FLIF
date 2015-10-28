@@ -4,25 +4,24 @@ compiler:
   - gcc
   - clang
 
-addons:
-  apt:
-    packages:
-    - g++
-    - libpng-dev
-    - libsdl2-dev
-    - imagemagick
+sudo: true
 
-sudo: false
+before_install:
+  - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+  - sudo apt-add-repository --yes ppa:zoogie/sdl2-snapshots
+  - sudo apt-get update -qq
+  - sudo apt-get install g++-4.8 libpng12-dev imagemagick libsdl2-dev
 
 env:
   matrix:
-    - BUILDTYPE=CMAKE
     - BUILDTYPE=GNUMAKE
+    - BUILDTYPE=CMAKE
     - BUILDTYPE=ASAN
     - BUILDTYPE=SHARED
 
 script:
+  - if [[ "$CXX" == "g++" ]]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
   - if [[ "$BUILDTYPE" == "GNUMAKE" ]]; then make ; make test ;  fi
   - if [[ "$BUILDTYPE" == "ASAN" ]]; then cmake -DUSE_ASAN=ON . ; make ; fi
   - if [[ "$BUILDTYPE" == "CMAKE" ]]; then cmake . ; make ; fi
-  - if [[ "$BUILDTYPE" == "SHARED" ]] ; then cmake -DSHARED=ON .;  make ; fi 
+  - if [[ "$BUILDTYPE" == "SHARED" ]] ; then cmake -DFLIF_SHARED=ON .;  make ; fi 
