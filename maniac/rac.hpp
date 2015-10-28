@@ -62,7 +62,7 @@ private:
     int read_catch_eof()
     {
         int c = io.getc();
-        if(c == EOF)
+        if(c == io.EOS)
             return 0;
         return c;
     }
