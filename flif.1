@@ -1,0 +1,208 @@
+.TH FLIF 1 "Oct 28, 2015" "Free Lossless Image Format" "User Commands"
+.SH NAME
+flif \- convert a image files from or to FLIF
+.SH SYNOPSIS
+.B flif
+[\fIOPTION\fR]... [\fI-d\fR] \fIinput_file.flif output_file\fR
+.br
+.B flif
+[\fIOPTION\fR]... [\fI-e\fR] \fIinput_file\fR... \fIoutput_file.flif\fR
+.br
+.B flif
+[\fIOPTION\fR]... [\fI-t\fR] \fIinput_file.flif output_file.flif\fR
+.SH DESCRIPTION
+This program can encode and decode images in the \fBFree Lossless Image Format\fP (FLIF).
+Input and output formats can be either PNG, PAM, PNM (PPM, PGM, PBM) or FLIF.
+.PP
+.B flif
+will automatically deduce the action (encode, decode or transcode) from the names and
+contents of the files. The specifiers \fI-e\fR (encode), \fI-d\fR (decode) and \fI-t\fR (transcode)
+are optional and can be safely omitted. The extension of the output file (the last argument) determines
+the image format that is used.
+
+.SH OPTIONS
+The general options are:
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+Increases verbosity. By default, \fBflif\fP is silent (unless there is a problem).
+Adding one or more \fB-v\fR will produce more output.
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Display help and quit. Use in combination with \fB-v\fP for advanced help.
+
+.SH DECODING
+To decode a FLIF image, the output filename must have one of the following extensions:
+.TP
+\fI.png\fR
+Portable Network Graphics (PNG)
+.TP
+\fI.pnm\fR
+Portable anymap (PNM). If the FLIF image has transparency (alpha channel), it will be discarded.
+If the image is a grayscale image, a PGM (P5) will be produced; otherwise a PPM (P6) is produced.
+.TP
+\fI.pam\fR
+Portable arbitrary map (PAM). If the FLIF image has an alpha channel, a PAM (P7) is produced;
+otherwise a PPM (P6) or PGM (P5) is produced.
+.TP
+\fI.rggb\fR
+This is a non-standard format which is used to represent raw camera image with RGGB data
+(i.e. raw Bayer CFA sensor data). It is actually a PGM image as produced by \fBdcraw -E -4\fR.
+.PP
+The following decode options are available:
+.TP
+\fB\-q\fR, \fB\-\-quality\fR=\fIPERCENT\fR
+FLIF is a lossless format, but it allows you to do a 'lossy decoding' (i.e. progressive loading),
+where only the beginning of the file is read (i.e. a partially downloaded FLIF image).
+The default is \fB-q\fR\fI100\fR (lossless decoding).
+.br
+This option is only effective for interlaced FLIF files.
+.TP
+\fB\-s\fR, \fB\-\-scale\fR=\fIFACTOR\fR
+For large images, in many use cases it suffices to load only a scaled-down version of the image,
+e.g. because the resolution of the target canvas is (much) lower than the image resolution.
+This option can be used to do a 'lossy decode', like \fB-q\fR. It automatically selects a
+quality percentage suitable for the desired scale-down factor.
+For an input FLIF image of dimensions \fBwidth\fR x \fBheight\fR,
+the resulting output image will have dimensions \fBwidth\fR/\fIFACTOR\fR x \fBheight\fR/\fIFACTOR\fR.
+Only powers of two (1,2,4,8,16,32,...) are allowed as scale-down factors.
+.br
+This option is only effective for interlaced FLIF files.
+
+.SH ENCODING
+To encode an image to FLIF, the input file(s) can be in any of the output formats supported by the decoder:
+PNG, PAM, or PNM. Additionally it is possible to transcode from FLIF to FLIF, which might be useful when
+using non-default encoder settings.
+.PP
+All of the encode options are optional; the defaults are supposed to be OK.
+If progressive decoding is not useful in your particular use case, then \fB\-n\fR might be a good idea,
+but other than that, it is recommended to simply use the default settings, since all of these options
+can easily lead to worse compression.
+.PP
+The following encode options are available:
+.TP
+\fB\-i\fR, \fB\-\-interlace\fR
+Force the resulting image to be interlaced (also known as 'progressive'). This is the default setting,
+except for very small images (currently defined as 'less than 10,000 pixels'), where progressive decoding
+would be of little use.
+.TP
+\fB\-n\fR, \fB\-\-no\-interlace\fR
+Force the resulting image to be non-interlaced (also known as 'scanlines'). By default, \fBflif\fP will
+produce interlaced files. Non-interlaced files tend to be (slightly) smaller for most image types, but
+they cannot be decoded progressively.
+.TP
+\fB\-p\fR, \fB\-\-palette\fR=\fINB_COLORS\fR
+Images which use relatively few different colors, e.g. ex-GIF images, can be compressed better using
+a palette of colors instead of the full RGB(A) color space. By default, \fBflif\fP uses a palette if
+the image has less than 512 distinct colors. With this option, you can adjust this threshold.
+In particular, \fB-p\fR\fI0\fR disables the use of a color palette.
+.TP
+\fB\-a\fR, \fB\-\-acb\fR
+For images which use relatively few different colors, but more than what would fit in a color palette,
+FLIF implements ACB (Auto Color Buckets) to improve compression. By default, \fBflif\fP uses a heuristic
+to decide whether or not to use ACB. With this option, ACB is forced on, unless the image is a grayscale image
+or uses a color palette.
+.TP
+\fB\-b\fR, \fB\-\-no\-acb\fR
+Similar to \fB\-a\fR, this option overrides the heuristic and forces ACB to be disabled.
+.TP
+\fB\-r\fR, \fB\-\-repeats\fR=\fINB_ITERATIONS\fR
+The first and computationally most demanding step of FLIF encoding is performing a number of iterations
+of dummy-encoding in order to learn image-adapted MANIAC trees.
+More iterations will result in larger and better MANIAC trees, resulting in better compression.
+However, since the trees themselves are part of the compressed file, too many iterations will result
+in worse overall compression. Also, larger MANIAC trees do have a negative impact on decode speed.
+The default value \fB\-r\fR\fI3\fR tends to be at or near the optimum, but sometimes
+\fB\-r\fR\fI2\fR, \fB\-r\fR\fI4\fR or \fB\-r\fR\fI5\fR produces a slightly smaller compressed file.
+.TP
+\fB\-S\fR, \fB\-\-split_threshold\fR=\fIBITS\fR
+While constructing a MANIAC tree, a leaf node turns into a decision node (i.e. it splits into two new leaf nodes)
+when a certain threshold is reached. This threshold can be expressed in the hypothetical number of bits that would have been
+saved so far if the node would have been split from the beginning. The default setting is \fB\-S\fR\fI40\fR (i.e. 5 bytes).
+Lower values will cause the MANIAC trees to be more eagerly grown, thus the trees get larger and potentially more 'noisy'.
+Higher values will result in smaller trees, and potentially less adaptation to the image (so worse compression).
+.TP
+\fB\-D\fR, \fB\-\-divisor\fR=\fIDIV\fR
+After constructing a MANIAC trees, a simple post-processing step takes place. Each inner node in the MANIAC tree contains
+a counter which determines when the node gets split during the actual encoding or decoding. During learning, the nodes are
+always split 'too late' (that is, after the split threshold has already been reached). Therefore, the counters are
+divided by some fixed constant, with the goal of make sure that during actual encoding, the splitting takes place 'early enough'.
+However, decreasing the counters too much (i.e. a value of \fIDIV\fR that is too high) means that the AC contexts in the inner nodes have no time
+to adjust, leading to worse compression.
+The default setting is \fB\-D\fR\fI30\fR.
+.TP
+\fB\-M\fR, \fB\-\-min-size\fR=\fISIZE\fR
+Also as part of the post-processing step after constructing the MANIAC trees, some pruning takes place in order to reduce the
+size of the trees (which is important since they are part of the compressed file). The pruning will remove leaf nodes and subtrees that are not
+frequently visited, i.e. the sum of the counters in the subtree is small. As a result these contexts will be merged with the one of the parent node.
+This option controls the threshold at which such pruning is done.
+The default setting is \fB\-M\fR\fI50\fR, which roughly means that subtrees are pruned if they are used for less than 50/NB_ITERATIONS subpixels.
+
+
+.SH ANIMATION
+FLIF supports animation, so if multiple input files are given, an animated FLIF file will be produced
+where each input image corresponds to one frame of the animation. All input images need to have the
+exact same dimensions (width, height, number of color channels and color depth).
+All input frames are interpreted as complete frames ('replace mode'); there is no notion of 'combine mode' frames.
+In other words, transparent pixels are always transparent, they do not combine with the pixels from the previous frame.
+.PP
+When decoding an animated FLIF file, multiple output images will be produced. The filenames of the decoded output images
+are constructed as follows: if the output filename is \fIfilename.ext\fR, then the actual output files are
+\fIfilename\fR\fB-000\fR\fI.ext\fR,
+\fIfilename\fR\fB-001\fR\fI.ext\fR,
+\fIfilename\fR\fB-002\fR\fI.ext\fR, ...,
+\fIfilename\fR\fB-<nb_frames - 1>\fR\fI.ext\fR.
+.PP
+Options specific to encoding (or transcoding) animations are as follows:
+.TP
+\fB\-f\fR, \fB\-\-frame\-delay\fR=\fIDELAY\fR
+The time between two consecutive frames of the animation, in milliseconds.
+Note: at this point, \fBflif\fR can only produce animations where each frame has the same delay.
+The FLIF format can represent variable-delay animations too though.
+The default setting is \fB\-f\fR\fI100\fR (10 frames per second).
+.TP
+\fB\-l\fR, \fB\-\-lookback\fR=\fINB_FRAMES\fR
+In animations, typically the frames are somewhat similar. To improve compression, FLIF does a generalization
+of 'combine mode': it will look back at most \fINB_FRAMES\fR frames to 'reuse' pixels.
+Using \fB\-l\fR\fI0\fR the method can be disabled. It does not make sense to use a value
+larger than the number of frames in the animation minus one.
+The default setting is \fB\-l\fR\fI1\fR. Different values can result in better or worse compression.
+
+
+
+.SH BUGS
+Please report all bugs or feature requests to our issue tracker:
+http://github.com/FLIF-hub/FLIF/issues/
+
+
+.SH EXAMPLES
+flif picture.png picture.flif
+.br
+flif frame-*.png -f40 -l10 animation.flif
+.br
+flif -q50 animation.flif decoded_frame.pam
+.br
+flif -q80 animation.flif -nap0 -f50 -l3 -r2 -S38 -D32 -M70 animation_maybe_smaller.flif
+
+.SH AUTHORS
+\fBflif\fP was written by Jon Sneyers and Pieter Wuille, with contributions from many others.
+.br
+The latest source code is available at http://github.com/FLIF-hub/FLIF/
+.PP
+This manual page was written by Jon Sneyers.
+
+
+.SH SEE ALSO
+.BR viewflif (1),
+.BR convert (1),
+.BR png (5),
+.BR pnm (5),
+.BR pgm (5),
+.BR pam (5),
+.BR dcraw (1)
+.PP
+Please refer to http://flif.info/ and http://github.com/FLIF-hub/ for additional
+information.
+
+.SH COPYRIGHT
+Copyright (C) 2010-2015 Jon Sneyers & Pieter Wuille. License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
+This is free software: you are free to change and redistribute it.  There is NO WARRANTY, to the extent permitted by law.
