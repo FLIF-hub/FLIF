@@ -21,7 +21,7 @@ env:
 
 script:
   - if [[ "$CXX" == "g++" ]]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
-  - if [[ "$BUILDTYPE" == "GNUMAKE" ]]; then make ; make test ;  fi
-  - if [[ "$BUILDTYPE" == "ASAN" ]]; then cmake -DUSE_ASAN=ON . ; make ; fi
-  - if [[ "$BUILDTYPE" == "CMAKE" ]]; then cmake . ; make ; fi
-  - if [[ "$BUILDTYPE" == "SHARED" ]] ; then cmake -DFLIF_SHARED=ON .;  make ; fi 
+  - if [[ "$BUILDTYPE" == "GNUMAKE" ]]; then make && make test ;  fi
+  - if [[ "$BUILDTYPE" == "ASAN" ]]; then cmake -DUSE_ASAN=ON . && make ; fi
+  - if [[ "$BUILDTYPE" == "CMAKE" ]]; then cmake . && make ; fi
+  - if [[ "$BUILDTYPE" == "SHARED" ]] ; then cmake -DFLIF_SHARED=ON . &&  make ; fi 

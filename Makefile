@@ -29,7 +29,7 @@ libflifd.so: $(FILES_H) $(FILES_CPP) flif.h flif-interface-private.h flif-interf
 	$(CXX) -std=gnu++11 $(CXXFLAGS) -O0 -ggdb3 -Wall -shared -fPIC $(FILES_CPP) flif-interface.cpp -o libflifd.so $(LDFLAGS)
 
 viewflif: libflif.so flif.h tools/viewer.c
-	$(CC) -std=gnu11 -O2 -ggdb3 $(shell sdl2-config --cflags) $(shell sdl2-config --libs) -Wall -I. tools/viewer.c -o viewflif -L. -lflif
+	$(CC) -std=gnu11 -O2 -ggdb3 $(shell sdl2-config --cflags) -Wall -I. tools/viewer.c -o viewflif -L. -lflif $(shell sdl2-config --libs)
 
 test-interface: libflifd.so flif.h tools/test.c
 	$(CC) -O0 -ggdb3 -Wall -I. tools/test.c -o test-interface -L. -lflifd
