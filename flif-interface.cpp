@@ -195,7 +195,11 @@ Exceptions must be caught no matter what.
 //=============================================================================
 
 #ifdef _MSC_VER
-#define FLIF_DLLEXPORT __declspec(dllexport)
+ #ifdef FLIF_BUILD_DLL
+  #define FLIF_DLLEXPORT __declspec(dllexport)
+ #else
+  #define FLIF_DLLEXPORT
+ #endif
 #else
 #define FLIF_DLLEXPORT __attribute__ ((visibility ("default")))
 #endif

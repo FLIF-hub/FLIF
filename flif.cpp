@@ -35,11 +35,7 @@
 
 #include "flif_config.h"
 
-#ifdef _MSC_VER
-#include "extern/getopt.h"
-#else
 #include <getopt.h>
-#endif
 
 #include <stdarg.h>
 

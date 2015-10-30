@@ -36,7 +36,7 @@ uint32_t progressive_render(int quality, int bytes_read) {
     if (!canvas) { printf("Error: Could not get canvas\n"); return 2; }
     if (!surf) surf = SDL_CreateRGBSurface(0,w,h,32,0x000000FF,0x0000FF00,0x00FF0000,0xFF000000);
     if (!surf) { printf("Error: Could not create surface\n"); return 2; }
-    void* pp = surf->pixels;
+    char* pp =(char*) surf->pixels;
     for (uint32_t r=0; r<h; r++) {
         flif_image_read_row_RGBA8(image, r, pp, w * sizeof(RGBA));
         pp += surf->pitch;
