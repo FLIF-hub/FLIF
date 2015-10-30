@@ -31,8 +31,9 @@ For more information on FLIF, visit http://flif.info
 * Install Visual Studio
   ([VS Community 2015](https://www.visualstudio.com/en-us/products/free-developer-offers-vs.aspx)
   is free for open source projects)
-* Click Start > All Programs > Visual Studio > Tools > `Developer Command Prompt`
-* In the command prompt, navigate to the FLIF repo and run `make_vs.bat`
+* Open the `build\MSVC` folder and Double click the `dl_make_vs.bat`. This will download required libraries and run `nmake` to build `flif.exe`
+  * `nmake libflif.dll` to build the shared library
+  * `nmake viewflif.exe` to build the example viewer
 
 **OS X**
 
