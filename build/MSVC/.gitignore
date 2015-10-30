@@ -1,0 +1,12 @@
+*/
+
+*.zip
+*.dll
+*.exe
+
+!getopt/
+
+!include/
+include/*
+!include/sdl2v140.h
+
