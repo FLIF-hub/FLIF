@@ -18,14 +18,14 @@ public:
 #endif
 
 /* RAC configuration for 24-bit RAC */
-class RacConfig24
+class RacConfig20
 {
 public:
     typedef uint32_t data_t;
-    static const data_t MAX_RANGE_BITS = 24;
+    static const data_t MAX_RANGE_BITS = 24; // just setting this to 20 does not seem to work
     static const data_t MIN_RANGE_BITS = (MAX_RANGE_BITS-8);
-    static const data_t MIN_RANGE = (1ULL << MIN_RANGE_BITS);
-    static const data_t BASE_RANGE = (1ULL << MAX_RANGE_BITS);
+    static const data_t MIN_RANGE = (1UL << MIN_RANGE_BITS);
+    static const data_t BASE_RANGE = (1UL << MAX_RANGE_BITS);
 };
 
 template <typename Config, typename IO> class RacInput
@@ -181,8 +181,9 @@ public:
         output();
         range = Config::MIN_RANGE - 1;
         output();
-        range = Config::MIN_RANGE - 1;
-        output();
+// probably not needed
+//        range = Config::MIN_RANGE - 1;
+//        output();
         io.flush();
     }
 
@@ -231,16 +232,16 @@ public:
 #endif
 #endif
 
-template <typename IO> class RacInput24 : public RacInput<RacConfig24, IO>
+template <typename IO> class RacInput20 : public RacInput<RacConfig20, IO>
 {
 public:
-    RacInput24(IO& io) : RacInput<RacConfig24, IO>(io) { }
+    RacInput20(IO& io) : RacInput<RacConfig20, IO>(io) { }
 };
 
 #ifdef HAS_ENCODER
-template <typename IO> class RacOutput24 : public RacOutput<RacConfig24, IO>
+template <typename IO> class RacOutput20 : public RacOutput<RacConfig20, IO>
 {
 public:
-    RacOutput24(IO& io) : RacOutput<RacConfig24, IO>(io) { }
+    RacOutput20(IO& io) : RacOutput<RacConfig20, IO>(io) { }
 };
 #endif
