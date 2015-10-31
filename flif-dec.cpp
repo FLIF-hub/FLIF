@@ -405,16 +405,16 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     v_printf(3,"\n");
 
     if (numFrames>1) {
+        // ignored for now (assuming loop forever)
         metaCoder.read_int(0, 100); // repeats (0=infinite)
-        for (int i=0; i<numFrames; i++) {
-           metaCoder.read_int(0, 60000); // time in ms between frames
-        }
     }
 
     for (int i=0; i<numFrames; i++) {
       images.push_back(Image());
       if (!images[i].init(width,height,0,maxmax,numPlanes)) return false;
+      if (numFrames>1) images[i].frame_delay = metaCoder.read_int(0, 60000); // time in ms between frames
       if (callback) partial_images.push_back(Image());
+      //if (numFrames>1) partial_images[i].frame_delay = images[i].frame_delay;
     }
     std::vector<const ColorRanges*> rangesList;
     std::vector<Transform<IO>*> transforms;

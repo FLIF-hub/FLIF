@@ -73,6 +73,7 @@ class Image {
       depth = other.depth;
 #endif
       palette = other.palette;
+      frame_delay = other.frame_delay;
       col_begin = other.col_begin;
       col_end = other.col_end;
       seen_before = other.seen_before;
@@ -101,6 +102,7 @@ class Image {
 
 public:
     bool palette;
+    int frame_delay;
     std::vector<uint32_t> col_begin;
     std::vector<uint32_t> col_end;
     int seen_before;
@@ -112,6 +114,7 @@ public:
       width = height = 0;
       minval = maxval = 0;
       num = 0;
+      frame_delay = 0;
 #ifdef SUPPORT_HDR
       depth = 0;
 #endif
@@ -140,6 +143,7 @@ public:
       minval = other.minval;
       maxval = other.maxval;
       num = other.num;
+      frame_delay = other.frame_delay;
 #ifdef SUPPORT_HDR
       depth = other.depth;
       other.depth = 0;
@@ -148,6 +152,7 @@ public:
       other.width = other.height = 0;
       other.minval = other.maxval = 0;
       other.num = 0;
+      other.frame_delay = 0;
 
       palette = other.palette;
       col_begin = std::move(other.col_begin);
@@ -175,7 +180,7 @@ public:
 #else
       assert(max<256);
 #endif
-
+      frame_delay=0;
       palette=false;
       assert(min == 0);
       assert(max < (1<<depth));

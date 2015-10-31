@@ -251,6 +251,15 @@ FLIF_DLLEXPORT uint8_t FLIF_API flif_image_get_nb_channels(FLIF_IMAGE* image) {
     return 0;
 }
 
+FLIF_DLLEXPORT uint32_t FLIF_API flif_image_get_frame_delay(FLIF_IMAGE* image) {
+    try
+    {
+        return image->image.frame_delay;
+    }
+    catch(...) {}
+    return 0;
+}
+
 FLIF_DLLEXPORT void FLIF_API flif_image_write_row_RGBA8(FLIF_IMAGE* image, uint32_t row, const void* buffer, size_t buffer_size_bytes) {
     try
     {

@@ -316,7 +316,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     if (numFrames>1) {
         metaCoder.write_int(0, 100, 0); // repeats (0=infinite)
         for (int i=0; i<numFrames; i++) {
-           metaCoder.write_int(0, 60000, frame_delay); // time in ms between frames
+           metaCoder.write_int(0, 60000, images[i].frame_delay); // time in ms between frames
         }
     }
 //    v_printf(2,"Header: %li bytes.\n", ftell(f));

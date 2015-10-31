@@ -221,6 +221,7 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
 
 bool handle_encode(int argc, char **argv, Images &images, int palette_size, int acb, flifEncodingOptional method, int lookback, int learn_repeats, int frame_delay, int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD) {
     if (!encode_load_input_images(argc,argv,images)) return false;
+    for (Image& i : images) i.frame_delay = frame_delay;
     argv += (argc-1);
     argc = 1;
     return encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold);
