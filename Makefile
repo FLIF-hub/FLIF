@@ -31,7 +31,7 @@ libflif.dbg.so: $(FILES_H) $(FILES_CPP) flif.h flif-interface-private.h flif-int
 viewflif: libflif.so flif.h viewflif.c
 	$(CC) -std=gnu11 -O2 -ggdb3 $(shell sdl2-config --cflags) -Wall -I. viewflif.c -o viewflif -L. -lflif $(shell sdl2-config --libs)
 
-test-interface: libflifd.so flif.h tools/test.c
+test-interface: libflif.dbg.so flif.h tools/test.c
 	$(CC) -O0 -ggdb3 -Wall -I. tools/test.c -o test-interface -L. -lflif.dbg
 
 install: all
