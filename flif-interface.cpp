@@ -107,10 +107,12 @@ size_t FLIF_DECODER::num_images() {
 FLIF_IMAGE* FLIF_DECODER::get_image(size_t index) {
     if(index >= images.size())
         return 0;
-    FLIF_IMAGE *i = new FLIF_IMAGE();
-    i->image = images[index].clone();
-    return i;
-
+    if(index >= requested_images.size()) requested_images.resize(images.size());
+    if (!requested_images[index].get()) requested_images[index].reset( new FLIF_IMAGE());
+    if (images[index].rows()) {
+        requested_images[index]->image = std::move(images[index]); // moves and invalidates images[index]
+    }
+    return requested_images[index].get();
 }
 
 //=============================================================================

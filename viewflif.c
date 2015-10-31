@@ -17,6 +17,7 @@ SDL_Surface* bgsurf = NULL;
 SDL_Surface* tmpsurf = NULL;
 int quit = 0;
 int frame = 0;
+int frame_delay[256] = {};
 
 int do_event(SDL_Event e) {
        if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE) {printf("Closed\n"); quit=1; return 0;}
@@ -48,6 +49,7 @@ uint32_t progressive_render(int quality, int bytes_read) {
         if (!image) { printf("Error: No decoded image found\n"); return 1; }
         uint32_t w = flif_image_get_width(image);
         uint32_t h = flif_image_get_height(image);
+        frame_delay[f] = flif_image_get_frame_delay(image);
         if (!surf[f]) surf[f] = SDL_CreateRGBSurface(0,w,h,32,0x000000FF,0x0000FF00,0x00FF0000,0xFF000000);
         if (!surf[f]) { printf("Error: Could not create surface\n"); return 1; }
         if (!tmpsurf) tmpsurf = SDL_CreateRGBSurface(0,w,h,32,0x000000FF,0x0000FF00,0x00FF0000,0xFF000000);
@@ -72,7 +74,7 @@ uint32_t progressive_render(int quality, int bytes_read) {
     draw_image();
 //    SDL_Delay(1000);
     if (quit) return 0; // stop decoding
-    return quality + 500; // call me back when you have at least 5% better quality
+    return quality + 1000; // call me back when you have at least 10% better quality
 }
 
 static int decodeThread(void * arg) {
@@ -110,10 +112,7 @@ int main(int argc, char **argv) {
         if (window && animation) {
             draw_image();
             if (flif_decoder_num_images(d) > 1) {
-              FLIF_IMAGE* image = flif_decoder_get_image(d, frame);
-              if (!image) { printf("Error: No decoded image found\n"); return 1; }
-              int delay=flif_image_get_frame_delay(image);
-              SDL_Delay(delay);
+              SDL_Delay(frame_delay[frame]);
               frame++;
               frame %= flif_decoder_num_images(d);
             } else animation = 0;

@@ -33,7 +33,7 @@ struct FLIF_DECODER
 private:
     Images internal_images;
     Images images;
-//    std::vector<std::unique_ptr<FLIF_IMAGE>> requested_images;
+    std::vector<std::unique_ptr<FLIF_IMAGE>> requested_images;
 };
 
 struct FLIF_ENCODER
