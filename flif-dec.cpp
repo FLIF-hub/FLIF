@@ -56,7 +56,7 @@ template<typename IO, typename Rac, typename Coder> void flif_decode_scanlines_i
               if (image.seen_before >= 0) { for(uint32_t c=0; c<image.cols(); c++) image.set(p,r,c,images[image.seen_before](p,r,c)); continue; }
               if (fr>0) {
                 for (uint32_t c = 0; c < begin; c++)
-                   if (nump>3 && p<3 && image(3,r,c) == 0) image.set(p,r,c,predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max));
+                   if (nump>3 && p<3 && image(3,r,c) == 0) image.set(p,r,c,predict(image,p,r,c));
                    else if (p !=4 ) image.set(p,r,c,images[fr-1](p,r,c));
                    /*
                    else if (nump>4 && p<4 && image(4,r,c) > 0) image.set(p,r,c,images[fr-image(4,r,c)](p,r,c));
@@ -69,16 +69,16 @@ template<typename IO, typename Rac, typename Coder> void flif_decode_scanlines_i
                 if (nump>3 && p<3) { begin=0; end=image.cols(); }
               }
               for (uint32_t c = begin; c < end; c++) {
+                if (nump>3 && p<3 && image(3,r,c) == 0) {image.set(p,r,c,predict(image,p,r,c)); continue;}
+                if (nump>4 && p<4 && image(4,r,c) > 0) {assert(fr >= image(4,r,c)); image.set(p,r,c,images[fr-image(4,r,c)](p,r,c)); continue;}
                 ColorVal guess = predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max);
                 if (p==4 && max > fr) max = fr;
-                if (nump>3 && p<3 && image(3,r,c) == 0) {image.set(p,r,c,guess); continue;}
-                if (nump>4 && p<4 && image(4,r,c) > 0) {image.set(p,r,c,images[fr-image(4,r,c)](p,r,c)); continue;}
                 ColorVal curr = coders[p].read_int(properties, min - guess, max - guess) + guess;
                 image.set(p,r,c, curr);
               }
               if (fr>0) {
                 for (uint32_t c = end; c < image.cols(); c++)
-                   if (nump>3 && p<3 && image(3,r,c) == 0) image.set(p,r,c,predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max));
+                   if (nump>3 && p<3 && image(3,r,c) == 0) image.set(p,r,c,predict(image,p,r,c));
                    else if (p !=4 ) image.set(p,r,c,images[fr-1](p,r,c));
 /*                   else if (nump>4 && p<4 && image(4,r,c) > 0) image.set(p,r,c,images[fr-image(4,r,c)](p,r,c));
                    else {

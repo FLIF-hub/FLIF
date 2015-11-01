@@ -263,14 +263,14 @@ public:
         const ColorBucket& b = bucket(p,pp);
         minv=b.min;
         maxv=b.max;
-        if (b.min > b.max) { e_printf("Corruption detected!\n"); exit(4); } // this should only happen on malicious input files
+        if (b.min > b.max) { assert(false); e_printf("Corruption detected!\n"); exit(4); } // this should only happen on malicious input files
         v=b.snapColor(v);
     }
     void minmax(const int p, const prevPlanes &pp, ColorVal &minv, ColorVal &maxv) const {
         const ColorBucket& b = bucket(p,pp);
         minv=b.min;
         maxv=b.max;
-        if (b.min > b.max) { e_printf("Corruption detected!\n"); exit(4); } // this should only happen on malicious input files
+        if (b.min > b.max) { assert(false); e_printf("Corruption detected!\n"); exit(4); } // this should only happen on malicious input files
     }
     void print() {
         buckets->print();

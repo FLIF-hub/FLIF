@@ -58,9 +58,17 @@ ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRang
 
 void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p);
 
-// Prediction used for interpolation. Does not have to be the same as the guess used for encoding/decoding.
-inline ColorVal predict(const Image &image, int z, int p, uint32_t r, uint32_t c)
-{
+// Prediction used for interpolation / alpha=0 pixels. Does not have to be the same as the guess used for encoding/decoding.
+inline ColorVal predict(const Image &image, int p, uint32_t r, uint32_t c) {
+    ColorVal left = (c>0 ? image(p,r,c-1) : grey[p]);;
+    ColorVal top = (r>0 ? image(p,r-1,c) : grey[p]);
+    ColorVal topleft = (r>0 && c>0 ? image(p,r-1,c-1) : grey[p]);
+    ColorVal gradientTL = left + top - topleft;
+    return maniac::util::median3(gradientTL, left, top);
+}
+
+// Prediction used for interpolation / alpha=0 pixels. Does not have to be the same as the guess used for encoding/decoding.
+inline ColorVal predict(const Image &image, int z, int p, uint32_t r, uint32_t c) {
     if (p==4) return 0;
     if (z%2 == 0) { // filling horizontal lines
       ColorVal top = image(p,z,r-1,c);

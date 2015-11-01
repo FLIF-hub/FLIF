@@ -233,27 +233,20 @@ void flif_encode_FLIF2_interpol_zero_alpha(Images &images, const ColorRanges *, 
 //    v_printf(2,"\n");
 }
 
-void flif_encode_scanlines_interpol_zero_alpha(Images &images, const ColorRanges *ranges)
-{
-
-    ColorVal min,max;
+void flif_encode_scanlines_interpol_zero_alpha(Images &images, const ColorRanges *ranges){
     int nump = images[0].numPlanes();
     if (nump > 3)
     for (Image& image : images)
     for (int p = 0; p < 3; p++) {
-        Properties properties((nump>3?NB_PROPERTIES_scanlinesA[p]:NB_PROPERTIES_scanlines[p]));
 //        if (ranges->min(p) >= ranges->max(p)) continue;  // nope, gives problem with fully A=0 image
-//          v_printf(2,"[%i] interpol_zero_alpha ",p);
-//        fflush(stdout);
         for (uint32_t r = 0; r < image.rows(); r++) {
             for (uint32_t c = 0; c < image.cols(); c++) {
                 if (image(3,r,c) == 0) {
-                    image.set(p,r,c, predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max));
+                    image.set(p,r,c, predict(image,p,r,c));
                 }
             }
         }
     }
-//    v_printf(2,"\n");
 }
 
 
