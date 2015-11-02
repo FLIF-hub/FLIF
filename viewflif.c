@@ -81,6 +81,7 @@ static int decodeThread(void * arg) {
     char ** argv = arg;
     if (flif_decoder_decode_file(d, argv[1]) == 0) {
         printf("Error: decoding failed\n");
+        quit = 1;
         return 1;
     }
     return 0;
