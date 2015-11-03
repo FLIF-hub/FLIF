@@ -181,9 +181,8 @@ public:
         output();
         range = Config::MIN_RANGE - 1;
         output();
-// probably not needed
-//        range = Config::MIN_RANGE - 1;
-//        output();
+        range = Config::MIN_RANGE - 1;
+        output();
         io.flush();
     }
 
