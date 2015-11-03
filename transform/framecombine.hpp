@@ -61,10 +61,10 @@ protected:
     bool process(const ColorRanges *srcRanges, const Images &images) {
         if (images.size() < 2) return false;
         int nump=images[0].numPlanes();
-        int pixel_cost = 1;
+        int64_t pixel_cost = 1;
         for (int p=0; p<nump; p++) pixel_cost *= (1 + srcRanges->max(p) - srcRanges->min(p));
         // pixel_cost is roughly the cost per pixel (number of different values a pixel can take)
-        if (pixel_cost < 16) return false; // pixels are too cheap, no point in trying to save stuff
+        if (pixel_cost < 16) {v_printf(7,", no_FRA[pixels_too_cheap:%i]", pixel_cost); return false;} // pixels are too cheap, no point in trying to save stuff
         std::vector<uint64_t> found_pixels(images.size(), 0);
         uint64_t new_pixels=0;
         max_lookback=1;
