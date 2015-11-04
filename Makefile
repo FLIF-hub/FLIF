@@ -25,11 +25,17 @@ flif.asan: $(FILES_H) $(FILES_CPP) flif.cpp
 libflif.so: $(FILES_H) $(FILES_CPP) flif.h flif-interface-private.h flif-interface.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) -DNDEBUG -O3 -g0 -Wall -shared -fPIC $(FILES_CPP) flif-interface.cpp -o libflif.so $(LDFLAGS)
 
+libflif.prof.so: $(FILES_H) $(FILES_CPP) flif.h flif-interface-private.h flif-interface.cpp
+	$(CXX) -std=gnu++11 $(CXXFLAGS) -DNDEBUG -O3 -g0 -pg -Wall -shared -fPIC $(FILES_CPP) flif-interface.cpp -o libflif.prof.so $(LDFLAGS)
+
 libflif.dbg.so: $(FILES_H) $(FILES_CPP) flif.h flif-interface-private.h flif-interface.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) -O1 -ggdb3 -Wall -shared -fPIC $(FILES_CPP) flif-interface.cpp -o libflif.dbg.so $(LDFLAGS)
 
 viewflif: libflif.so flif.h viewflif.c
 	$(CC) -std=gnu11 -O2 -ggdb3 $(shell sdl2-config --cflags) -Wall -I. viewflif.c -o viewflif -L. -lflif $(shell sdl2-config --libs)
+
+viewflif.prof: libflif.prof.so flif.h viewflif.c
+	$(CC) -std=gnu11 -O2 -pg -ggdb3 $(shell sdl2-config --cflags) -Wall -I. viewflif.c -o viewflif.prof -L. -lflif.prof $(shell sdl2-config --libs)
 
 test-interface: libflif.dbg.so flif.h tools/test.c
 	$(CC) -O0 -ggdb3 -Wall -I. tools/test.c -o test-interface -L. -lflif.dbg

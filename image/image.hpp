@@ -77,6 +77,10 @@ class Image {
       col_begin = other.col_begin;
       col_end = other.col_end;
       seen_before = other.seen_before;
+      for (int i=0; i<4; i++) {
+        constant[i] = other.constant[i];
+        constant_val[i] = other.constant_val[i];
+      }
 
       return *this;
     }
@@ -94,6 +98,8 @@ class Image {
     uint32_t width, height;
     ColorVal minval,maxval;
     int num;
+    bool constant[4];
+    ColorVal constant_val[4];
 #ifdef SUPPORT_HDR
     int depth;
 #else
@@ -120,6 +126,7 @@ public:
 #endif
       palette = false;
       seen_before = 0;
+      for (int i=0; i<4; i++) constant[i] = false;
     }
 
     // move constructor
@@ -154,6 +161,11 @@ public:
       other.num = 0;
       other.frame_delay = 0;
 
+      for (int i=0; i<4; i++) {
+        constant[i] = other.constant[i];
+        constant_val[i] = other.constant_val[i];
+      }
+
       palette = other.palette;
       col_begin = std::move(other.col_begin);
       col_end = std::move(other.col_end);
@@ -185,6 +197,7 @@ public:
       assert(min == 0);
       assert(max < (1<<depth));
       assert(p <= 4);
+      for (int i=0; i<4; i++) constant[i] = false;
       clear();
       try {
       if (depth <= 8) {
@@ -300,11 +313,22 @@ public:
 #endif
     bool save(const char *name) const;
     bool save(const char *name, const int scale) const;
+    void make_constant_plane(const int p, const ColorVal val) {
+      if (p>3 || p<0) return;
+      for (uint32_t r=0; r<height; r++) {
+         for (uint32_t c=0; c<width; c++) {
+            set(p,r,c,val);
+         }
+      }
+      constant[p] = true;
+      constant_val[p] = val;
+    }
 
     // access pixel by coordinate
     ColorVal operator()(const int p, const uint32_t r, const uint32_t c) const {
       assert(p>=0);
       assert(depth == 8 || depth == 16);
+      if (p<4 && constant[p]) return constant_val[p];
 #ifdef SUPPORT_HDR
       if (depth <= 8) {
 #endif
@@ -329,6 +353,10 @@ public:
     }
     void set(int p, uint32_t r, uint32_t c, ColorVal x) {
       assert(p>=0);
+      if (p < 4 && constant[p]) {
+            if (x == constant_val[p]) return;
+            constant[p] = false;
+      }
 #ifdef SUPPORT_HDR
       if (depth <= 8) {
 #endif
