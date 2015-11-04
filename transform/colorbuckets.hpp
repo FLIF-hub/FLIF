@@ -188,7 +188,7 @@ public:
         if (p==2) return bucket2[(pp[0]-min0)/CB0b][(pp[1]-min1)/CB1];
         else return bucket3;
     }
-    ColorBucket findBucket(const int p, const prevPlanes &pp) const {
+    const ColorBucket& findBucket(const int p, const prevPlanes &pp) const {
         assert(p>=0); assert(p<4);
         if (p==0) return bucket0;
         if (p==1) return bucket1[(pp[0]-min0)/CB0a];
@@ -250,7 +250,7 @@ protected:
     const ColorRanges *ranges;
     ColorBuckets *buckets;
 public:
-    ColorBucket bucket(const int p, const prevPlanes &pp) const { return buckets->findBucket(p,pp); }
+    ColorBucket& bucket(const int p, const prevPlanes &pp) const { return buckets->findBucket(p,pp); }
     ColorRangesCB(const ColorRanges *rangesIn, ColorBuckets *cbIn) :  ranges(rangesIn), buckets(cbIn) {} //print();}
     ~ColorRangesCB() {
         delete buckets;
