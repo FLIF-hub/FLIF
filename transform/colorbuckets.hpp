@@ -283,8 +283,9 @@ class TransformCB : public Transform<IO> {
 protected:
     ColorBuckets *cb;
     bool really_used;
+    bool cb_created;
 
-    ~TransformCB() {if (!really_used) delete cb;}
+    ~TransformCB() {if (cb_created && !really_used) delete cb;}
     bool undo_redo_during_decode() { return false; }
 
     const ColorRanges* meta(Images&, const ColorRanges *srcRanges) {
@@ -320,6 +321,7 @@ protected:
     }
     bool init(const ColorRanges *srcRanges) {
         really_used = false;
+        cb_created = false;
         if(srcRanges->numPlanes() < 3) return false;
         if (srcRanges->min(0) == 0 && srcRanges->max(0) == 0 && srcRanges->min(2) == 0 && srcRanges->max(2) == 0) return false; // probably palette image
         if (srcRanges->min(0) == srcRanges->max(0) &&
@@ -327,6 +329,7 @@ protected:
             srcRanges->min(2) == srcRanges->max(2)) return false; // only alpha plane contains information
         if (srcRanges->max(0) > 255) return false; // do not attempt this on high bit depth images (TODO: generalize color bucket quantization!)
         cb = new ColorBuckets(srcRanges);
+        cb_created = true;
         return true;
     }
 
