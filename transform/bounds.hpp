@@ -8,7 +8,7 @@
 class ColorRangesBounds : public ColorRanges
 {
 protected:
-    std::vector<std::pair<ColorVal, ColorVal> > bounds;
+    const std::vector<std::pair<ColorVal, ColorVal> > bounds;
     const ColorRanges *ranges;
 public:
     ColorRangesBounds(const std::vector<std::pair<ColorVal, ColorVal> > &boundsIn, const ColorRanges *rangesIn) : bounds(boundsIn), ranges(rangesIn) {}
@@ -18,7 +18,7 @@ public:
     ColorVal max(int p) const { assert(p<numPlanes()); return std::min(ranges->max(p), bounds[p].second); }
     void minmax(const int p, const prevPlanes &pp, ColorVal &min, ColorVal &max) const {
         assert(p<numPlanes());
-        if (p==0) { min=bounds[p].first; max=bounds[p].second; return; } // optimization for special case
+        if (p==0 || p==3) { min=bounds[p].first; max=bounds[p].second; return; } // optimization for special case
         ranges->minmax(p, pp, min, max);
         if (min < bounds[p].first) min=bounds[p].first;
         if (max > bounds[p].second) max=bounds[p].second;
