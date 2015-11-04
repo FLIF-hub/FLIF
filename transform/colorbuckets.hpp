@@ -283,7 +283,7 @@ class TransformCB : public Transform<IO> {
 protected:
     ColorBuckets *cb;
     bool really_used;
-
+    
     ~TransformCB() {if (!really_used) delete cb;}
     bool undo_redo_during_decode() { return false; }
 
@@ -319,6 +319,7 @@ protected:
         return new ColorRangesCB(srcRanges, cb);
     }
     bool init(const ColorRanges *srcRanges) {
+        cb = NULL;
         really_used = false;
         if(srcRanges->numPlanes() < 3) return false;
         if (srcRanges->min(0) == 0 && srcRanges->max(0) == 0 && srcRanges->min(2) == 0 && srcRanges->max(2) == 0) return false; // probably palette image
