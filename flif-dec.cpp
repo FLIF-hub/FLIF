@@ -151,7 +151,6 @@ void flif_decode_FLIF2_inner_interpol(Images &images, const ColorRanges *ranges,
 template<typename IO, typename Rac, typename Coder> void flif_decode_FLIF2_inner(Rac &rac, std::vector<Coder> &coders, Images &images, const ColorRanges *ranges, const int beginZL, const int endZL, int quality, int scale, std::vector<Transform<IO>*> &transforms, uint32_t (*callback)(int,int), Images &partial_images) {
     ColorVal min,max;
     int nump = images[0].numPlanes();
-    int progressive_qual_target = 0;
 //    if (quality >= 0) {
 //      quality = plane_zoomlevels(image, beginZL, endZL) * quality / 100;
 //    }
@@ -444,6 +443,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
 
     pixels_todo = (int64_t)width*height*ranges->numPlanes()/scale/scale;
     pixels_done = 0;
+    progressive_qual_target = 0;
 
     for (int p = 0; p < ranges->numPlanes(); p++) {
       v_printf(7,"Plane %i: %i..%i\n",p,ranges->min(p),ranges->max(p));

@@ -9,6 +9,8 @@ uint8_t transform_l = 0;
 
 int64_t pixels_todo = 0;
 int64_t pixels_done = 0;
+int progressive_qual_target = 0;
+
 
 const int PLANE_ORDERING[] = {4,3,0,1,2}; // FRA, A, Y, I, Q
 
@@ -77,8 +79,8 @@ ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRang
 }
 
 
-const int NB_PROPERTIES[] = {8,7,8,8,8};
-const int NB_PROPERTIESA[] = {9,8,9,8,8};
+const int NB_PROPERTIES[] = {8,9,8,8,8};
+const int NB_PROPERTIESA[] = {9,10,9,8,8};
 
 void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p) {
     propRanges.clear();
@@ -98,7 +100,7 @@ void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p) {
     propRanges.push_back(std::make_pair(mind,maxd));
     propRanges.push_back(std::make_pair(mind,maxd));
 
-    if (p == 0 || p >= 3) {
+    if (p < 2 || p >= 3) {
       propRanges.push_back(std::make_pair(mind,maxd));
       propRanges.push_back(std::make_pair(mind,maxd));
     }
@@ -158,7 +160,7 @@ ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges
     if (c+1 < image.cols(z) && r > 0) properties[index++]=top - topright;
                  else   properties[index++]=0;
 
-    if (p == 0 || p >= 3) {
+    if (p < 2 || p >= 3) {
      if (r > 1) properties[index++]=image(p,z,r-2,c)-top;    // toptop - top
          else properties[index++]=0;
      if (c > 1) properties[index++]=image(p,z,r,c-2)-left;    // leftleft - left

@@ -41,10 +41,10 @@ template<typename Rac, typename Coder> void flif_encode_scanlines_inner(Rac rac,
         int p=PLANE_ORDERING[k];
         if (p>=nump) continue;
         i++;
+        if (ranges->min(p) >= ranges->max(p)) continue;
         Properties properties((nump>3?NB_PROPERTIES_scanlinesA[p]:NB_PROPERTIES_scanlines[p]));
         v_printf(2,"\r%i%% done [%i/%i] ENC[%ux%u]    ",(int)(100*pixels_done/pixels_todo),i,nump,images[0].cols(),images[0].rows());
         pixels_done += images[0].cols()*images[0].rows();
-        if (ranges->min(p) >= ranges->max(p)) continue;
         for (uint32_t r = 0; r < images[0].rows(); r++) {
             for (int fr=0; fr< (int)images.size(); fr++) {
               const Image& image = images[fr];
@@ -107,11 +107,11 @@ template<typename Rac, typename Coder> void flif_encode_FLIF2_inner(Rac rac, std
       std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i);
       int p = pzl.first;
       int z = pzl.second;
+      if (ranges->min(p) >= ranges->max(p)) continue;
       if (endZL==0) {
           v_printf(2,"\r%i%% done [%i/%i] ENC[%i,%ux%u]  ",(int) (100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
       }
       pixels_done += (images[0].cols(z)/(z%2==0?1:2))*(images[0].rows(z)/(z%2==0?2:1));
-      if (ranges->min(p) >= ranges->max(p)) continue;
       Properties properties((nump>3?NB_PROPERTIESA[p]:NB_PROPERTIES[p]));
       if (z % 2 == 0) {
         // horizontal: scan the odd rows, output pixel values
@@ -180,7 +180,7 @@ void flif_encode_FLIF2_pass(Rac &rac, const Images &images, const ColorRanges *r
       for (int p = 0; p < image.numPlanes(); p++) {
         ColorVal curr = image(p,0,0);
         metaCoder.write_int(ranges->min(p), ranges->max(p), curr);
-        pixels_done++;
+        if (ranges->min(p) < ranges->max(p)) pixels_done++;
       }
     }
     while(repeats-- > 0) {
@@ -377,6 +377,14 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
         case flifEncoding::nonInterlaced: flif_encode_scanlines_interpol_zero_alpha(images, ranges); break;
         case flifEncoding::interlaced: flif_encode_FLIF2_interpol_zero_alpha(images, ranges, image.zooms(), 0); break;
       }
+    }
+    for (int p = 0; p < ranges->numPlanes(); p++) {
+        if (ranges->min(p) >= ranges->max(p)) {
+            v_printf(4,"Constant plane %i at color value %i\n",p,ranges->min(p));
+            pixels_todo -= (int64_t)image.rows()*image.cols()*(learn_repeats+1);
+            for (int fr = 0; fr < numFrames; fr++)
+                images[fr].make_constant_plane(p,ranges->min(p));
+        }
     }
 
     // not computing checksum until after transformations and potential zero-alpha changes

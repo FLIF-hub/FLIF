@@ -268,6 +268,16 @@ public:
         plane_frame_lookbacks.reset(nullptr);
         num=4;
     }
+    void make_constant_plane(const int p, const ColorVal val) {
+      if (p>3 || p<0) return;
+      for (uint32_t r=0; r<height; r++) {
+         for (uint32_t c=0; c<width; c++) {
+            set(p,r,c,val);
+         }
+      }
+      constant[p] = true;
+      constant_val[p] = val;
+    }
     void ensure_frame_lookbacks() {
         switch(num) {
             case 1:
@@ -280,25 +290,17 @@ public:
                 plane_32_2 = make_unique<Plane<ColorVal_intern_32>>(width, height); // B,Q
 #endif
               }
-              for (uint32_t r=0; r<height; r++) {
-               for (uint32_t c=0; c<width; c++) {
-//                 set(1,r,c, operator()(0,r,c));
-//                 set(2,r,c, operator()(0,r,c));
-                 set(1,r,c, (1<<depth)-1); // I=0
-                 set(2,r,c, (1<<depth)-1); // Q=0
-               }
-              }
+              num=3;
+              make_constant_plane(1,(1<<depth)-1);
+              make_constant_plane(2,(1<<depth)-1);
             case 3:
               if (depth <= 8) {
                 plane_8_2 = make_unique<Plane<ColorVal_intern_8>>(width, height); // A
               } else {
                 plane_16_2 = make_unique<Plane<ColorVal_intern_16>>(width, height); // A
               }
-              for (uint32_t r=0; r<height; r++) {
-               for (uint32_t c=0; c<width; c++) {
-                 set(3,r,c, 255); //(1<<depth)-1);
-               }
-              }
+              num=4;
+              make_constant_plane(3,255);
             case 4:
               plane_frame_lookbacks = make_unique<Plane<ColorVal_intern_8>>(width, height);
               num=5;
@@ -313,16 +315,6 @@ public:
 #endif
     bool save(const char *name) const;
     bool save(const char *name, const int scale) const;
-    void make_constant_plane(const int p, const ColorVal val) {
-      if (p>3 || p<0) return;
-      for (uint32_t r=0; r<height; r++) {
-         for (uint32_t c=0; c<width; c++) {
-            set(p,r,c,val);
-         }
-      }
-      constant[p] = true;
-      constant_val[p] = val;
-    }
 
     // access pixel by coordinate
     ColorVal operator()(const int p, const uint32_t r, const uint32_t c) const {
