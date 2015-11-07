@@ -33,29 +33,34 @@ void FLIF_IMAGE::read_row_RGBA8(uint32_t row, void* buffer, size_t buffer_size_b
         return;
 
     FLIF_RGBA* buffer_rgba = reinterpret_cast<FLIF_RGBA*>(buffer);
+    int rshift = 0;
+    int lshift = 1;
+    ColorVal m=image.max(0);
+    while (m > 255) { rshift++; m = m >> 1; } // in case the image has bit depth higher than 8
+    while (m * ((1 << lshift)-1) < 255) { lshift++; } // in case the image has bit depth lower than 8
 
     if(image.numPlanes() >= 3) {
         // color
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
-            buffer_rgba[c].r = image(0, row, c) & 0xFF;
-            buffer_rgba[c].g = image(1, row, c) & 0xFF;
-            buffer_rgba[c].b = image(2, row, c) & 0xFF;
+            buffer_rgba[c].r = ((image(0, row, c) >> rshift) * ((1<<lshift)-1)) & 0xFF;
+            buffer_rgba[c].g = ((image(1, row, c) >> rshift) * ((1<<lshift)-1)) & 0xFF;
+            buffer_rgba[c].b = ((image(2, row, c) >> rshift) * ((1<<lshift)-1)) & 0xFF;
         }
     } else {
         // grayscale
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
             buffer_rgba[c].r =
             buffer_rgba[c].g =
-            buffer_rgba[c].b = image(0, row, c) & 0xFF;
+            buffer_rgba[c].b = ((image(0, row, c) >> rshift) * ((1<<lshift)-1)) & 0xFF;
         }
     }
     if(image.numPlanes() >= 4) {
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
-            buffer_rgba[c].a = image(3, row, c) & 0xFF;
+            buffer_rgba[c].a = ((image(3, row, c) >> rshift) * ((1<<lshift)-1)) & 0xFF;
         }
     } else {
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
-            buffer_rgba[c].a = 0xFF;
+            buffer_rgba[c].a = 0xFF;  // fully opaque
         }
     }
 }
