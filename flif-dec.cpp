@@ -352,7 +352,11 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     if (c > 47) {
         c -= 32;
         numFrames = io.getc();
-        if (numFrames < 2 || numFrames >= 255) return false;
+        if (numFrames < 2 || numFrames >= 256) return false;
+        if (numFrames == 0xff) {
+          numFrames = (io.getc() << 8);
+          numFrames += io.getc();
+        }
     }
     const int encoding=c/16;
     if (encoding < 1 || encoding > 2) { e_printf("Invalid or unknown FLIF encoding method\n"); return false;}

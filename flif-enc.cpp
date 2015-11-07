@@ -274,7 +274,11 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     io.fputc(c);
     if (numFrames>1) {
         if (numFrames<255) io.fputc((char)numFrames);
-        else {
+        else if (numFrames<0xffff) {
+            io.fputc(0xff);
+            io.fputc(numFrames >> 8);
+            io.fputc(numFrames & 0xff);
+        } else {
             e_printf("Too many frames!\n");
         }
     }
