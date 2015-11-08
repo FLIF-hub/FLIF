@@ -37,7 +37,7 @@ public:
     }
 
     uint16_t inline get() const {
-        return chance * 16; // return 16-bit number
+        return chance; // * 16; // return 16-bit number
     }
 
     void set(uint16_t chanceIn) {
@@ -84,7 +84,7 @@ public:
     }
 
     uint16_t inline get() const {
-        return chance*16; // return 16-bit number
+        return chance; //*16; // return 16-bit number
     }
     void set(uint16_t chance) {
         this->chance = chance;

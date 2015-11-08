@@ -23,7 +23,7 @@ class RacConfig20
 public:
     typedef uint32_t data_t;
     static const data_t MAX_RANGE_BITS = 24; // just setting this to 20 does not seem to work
-    static const data_t MIN_RANGE_BITS = (MAX_RANGE_BITS-8);
+    static const data_t MIN_RANGE_BITS = 16;
     static const data_t MIN_RANGE = (1UL << MIN_RANGE_BITS);
     static const data_t BASE_RANGE = (1UL << MAX_RANGE_BITS);
 };
@@ -85,7 +85,9 @@ public:
 
     bool inline read(uint16_t b16) {
         assert(b16>0);
-        return get(((uint64_t)range * b16 + 0x8000) >> 16);
+        assert(b16< (1<<12));
+        return get((((range & 0xFFF) * b16 + 0x800) >> 12)+((range>>12)*b16)); // doing everything in 32-bit arithmetic here
+//        return get(((uint64_t)range * b16 + 0x800) >> 12);
     }
 
     bool inline read() {
@@ -168,7 +170,11 @@ public:
 
     void inline write(uint16_t b16, bool bit) {
         assert(b16>0);
-        put(((uint64_t)range * b16 + 0x8000) >> 16, bit);
+        assert(b16< (1<<12));
+        assert(range>0);
+        assert(range<= (1<<24));
+        put((((range & 0xFFF) * b16 + 0x800) >> 12)+((range>>12)*b16), bit); // doing everything in 32-bit arithmetic here
+//        put(((uint64_t)range * b16 + 0x800) >> 12, bit);
     }
 
     void inline write(bool bit) {
