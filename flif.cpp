@@ -91,7 +91,7 @@ void show_help() {
     v_printf(2,"Advanced encode options: (useful for flifcrushing)\n");
     v_printf(2,"   -a, --acb                force auto color buckets (ACB)\n");
     v_printf(2,"   -b, --no-acb             force no auto color buckets\n");
-    v_printf(2,"   -p, --palette=N          max palette size for PLT and PLA; default: -p512\n");
+    v_printf(2,"   -p, --palette=N          max palette size for PLT and PLA; default: -p1024\n");
     v_printf(2,"   -l, --lookback=N         max lookback between animation frames (for FRA); default: -l1\n");
     v_printf(2,"   -r, --repeats=N          MANIAC learning iterations; default: -r%i\n",TREE_LEARN_REPEATS);
     v_printf(2,"   -S, --split-threshold=N  MANIAC tree growth criterion, in bits saved; default: -S%i\n",CONTEXT_TREE_SPLIT_THRESHOLD/5461);
@@ -125,7 +125,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
       v_printf(3," ______ __  (())______");
-    v_printf(3,"\n \\___  |  | |  |  ___/   ");v_printf(2,"FLIF 0.1.3 [5 November 2015]");
+    v_printf(3,"\n \\___  |  | |  |  ___/   ");v_printf(2,"FLIF 0.1.3 [8 November 2015]");
     v_printf(3,"\n  \\__  |  |_|__|  __/    Free Lossless Image Format");
     v_printf(3,"\n    \\__|_______|__/    ");v_printf(2,"  (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
     v_printf(3,"\n");
@@ -270,7 +270,7 @@ int main(int argc, char **argv)
     int learn_repeats = -1;
     int acb = -1; // try auto color buckets
     int frame_delay = 100;
-    int palette_size = 512;
+    int palette_size = 1024;
     int lookback = 1;
     int divisor=CONTEXT_TREE_COUNT_DIV;
     int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE;
