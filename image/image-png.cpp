@@ -101,7 +101,7 @@ int image_load_png(const char *filename, Image &image) {
 
 
   unsigned int nbplanes;
-  if (color_type == PNG_COLOR_TYPE_GRAY) nbplanes=1;
+  if (color_type == PNG_COLOR_TYPE_GRAY) nbplanes=3;
   else if (color_type == PNG_COLOR_TYPE_RGB) nbplanes=3;
   else if (color_type == PNG_COLOR_TYPE_RGB_ALPHA || color_type == PNG_COLOR_TYPE_GRAY_ALPHA) nbplanes=4;
   else { printf("Unsupported PNG color type\n"); return 5; }
@@ -122,6 +122,8 @@ int image_load_png(const char *filename, Image &image) {
             png_bytep row = rows[r];
             for (size_t c = 0; c < width; c++) {
               image.set(0,r,c, (uint8_t) row[c * 1 + 0]);
+              image.set(1,r,c, (uint8_t) row[c * 1 + 0]);
+              image.set(2,r,c, (uint8_t) row[c * 1 + 0]);
             }
           }
           break;
@@ -167,6 +169,8 @@ int image_load_png(const char *filename, Image &image) {
             png_bytep row = rows[r];
             for (size_t c = 0; c < width; c++) {
               image.set(0,r,c, (((uint16_t) row[c * 2 + 0])<<8)+ (uint16_t) row[c * 2 + 1]);
+              image.set(1,r,c, (((uint16_t) row[c * 2 + 0])<<8)+ (uint16_t) row[c * 2 + 1]);
+              image.set(2,r,c, (((uint16_t) row[c * 2 + 0])<<8)+ (uint16_t) row[c * 2 + 1]);
             }
           }
           break;
