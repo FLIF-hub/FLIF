@@ -266,12 +266,26 @@ template<typename BitChance, typename Rac> void flif_encode_tree(Rac &rac, const
 template <typename IO>
 bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding,
                  int learn_repeats, int acb, int frame_delay, int palette_size, int lookback, int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD) {
-    io.fputs("FLIF");
+    io.fputs("FLIF");  // bytes 1-4 are fixed magic
     int numPlanes = images[0].numPlanes();
     int numFrames = images.size();
-    char c=' '+16*(static_cast<uint8_t>(encoding))+numPlanes;
+    // byte 5 encodes color type, interlacing, animation
+    // 128 64 32 16 8 4 2 1
+    //                                                Gray8    RGB24    RGBA32    Gray16   RGB48    RGBA64
+    //      0  1  1           = scanlines, still     (FLIF11,  FLIF31,  FLIF41,   FLIF12,  FLIF32,  FLIF42)
+    //      1  0  0           = interlaced, still    (FLIFA1,  FLIFC1,  FLIFD1,   FLIFA2,  FLIFC2,  FLIFD2)
+    //      1  0  1           = scanlines, animated  (FLIFQx1, FLIFSx1, FLIFTx1,  FLIFQx2, FLIFSx2, FLIFTx2)   x=nb_frames
+    //      1  1  0           = interlaced, animated (FLIFax1, FLIFcx1, FLIFdx1,  FLIFax2, FLIFcx2, FLIFdx2)   x=nb_frames
+    //                0 0 1   = grayscale (1 plane)
+    //                0 1 1   = RGB (3 planes)
+    //                1 0 0   = RGBA (4 planes)       (grayscale + alpha is encoded as RGBA to keep the number of cases low)
+    //   0          0         (two spare bits, reserved for future use)
+
+    int c=' '+16*(static_cast<uint8_t>(encoding))+numPlanes;t
     if (numFrames>1) c += 32;
     io.fputc(c);
+
+    // for animations: byte 6 = number of frames (or bytes 7 and 8 if nb_frames >= 255)
     if (numFrames>1) {
         if (numFrames<255) io.fputc((char)numFrames);
         else if (numFrames<0xffff) {
@@ -282,6 +296,10 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
             e_printf("Too many frames!\n");
         }
     }
+
+    // next byte (byte 6 for still images, byte 7 or 9 for animations) encodes the bit depth:
+    // '1' for 8 bits (1 byte) per channel, '2' for 16 bits (2 bytes) per channel, '0' for custom bit depth
+
     c='1';
     for (int p = 0; p < numPlanes; p++) {if (images[0].max(p) != 255) c='2';}
     if (c=='2') {for (int p = 0; p < numPlanes; p++) {if (images[0].max(p) != 65535) c='0';}}
@@ -289,6 +307,8 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
 
     Image& image = images[0];
     assert(image.cols() <= 0xFFFF);
+    // next 4 bytes (bytes 7-10 for still images, bytes 8-11 or 10-13 for animations) encode the width and height:
+    // first the width (as a big-endian unsigned 16 bit number), then the height
     io.fputc(image.cols() >> 8);
     io.fputc(image.cols() & 0xFF);
     assert(image.rows() <= 0xFFFF);
