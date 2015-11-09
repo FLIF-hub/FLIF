@@ -265,10 +265,13 @@ template<typename BitChance, typename Rac> void flif_encode_tree(Rac &rac, const
 
 template <typename IO>
 bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding,
-                 int learn_repeats, int acb, int frame_delay, int palette_size, int lookback, int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD) {
+                 int learn_repeats, int acb, int frame_delay, int palette_size, int lookback,
+                 int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD) {
+
     io.fputs("FLIF");  // bytes 1-4 are fixed magic
     int numPlanes = images[0].numPlanes();
     int numFrames = images.size();
+
     // byte 5 encodes color type, interlacing, animation
     // 128 64 32 16 8 4 2 1
     //                                                Gray8    RGB24    RGBA32    Gray16   RGB48    RGBA64
@@ -280,8 +283,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     //                0 1 1   = RGB (3 planes)
     //                1 0 0   = RGBA (4 planes)       (grayscale + alpha is encoded as RGBA to keep the number of cases low)
     //   0          0         (two spare bits, reserved for future use)
-
-    int c=' '+16*(static_cast<uint8_t>(encoding))+numPlanes;t
+    int c=' '+16*(static_cast<uint8_t>(encoding))+numPlanes;
     if (numFrames>1) c += 32;
     io.fputc(c);
 
