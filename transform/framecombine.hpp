@@ -28,12 +28,15 @@ template <typename IO>
 class TransformFrameCombine : public Transform<IO> {
 protected:
     bool was_flat;
+    bool was_grayscale;
     int max_lookback;
     int user_max_lookback;
 
-    bool undo_redo_during_decode() { return false; }
+    bool undo_redo_during_decode() { return true; }
+
     const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) {
         if (max_lookback >= (int)images.size()) { e_printf("Bad value for FRA lookback\n"); exit(4);}
+        was_grayscale = srcRanges->numPlanes() < 2;
         was_flat = srcRanges->numPlanes() < 4;
         for (unsigned int fr=0; fr<images.size(); fr++) {
             Image& image = images[fr];
@@ -129,5 +132,6 @@ protected:
         // most work has to be done on the fly in the decoder, this is just some cleaning up
         for (Image& image : images) image.drop_frame_lookbacks();
         if (was_flat) for (Image& image : images) image.drop_alpha();
+        if (was_grayscale) for (Image& image : images) image.drop_color();
     }
 };

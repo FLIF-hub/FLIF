@@ -36,8 +36,8 @@ protected:
 public:
     StaticColorRanges(StaticColorRangeList ranges) { this->ranges = ranges; }
     int numPlanes() const { return ranges.size(); }
-    ColorVal min(int p) const { assert(p<numPlanes()); return ranges[p].first; }
-    ColorVal max(int p) const { assert(p<numPlanes()); return ranges[p].second; }
+    ColorVal min(int p) const { if (p >= numPlanes()) return 0; assert(p<numPlanes()); return ranges[p].first; }
+    ColorVal max(int p) const { if (p >= numPlanes()) return 0; assert(p<numPlanes()); return ranges[p].second; }
 };
 
 const ColorRanges *getRanges(const Image &image);

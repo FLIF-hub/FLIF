@@ -258,10 +258,26 @@ public:
         assert(num==4);
         if (depth <= 8) {
                 plane_8_2.reset(nullptr);
+#ifdef SUPPORT_HDR
         } else {
                 plane_16_2.reset(nullptr);
+#endif
         }
         num=3;
+    }
+    void drop_color() {
+        if (num<2) return;
+        assert(num==3);
+        if (depth <= 8) {
+                plane_16_1.reset(nullptr);
+                plane_16_2.reset(nullptr);
+#ifdef SUPPORT_HDR
+        } else {
+                plane_32_1.reset(nullptr);
+                plane_32_2.reset(nullptr);
+#endif
+        }
+        num=1;
     }
     void drop_frame_lookbacks() {
         assert(num==5);
@@ -291,8 +307,8 @@ public:
 #endif
               }
               num=3;
-              make_constant_plane(1,(1<<depth)-1);
-              make_constant_plane(2,(1<<depth)-1);
+              make_constant_plane(1,((1<<depth)-1));
+              make_constant_plane(2,((1<<depth)-1));
             case 3:
               if (depth <= 8) {
                 plane_8_2 = make_unique<Plane<ColorVal_intern_8>>(width, height); // A
