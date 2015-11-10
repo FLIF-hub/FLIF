@@ -111,8 +111,26 @@ public:
         coder.write_int(1, MAX_PALETTE_SIZE, Palette_vector.size());
 //        printf("Saving %lu colors: ", Palette_vector.size());
         prevPlanes pp(2);
-        ColorVal min, max;
-        for (Color c : Palette_vector) {
+        int sorted=1;
+        coder.write_int(0, 1, sorted);
+        if (sorted) {
+            Color min(srcRanges->min(0), srcRanges->min(1), srcRanges->min(2));
+            Color max(srcRanges->max(0), srcRanges->max(1), srcRanges->max(2));
+            Color prev(-1,-1,-1);
+            for (Color c : Palette_vector) {
+                ColorVal Y=std::get<0>(c);
+                coderY.write_int(std::get<0>(min), std::get<0>(max), Y);
+                pp[0]=Y; srcRanges->minmax(1,pp,std::get<1>(min), std::get<1>(max));
+                ColorVal I=std::get<1>(c);
+                coderI.write_int((std::get<0>(prev) == Y ? std::get<1>(prev): std::get<1>(min)), std::get<1>(max), I);
+                pp[1]=I; srcRanges->minmax(2,pp,std::get<2>(min), std::get<2>(max));
+                coderQ.write_int(std::get<2>(min), std::get<2>(max), std::get<2>(c));
+                std::get<0>(min) = std::get<0>(c);
+                prev = c;
+            }
+        } else {
+            ColorVal min, max;
+            for (Color c : Palette_vector) {
                 ColorVal Y=std::get<0>(c);
                 srcRanges->minmax(0,pp,min,max);
                 coderY.write_int(min,max,Y);
@@ -122,6 +140,7 @@ public:
                 pp[1]=I; srcRanges->minmax(2,pp,min,max);
                 coderQ.write_int(min, max, std::get<2>(c));
 //                printf("YIQ(%i,%i,%i)\t", std::get<0>(c), std::get<1>(c), std::get<2>(c));
+            }
         }
 //        printf("\nSaved palette of size: %lu\n",Palette_vector.size());
         v_printf(5,"[%lu]",Palette_vector.size());
@@ -135,8 +154,25 @@ public:
         long unsigned size = coder.read_int(1, MAX_PALETTE_SIZE);
 //        printf("Loading %lu colors: ", size);
         prevPlanes pp(2);
-        ColorVal min, max;
-        for (unsigned int p=0; p<size; p++) {
+        int sorted = coder.read_int(0,1);
+        if (sorted) {
+            Color min(srcRanges->min(0), srcRanges->min(1), srcRanges->min(2));
+            Color max(srcRanges->max(0), srcRanges->max(1), srcRanges->max(2));
+            Color prev(-1,-1,-1);
+            for (unsigned int p=0; p<size; p++) {
+                ColorVal Y=coderY.read_int(std::get<0>(min), std::get<0>(max));
+                pp[0]=Y; srcRanges->minmax(1,pp,std::get<1>(min), std::get<1>(max));
+                ColorVal I=coderI.read_int((std::get<0>(prev) == Y ? std::get<1>(prev): std::get<1>(min)), std::get<1>(max));
+                pp[1]=I; srcRanges->minmax(2,pp,std::get<2>(min), std::get<2>(max));
+                ColorVal Q=coderQ.read_int(std::get<2>(min), std::get<2>(max));
+                Color c(Y,I,Q);
+                Palette_vector.push_back(c);
+                std::get<0>(min) = std::get<0>(c);
+                prev = c;
+            }
+        } else {
+            ColorVal min, max;
+            for (unsigned int p=0; p<size; p++) {
                 srcRanges->minmax(0,pp,min,max);
                 ColorVal Y=coderY.read_int(min,max);
                 pp[0]=Y; srcRanges->minmax(1,pp,min,max);
@@ -146,6 +182,7 @@ public:
                 Color c(Y,I,Q);
                 Palette_vector.push_back(c);
 //                printf("YIQ(%i,%i,%i)\t", std::get<0>(c), std::get<1>(c), std::get<2>(c));
+            }
         }
 //        printf("\nLoaded palette of size: %lu\n",Palette_vector.size());
         v_printf(5,"[%lu]",Palette_vector.size());
