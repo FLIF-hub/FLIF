@@ -28,10 +28,10 @@ public:
         // split in [0..med] [med+1..max]
         int med = max/2;
         if (val > med) {
-            rac.write(med+1, max+1, true);
+            rac.write_fractional(med+1, max+1, true);
             write_int(med+1, max, val);
         } else {
-            rac.write(med+1, max+1, false);
+            rac.write_fractional(med+1, max+1, false);
             write_int(0, med, val);
         }
         return;
@@ -46,7 +46,7 @@ public:
 
         // split in [0..med] [med+1..max]
         int med = max/2;
-        bool bit = rac.read(med+1, max+1);
+        bool bit = rac.read_fractional(med+1, max+1);
         if (bit) {
             return read_int(min+med+1, min+max);
         } else {
@@ -115,14 +115,14 @@ public:
         }
     }
     SymbolChance() { // : bit_exp(bitsin-1), bit_mant(bitsin) {
-        bitZero().set(ZERO_CHANCE);
-        bitSign().set(SIGN_CHANCE);
+        bitZero().set_12bit(ZERO_CHANCE);
+        bitSign().set_12bit(SIGN_CHANCE);
 //        printf("bits: %i\n",bits);
         for (int i=0; i<bits-1; i++) {
-            bitExp(i).set(EXP_CHANCES[i]);
+            bitExp(i).set_12bit(EXP_CHANCES[i]);
         }
         for (int i=0; i<bits; i++) {
-            bitMant(i).set(MANT_CHANCES[i]);
+            bitMant(i).set_12bit(MANT_CHANCES[i]);
         }
     }
 
@@ -340,15 +340,15 @@ public:
     SimpleSymbolBitCoder(const Table &tableIn, SymbolChance<BitChance,bits> &ctxIn, RAC &racIn) : table(tableIn), ctx(ctxIn), rac(racIn) {}
 
     void write(bool bit, SymbolChanceBitType typ, int i = 0) {
-        BitChance& bch = ctx.bit(typ,i);
-        rac.write(bch.get(), bit);
+        BitChance& bch = ctx.bit(typ, i);
+        rac.write_12bit_chance(bch.get_12bit(), bit);
         bch.put(bit, table);
 //    e_printf("bit %s%i = %s\n", SymbolChanceBitName[typ], i, bit ? "true" : "false");
     }
 
     bool read(SymbolChanceBitType typ, int i = 0) {
-        BitChance& bch = ctx.bit(typ,i);
-        bool bit = rac.read(bch.get());
+        BitChance& bch = ctx.bit(typ, i);
+        bool bit = rac.read_12bit_chance(bch.get_12bit());
         bch.put(bit, table);
 //    e_printf("bit %s%i = %s\n", SymbolChanceBitName[typ], i, bit ? "true" : "false");
         return bit;

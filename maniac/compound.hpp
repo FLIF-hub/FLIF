@@ -153,7 +153,7 @@ public:
 
     bool inline read(const SymbolChanceBitType type, const int i = 0) {
         BitChance& ch = chances.realChances.bit(type, i);
-        bool bit = rac.read(ch.get());
+        bool bit = rac.read_12bit_chance(ch.get_12bit());
         updateChances(type, i, bit);
         return bit;
     }
@@ -161,7 +161,7 @@ public:
 #ifdef HAS_ENCODER
     void inline write(const bool bit, const SymbolChanceBitType type, const int i = 0) {
         BitChance& ch = chances.realChances.bit(type, i);
-        rac.write(ch.get(), bit);
+        rac.write_12bit_chance(ch.get_12bit(), bit);
         updateChances(type, i, bit);
     }
 #endif
@@ -222,7 +222,7 @@ public:
 
     bool read(SymbolChanceBitType type, int i = 0) {
         BitChance& ch = bestChance(type, i);
-        bool bit = rac.read(ch.get());
+        bool bit = rac.read_12bit_chance(ch.get_12bit());
         updateChances(type, i, bit);
 //    e_printf("bit %s%i = %s\n", SymbolChanceBitName[type], i, bit ? "true" : "false");
         return bit;
@@ -230,7 +230,7 @@ public:
 
     void write(bool bit, SymbolChanceBitType type, int i = 0) {
         BitChance& ch = bestChance(type, i);
-        rac.write(ch.get(), bit);
+        rac.write_12bit_chance(ch.get_12bit(), bit);
         updateChances(type, i, bit);
 //    e_printf("bit %s%i = %s\n", SymbolChanceBitName[type], i, bit ? "true" : "false");
     }

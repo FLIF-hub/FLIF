@@ -14,18 +14,47 @@ public:
     static const int MIN_RANGE_BITS = (MAX_RANGE_BITS-8);
     static const data_t MIN_RANGE = (1ULL << (data_t)(MIN_RANGE_BITS));
     static const data_t BASE_RANGE = (1ULL << MAX_RANGE_BITS);
+
+    static inline data_t chance_12bit_chance(int b12, data_t range) {
+        assert(b12 > 0);
+        assert((b12 >> 12) == 0);
+        return (range * b12 + 0x800) >> 12;
+    }
+
+    static inline data_t chance_fractional(int num, int denom, data_t range) {
+        assert(num > 0);
+        assert(denom > 0);
+        assert(num < denom);
+        return (((uint64_t)range * num + denom / 2) / denom);
+    }
 };
 #endif
 
 /* RAC configuration for 24-bit RAC */
-class RacConfig20
+class RacConfig24
 {
 public:
     typedef uint32_t data_t;
-    static const data_t MAX_RANGE_BITS = 24; // just setting this to 20 does not seem to work
+    static const data_t MAX_RANGE_BITS = 24;
     static const data_t MIN_RANGE_BITS = 16;
     static const data_t MIN_RANGE = (1UL << MIN_RANGE_BITS);
     static const data_t BASE_RANGE = (1UL << MAX_RANGE_BITS);
+
+    static inline data_t chance_12bit_chance(int b12, data_t range) {
+        assert(b12 > 0);
+        assert((b12 >> 12) == 0);
+        // We want to compute (range * b12 + 0x800) >> 12.
+        // Unfortunately, this can overflow the 32-bit data type, so split range
+        // in its lower and upper 12 bits, and compute separately.
+        return ((((range & 0xFFF) * b12 + 0x800) >> 12) + ((range >> 12) * b12));
+    }
+
+    static inline data_t chance_fractional(int num, int denom, data_t range) {
+        assert(num > 0);
+        assert(denom > 0);
+        assert(num < denom);
+        return (((uint64_t)range * num + denom / 2) / denom);
+    }
 };
 
 template <typename Config, typename IO> class RacInput
@@ -76,22 +105,16 @@ public:
         }
     }
 
-    bool inline read(int num, int denom) {
-        assert(num>=0);
-        assert(num<denom);
-        assert(denom>0);
-        return get(((uint64_t)range * num + denom / 2) / denom);
+    bool inline read_fractional(int num, int denom) {
+        return get(Config::chance_fractional(num, denom, range));
     }
 
-    bool inline read(uint16_t b16) {
-        assert(b16>0);
-        assert(b16< (1<<12));
-        return get((((range & 0xFFF) * b16 + 0x800) >> 12)+((range>>12)*b16)); // doing everything in 32-bit arithmetic here
-//        return get(((uint64_t)range * b16 + 0x800) >> 12);
+    bool inline read_12bit_chance(int b12) {
+        return get(Config::chance_12bit_chance(b12, range));
     }
 
-    bool inline read() {
-        return get(range/2);
+    bool inline read_bit() {
+        return get(range >> 1);
     }
 
     bool isEOF() {
@@ -161,24 +184,16 @@ private:
 public:
     RacOutput(IO& ioin) : io(ioin), range(Config::BASE_RANGE), low(0), delayed_byte(-1), delayed_count(0) { }
 
-    void inline write(int num, int denom, bool bit) {
-        assert(num>=0);
-        assert(num<denom);
-        assert(denom>1);
-        put(((uint64_t)range * num + denom / 2) / denom, bit);
+    void inline write_fractional(int num, int denom, bool bit) {
+        put(Config::chance_fractional(num, denom, range), bit);
     }
 
-    void inline write(uint16_t b16, bool bit) {
-        assert(b16>0);
-        assert(b16< (1<<12));
-        assert(range>0);
-        assert(range<= (1<<24));
-        put((((range & 0xFFF) * b16 + 0x800) >> 12)+((range>>12)*b16), bit); // doing everything in 32-bit arithmetic here
-//        put(((uint64_t)range * b16 + 0x800) >> 12, bit);
+    void inline write_12bit_chance(uint16_t b12, bool bit) {
+        put(Config::chance_12bit_chance(b12, range), bit);
     }
 
-    void inline write(bool bit) {
-        put(range / 2, bit);
+    void inline write_bit(bool bit) {
+        put(range >> 1, bit);
     }
 
     void inline flush() {
@@ -202,17 +217,9 @@ public:
 class RacDummy
 {
 public:
-    void inline write(int num, int denom, bool) {
-        assert(num>=0);
-        assert(num<denom);
-        assert(denom>1);
-    }
-
-    void inline write(uint16_t b16, bool) {
-        assert(b16>0);
-    }
-
-    void inline write(bool) { }
+    void inline write_fractional(int num, int denom, bool) { }
+    void inline write_12bit_chance(uint16_t b12, bool) { }
+    void inline write_bit(bool) { }
     void inline flush() { }
 
     int ftell() {
@@ -237,16 +244,16 @@ public:
 #endif
 #endif
 
-template <typename IO> class RacInput20 : public RacInput<RacConfig20, IO>
+template <typename IO> class RacInput24 : public RacInput<RacConfig24, IO>
 {
 public:
-    RacInput20(IO& io) : RacInput<RacConfig20, IO>(io) { }
+    RacInput24(IO& io) : RacInput<RacConfig24, IO>(io) { }
 };
 
 #ifdef HAS_ENCODER
-template <typename IO> class RacOutput20 : public RacOutput<RacConfig20, IO>
+template <typename IO> class RacOutput24 : public RacOutput<RacConfig24, IO>
 {
 public:
-    RacOutput20(IO& io) : RacOutput<RacConfig20, IO>(io) { }
+    RacOutput24(IO& io) : RacOutput<RacConfig24, IO>(io) { }
 };
 #endif
