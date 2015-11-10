@@ -7,6 +7,7 @@
 #include "colorbuckets.hpp"
 #include "palette.hpp"
 #include "palette_A.hpp"
+#include "palette_C.hpp"
 #include "frameshape.hpp"
 #include "framedup.hpp"
 #include "framecombine.hpp"
@@ -24,6 +25,8 @@ Transform<IO> *create_transform(std::string desc)
         return new TransformPalette<IO>();
     if (desc == "PLA")
         return new TransformPaletteA<IO>();
+    if (desc == "PLC")
+        return new TransformPaletteC<IO>();
     if (desc == "FRS")
         return new TransformFrameShape<IO>();
     if (desc == "DUP")
