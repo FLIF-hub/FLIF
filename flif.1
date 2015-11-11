@@ -105,6 +105,12 @@ or uses a color palette.
 \fB\-b\fR, \fB\-\-no\-acb\fR
 Similar to \fB\-a\fR, this option overrides the heuristic and forces ACB to be disabled.
 .TP
+\fB\-C\fR, \fB\-\-no\-plc\fR
+This option disables the PLC transform. PLC is a channel palette, also known as channel compactification.
+.TP
+\fB\-R\fR, \fB\-\-rgb\fR
+This option disables the YIQ transform. YIQ is a color space transform aimed at decorrelating the RGB channels.
+.TP
 \fB\-r\fR, \fB\-\-repeats\fR=\fINB_ITERATIONS\fR
 The first and computationally most demanding step of FLIF encoding is performing a number of iterations
 of dummy-encoding in order to learn image-adapted MANIAC trees.
