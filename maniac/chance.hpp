@@ -18,49 +18,12 @@ struct Log4kTable {
 
 extern const Log4kTable log4k;
 
-class StaticBitChanceTable
-{
-public:
-    StaticBitChanceTable() {};
-};
-
-class StaticBitChance
-{
-protected:
-    uint16_t chance; // stored as a 16-bit number
-
-public:
-    typedef StaticBitChanceTable Table;
-
-    StaticBitChance(int chanceIn = 0x800) {
-        chance = chanceIn;
-    }
-
-    uint16_t inline get() const {
-        return chance; // * 16; // return 16-bit number
-    }
-
-    void set(uint16_t chanceIn) {
-        chance = chanceIn;
-    }
-
-    void inline put(bool, const Table &) {}
-
-    void estim(bool bit, uint64_t &total) const {
-        total += log4k.data[bit ? chance : 4096-chance];
-    }
-
-    int scale() const {
-        return log4k.scale;
-    }
-};
-
 void extern build_table(uint16_t *zero_state, uint16_t *one_state, size_t size, int factor, unsigned int max_p);
 
 class SimpleBitChanceTable
 {
 public:
-    uint16_t next[2][4096];
+    uint16_t next[2][4096]; // stored as 12-bit numbers
 
     void init(int cut, int alpha) {
         build_table(next[0], next[1], 4096, alpha, 4096-cut);
@@ -79,14 +42,14 @@ protected:
 public:
     typedef SimpleBitChanceTable Table;
 
-    SimpleBitChance(int chanceIn = 0x800) {
-        chance = chanceIn;
+    SimpleBitChance() {
+        chance = 0x800;
     }
 
-    uint16_t inline get() const {
-        return chance; //*16; // return 16-bit number
+    uint16_t inline get_12bit() const {
+        return chance;
     }
-    void set(uint16_t chance) {
+    void set_12bit(uint16_t chance) {
         this->chance = chance;
     }
     void inline put(bool bit, const Table &table) {
@@ -128,7 +91,7 @@ public:
     MultiscaleBitChanceTable(int cut = 8) {
         for (int i= 0; i<N; i++) {
             subTable[i].init(cut, MULTISCALE_ALPHAS[i]);
-          }
+        }
     }
 };
 
@@ -147,11 +110,11 @@ protected:
 public:
     typedef MultiscaleBitChanceTable<N,BitChance> Table;
 
-    MultiscaleBitChance(int chanceIn = 0x800) {
-        set(chanceIn);
+    MultiscaleBitChance() {
+        set_12bit(0x800);
     }
 
-    void set(uint16_t chanceIn) {
+    void set_12bit(uint16_t chanceIn) {
         for (int i = 0; i<N; i++) {
             chances[i].set(chanceIn);
             quality[i] = 0;
@@ -166,7 +129,7 @@ public:
 #endif
     }
 
-    uint16_t get() const {
+    uint16_t get_12bit() const {
         return chances[best].get();
     }
 

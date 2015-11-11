@@ -414,7 +414,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     v_printf(4,"Transforms: ");
     int tcount=0;
     transform_l=0;
-    while (rac.read()) {
+    while (rac.read_bit()) {
         if (transform_l > MAX_TRANSFORM) return false;
         std::string desc = read_name(rac);
         Transform<IO> *trans = create_transform<IO>(desc);

@@ -358,7 +358,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
             if (tcount++ > 0) v_printf(4,", ");
             v_printf(4,"%s", transDesc[i].c_str());
             fflush(stdout);
-            rac.write(true);
+            rac.write_bit(true);
             write_name(rac, transDesc[i]);
             trans->save(rangesList.back(), rac);
             fflush(stdout);
@@ -368,7 +368,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
         delete trans;
     }
     if (tcount==0) v_printf(4,"none\n"); else v_printf(4,"\n");
-    rac.write(false);
+    rac.write_bit(false);
     const ColorRanges* ranges = rangesList.back();
     grey.clear();
     for (int p = 0; p < ranges->numPlanes(); p++) grey.push_back((ranges->min(p)+ranges->max(p))/2);
