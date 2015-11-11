@@ -1,9 +1,5 @@
 #pragma once
 
-#ifdef STATS
-#include <stdio.h>
-#endif
-
 #include <vector>
 #include <assert.h>
 #include "util.hpp"
@@ -74,8 +70,6 @@ template <typename BitChance, int bits> class SymbolChance
 {
     BitChance bit_zero;
     BitChance bit_sign;
-//    std::vector<BitChance> bit_exp;
-//    std::vector<BitChance> bit_mant;
     BitChance bit_exp[bits-1];
     BitChance bit_mant[bits];
 
@@ -130,29 +124,6 @@ public:
     int scale() const {
         return bitZero().scale();
     }
-
-#ifdef STATS
-        // todo: fix this
-    void dist(std::vector<double> &ret) const {
-        for (int i=0; i<2*bits-1; i++) {
-            chances[i].dist(ret);
-        }
-    }
-
-    void info_symbol(int n) const {
-        // TODO: move implementation to separate source file to have a chance to use
-        //       `using namespace util` without consequences
-        maniac::util::indent(n); printf("ZERO:   "); bitZero().info_bitchance();
-        maniac::util::indent(n); printf("SIGN:   "); bitSign().info_bitchance();
-        for (int i=0; i<bits-1; i++) {
-            maniac::util::indent(n); printf("EXP % 2i: ", i); bitExp(i).info_bitchance();
-        }
-        for (int i=0; i<bits; i++) {
-            maniac::util::indent(n); printf("MNT % 2i: ", i); bitMant(i).info_bitchance();
-        }
-    }
-#endif
-
 };
 
 template <typename SymbolCoder> int reader(SymbolCoder& coder, int bits)
@@ -363,33 +334,20 @@ private:
     SymbolChance<BitChance,bits> ctx;
     const Table table;
     RAC &rac;
-#ifdef STATS
-    uint64_t symbols;
-#endif
 
 public:
     SimpleSymbolCoder(RAC& racIn) : rac(racIn) {
-#ifdef STATS
-        symbols = 0;
-#endif
     }
 
 #ifdef HAS_ENCODER
     void write_int(int min, int max, int value) {
         SimpleSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, ctx, rac);
         writer<bits, SimpleSymbolBitCoder<BitChance, RAC, bits> >(bitCoder, min, max, value);
-
-#ifdef STATS
-        symbols++;
-#endif
     }
 #endif
 
     int read_int(int min, int max) {
         SimpleSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, ctx, rac);
-#ifdef STATS
-        symbols++;
-#endif
         return reader<bits, SimpleSymbolBitCoder<BitChance, RAC, bits>>(bitCoder, min, max);
     }
 
@@ -398,25 +356,12 @@ public:
         assert (nbits <= bits);
         SimpleSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, ctx, rac);
         writer(bitCoder, nbits, value);
-#ifdef STATS
-        symbols++;
-#endif
     }
 #endif
 
     int read_int(int nbits) {
         assert (nbits <= bits);
         SimpleSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, ctx, rac);
-#ifdef STATS
-        symbols++;
-#endif
         return reader(bitCoder, nbits);
     }
-
-#ifdef STATS
-    void info(int n) const {
-        maniac::util::indent(n); printf("Total integers: %llu\n", (unsigned long long)symbols);
-        ctx.info(n);
-    }
-#endif
 };

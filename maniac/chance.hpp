@@ -4,11 +4,6 @@
 #include <math.h>
 #include <stdint.h>
 
-#ifdef STATS
-#include <stdlib.h>
-#include <stdio.h>
-#endif
-
 struct Log4kTable {
     uint16_t data[4097];
     int scale;
@@ -63,14 +58,6 @@ public:
     int scale() const {
         return log4k.scale;
     }
-
-#ifdef STATS
-    void dist(std::vector<double> &dist) const {}
-
-    void info_bitchance() const {
-        printf("\n");
-    }
-#endif
 };
 
 
@@ -101,11 +88,6 @@ protected:
     BitChance chances[N];
     uint32_t quality[N];
     uint8_t best;
-#ifdef STATS
-    uint64_t virtSize[N];
-    uint64_t realSize;
-    uint64_t symbols;
-#endif
 
 public:
     typedef MultiscaleBitChanceTable<N,BitChance> Table;
@@ -118,15 +100,8 @@ public:
         for (int i = 0; i<N; i++) {
             chances[i].set(chanceIn);
             quality[i] = 0;
-#ifdef STATS
-            virtSize[i] = 0;
-#endif
         }
         best = 0;
-#ifdef STATS
-        symbols = 0;
-        realSize = 0;
-#endif
     }
 
     uint16_t get_12bit() const {
@@ -134,10 +109,6 @@ public:
     }
 
     void put(bool bit, const Table &table) {
-#ifdef STATS
-        int oldBest = best;
-        symbols++;
-#endif
 /*        if (bit == 0)  {
           for (int i=0; i<N; i++) {
             uint64_t sbits = 0;
@@ -169,10 +140,6 @@ public:
 //            quality[i] = (oqual*127 + sbits*2049 + 64)>>7;
 //            if (quality[i] < quality[best]) best=i;
             chances[i].put(bit, table.subTable[i]);
-#ifdef STATS
-            virtSize[i] += sbits;
-            if (i == oldBest) realSize += sbits;
-#endif
         }
 
         for (int i=0; i<N; i++) if (quality[i] < quality[best]) best=i;
@@ -186,24 +153,6 @@ public:
         return chances[0].scale();
     }
 
-#ifdef STATS
-    void dist(std::vector<double> &ret) const {
-        if (ret.size() != N+1)
-            ret = std::vector<double>(N+1, 0.0);
-
-        ret[0] += (double)realSize/scale();
-        for (int i=0; i<N; i++)
-            ret[i+1] += (double)virtSize[i]/scale();
-    }
-
-    void info_bitchance() const {
-        printf("%llu bits: ", (unsigned long long)symbols);
-        printf("%.5f [", (double)symbols*scale()/realSize);
-        for (int i=0; i<N; i++)
-            printf("%.4f ", (double)symbols*scale()/virtSize[i]);
-        printf("]\n");
-    }
-#endif
 };
 
 #endif
