@@ -111,6 +111,7 @@ template <typename IO>
 class TransformYIQ : public Transform<IO> {
 protected:
     int par;
+    const ColorRanges *ranges;
 
 public:
     bool virtual init(const ColorRanges *srcRanges) {
@@ -118,6 +119,7 @@ public:
         if (srcRanges->min(0) < 0 || srcRanges->min(1) < 0 || srcRanges->min(2) < 0) return false;
         int max = std::max(std::max(srcRanges->max(0), srcRanges->max(1)), srcRanges->max(2));
         par = max/4+1;
+        ranges = srcRanges;
         return true;
     }
 
@@ -155,9 +157,10 @@ public:
                 int B = Y + (Q + 2) / 2 - (I + 1) / 2;
 
                 // clipping only needed in case of lossy/partial decoding
-                clip(R, 0, par*4-1);
-                clip(G, 0, par*4-1);
-                clip(B, 0, par*4-1);
+                clip(R, ranges->min(0), ranges->max(0));
+                clip(G, ranges->min(1), ranges->max(1));
+                clip(B, ranges->min(2), ranges->max(2));
+
                 image.set(0,r,c, R);
                 image.set(1,r,c, G);
                 image.set(2,r,c, B);

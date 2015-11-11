@@ -188,12 +188,13 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
     }
     uint64_t nb_pixels = (uint64_t)images[0].rows() * images[0].cols();
     std::vector<std::string> desc;
-    if (plc)
+    if (nb_pixels > 2) {         // no point in doing anything for 1- or 2-pixel images
+      if (plc)
         desc.push_back("PLC");  // compactify channels
-    if (yiq)
+      if (yiq)
         desc.push_back("YIQ");  // convert RGB(A) to YIQ(A)
-    if (nb_pixels > 2)          // no point in storing bounds for 1- or 2-pixel images
-        desc.push_back("BND");  // get the bounds of the color spaces
+      desc.push_back("BND");  // get the bounds of the color spaces
+    }
     if (palette_size < 0) {
         palette_size = 1024;
         if (nb_pixels * images.size() / 2 < 1024) palette_size = nb_pixels * images.size() / 2;
