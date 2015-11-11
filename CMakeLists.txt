@@ -17,6 +17,7 @@ set(IMAGE_SOURCES
 
 set(MANIAC_SOURCES
     maniac/chance.cpp
+    maniac/symbol.cpp
 )
 
 set(TRANSFORM_SOURCES

@@ -89,13 +89,6 @@ void flif_encode_scanlines_pass(Rac &rac, const Images &images, const ColorRange
     for (int p = 0; p < ranges->numPlanes(); p++) {
         coders[p].simplify(divisor, min_size);
     }
-
-    for (int p = 0; p < ranges->numPlanes(); p++) {
-#ifdef STATS
-        indent(0); v_printf(2,"Plane %i\n", p);
-        coders[p].info(0+1);
-#endif
-    }
 }
 
 template<typename Rac, typename Coder> void flif_encode_FLIF2_inner(Rac rac, std::vector<Coder> &coders, const Images &images, const ColorRanges *ranges, const int beginZL, const int endZL)
@@ -188,13 +181,6 @@ void flif_encode_FLIF2_pass(Rac &rac, const Images &images, const ColorRanges *r
     }
     for (int p = 0; p < images[0].numPlanes(); p++) {
         coders[p].simplify(divisor, min_size);
-    }
-
-    for (int p = 0; p < images[0].numPlanes(); p++) {
-#ifdef STATS
-        indent(0); v_printf(2,"Plane %i\n", p);
-        coders[p].info(0+1);
-#endif
     }
 }
 
