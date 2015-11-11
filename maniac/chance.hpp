@@ -3,6 +3,8 @@
 #include <vector>
 #include <math.h>
 #include <stdint.h>
+#include <string>
+#include <sstream>
 
 struct Log4kTable {
     uint16_t data[4097];
@@ -29,10 +31,44 @@ public:
     }
 };
 
+#ifdef STATS
+struct BitChanceStats
+{
+    uint64_t total;
+    uint64_t ones;
+
+    BitChanceStats() : total(0), ones(0) {}
+
+    void add(bool bit) {
+        total++;
+        ones += bit;
+    }
+
+    BitChanceStats& operator+=(const BitChanceStats& stats) {
+        total += stats.total;
+        ones += stats.ones;
+        return *this;
+    }
+
+    std::string format() const {
+        if (total == 0) {
+            return "0*0";
+        } else {
+            std::stringstream ss;
+            ss << (int)((double)ones / total * 4096.0 + 0.5) << '*' << total;
+            return ss.str();
+        }
+    }
+};
+#endif
+
 class SimpleBitChance
 {
 protected:
     uint16_t chance; // stored as a 12-bit number
+#ifdef STATS
+    BitChanceStats stats_;
+#endif
 
 public:
     typedef SimpleBitChanceTable Table;
@@ -48,6 +84,9 @@ public:
         this->chance = chance;
     }
     void inline put(bool bit, const Table &table) {
+#ifdef STATS
+        stats_.add(bit);
+#endif
         chance = table.next[bit][chance];
     }
 
@@ -58,6 +97,12 @@ public:
     int scale() const {
         return log4k.scale;
     }
+
+#ifdef STATS
+    const BitChanceStats& stats() const {
+        return stats_;
+    }
+#endif
 };
 
 
@@ -88,6 +133,9 @@ protected:
     BitChance chances[N];
     uint32_t quality[N];
     uint8_t best;
+#ifdef STATS
+    BitChanceStats stats_;
+#endif
 
 public:
     typedef MultiscaleBitChanceTable<N,BitChance> Table;
@@ -109,6 +157,9 @@ public:
     }
 
     void put(bool bit, const Table &table) {
+#ifdef STATS
+        stats_.add(bit);
+#endif
 /*        if (bit == 0)  {
           for (int i=0; i<N; i++) {
             uint64_t sbits = 0;
@@ -153,6 +204,11 @@ public:
         return chances[0].scale();
     }
 
+#ifdef STATS
+    const BitChanceStats& stats() const {
+        return stats_;
+    }
+#endif
 };
 
 #endif

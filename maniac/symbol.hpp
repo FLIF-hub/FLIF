@@ -66,13 +66,27 @@ static const uint16_t MANT_CHANCES[] = {1800, 1800, 1800, 1700, 1600, 1200, 1000
 static const uint16_t ZERO_CHANCE = 1500;
 static const uint16_t SIGN_CHANCE = 2048;
 
+#ifdef STATS
+struct SymbolChanceStats
+{
+    BitChanceStats stats_zero;
+    BitChanceStats stats_sign;
+    BitChanceStats stats_exp[31];
+    BitChanceStats stats_mant[32];
+
+    std::string format() const;
+    ~SymbolChanceStats();
+};
+
+extern SymbolChanceStats global_symbol_stats;
+#endif
+
 template <typename BitChance, int bits> class SymbolChance
 {
     BitChance bit_zero;
     BitChance bit_sign;
     BitChance bit_exp[bits-1];
     BitChance bit_mant[bits];
-
 
 public:
 
@@ -120,10 +134,22 @@ public:
         }
     }
 
-
     int scale() const {
         return bitZero().scale();
     }
+
+#ifdef STATS
+    ~SymbolChance() {
+        global_symbol_stats.stats_zero += bit_zero.stats();
+        global_symbol_stats.stats_sign += bit_sign.stats();
+        for (int i = 0; i < bits - 1 && i < 31; i++) {
+            global_symbol_stats.stats_exp[i] += bit_exp[i].stats();
+        }
+        for (int i = 0; i < bits && i < 32; i++) {
+            global_symbol_stats.stats_mant[i] += bit_mant[i].stats();
+        }
+    }
+#endif
 };
 
 template <typename SymbolCoder> int reader(SymbolCoder& coder, int bits)
