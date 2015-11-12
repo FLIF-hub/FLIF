@@ -31,7 +31,7 @@ void initPropRanges_scanlines(Ranges &propRanges, const ColorRanges &ranges, int
       if (ranges.numPlanes()>3) propRanges.push_back(std::make_pair(ranges.min(3), ranges.max(3)));  // pixel on alpha plane
     }
     propRanges.push_back(std::make_pair(min,max));   // guess (median of 3)
-    propRanges.push_back(std::make_pair(0,3));       // which predictor was it
+    propRanges.push_back(std::make_pair(0,2));       // which predictor was it
     propRanges.push_back(std::make_pair(mind,maxd));
     propRanges.push_back(std::make_pair(mind,maxd));
     propRanges.push_back(std::make_pair(mind,maxd));
@@ -95,7 +95,7 @@ void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p) {
     }
     propRanges.push_back(std::make_pair(mind,maxd)); // neighbor A - neighbor B   (top-bottom or left-right)
     propRanges.push_back(std::make_pair(min,max));   // guess (median of 3)
-    propRanges.push_back(std::make_pair(0,3));       // which predictor was it
+    propRanges.push_back(std::make_pair(0,2));       // which predictor was it
     propRanges.push_back(std::make_pair(mind,maxd));
     propRanges.push_back(std::make_pair(mind,maxd));
     propRanges.push_back(std::make_pair(mind,maxd));
@@ -136,7 +136,6 @@ ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges
       else if (guess == gradientTL) which = 1;
       else if (guess == gradientBL) which = 2;
       properties[index++] = top-bottom;
-
     } else { // filling vertical lines
       left = image(p,z,r,c-1);
       top = (r>0 ? image(p,z,r-1,c) : grey[p]);
