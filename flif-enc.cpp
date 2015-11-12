@@ -338,7 +338,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
         if (transDesc[i] == "FRA") trans->configure(lookback);
         if (!trans->init(rangesList.back()) || 
             (!trans->process(rangesList.back(), images)
-              && !(acb==1 && transDesc[i] == "ACB" && printf(", forced_") && (tcount=0)==0))) {
+              && !(acb==1 && transDesc[i] == "ACB" && v_printf(4,", forced_") && (tcount=0)==0))) {
             //e_printf( "Transform '%s' failed\n", transDesc[i].c_str());
         } else {
             if (tcount++ > 0) v_printf(4,", ");
