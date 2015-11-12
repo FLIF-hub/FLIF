@@ -387,8 +387,9 @@ private:
 
           int8_t p = result.best_property;
           PropertyVal splitval = result.virtPropSum[p]/result.count;
+  //        if (splitval > current_ranges[result.best_property].first && splitval <= 0) splitval--; // division rounds towards zero, we want to round down
           if (splitval >= current_ranges[result.best_property].second)
-            splitval = current_ranges[result.best_property].second-1; // == does happen because of rounding and running average
+             splitval = current_ranges[result.best_property].second-1; // == does happen because of rounding and running average
 
           uint32_t new_inner = inner_node.size();
           inner_node.push_back(inner_node[pos]);
@@ -428,7 +429,9 @@ private:
             assert(properties[i] <= range[i].second);
             chances.virtPropSum[i] += properties[i];
 //        fprintf(stdout,"Property %i: %i ||",i,properties[i]);
-            selection[i] = (properties[i] > chances.virtPropSum[i]/chances.count);
+            PropertyVal splitval = chances.virtPropSum[i]/chances.count;
+//            if (splitval > range[i].first && splitval <= 0) splitval--;
+            selection[i] = (properties[i] > splitval);
         }
 //    fprintf(stdout,"\n");
     }

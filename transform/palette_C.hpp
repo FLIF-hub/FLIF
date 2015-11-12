@@ -46,6 +46,7 @@ public:
             nb[i] = CPalette_vector[i].size()-1;
             if (i>0) v_printf(4,",");
             v_printf(4,"%i",nb[i]);
+//            if (nb[i] < 64) nb[i] <<= 2;
         }
         v_printf(4,"]");
         return new ColorRangesPaletteC(srcRanges, nb);
@@ -54,8 +55,10 @@ public:
     void invData(Images& images) const {
         for (Image& image : images) {
          for (int p=0; p<image.numPlanes(); p++) {
+//          const int stretch = (CPalette_vector[p].size()>64 ? 0 : 2);
           for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
+//                image.set(p,r,c, CPalette_vector[p][image(p,r,c) >> stretch]);
                 image.set(p,r,c, CPalette_vector[p][image(p,r,c)]);
             }
           }
@@ -76,17 +79,31 @@ public:
           }
          }
          if ((int)CPalette[p].size() <= srcRanges->max(p)-srcRanges->min(p)) nontrivial = true;
-         for (ColorVal c : CPalette[p]) CPalette_vector[p].push_back(c);
+         if (CPalette[p].size() < 50) {
+           // add up to 50 shades of gray
+           ColorVal prev=0;
+           for (ColorVal c : CPalette[p]) {
+             if (c > prev+1) CPalette_vector[p].push_back((c+prev)/2);
+             CPalette_vector[p].push_back(c);
+             prev=c;
+             nontrivial=true;
+           }
+         } else {
+           for (ColorVal c : CPalette[p]) CPalette_vector[p].push_back(c);
+         }
+         CPalette[p].clear();
         }
         return nontrivial;
     }
     void data(Images& images) const {
         for (Image& image : images) {
          for (int p=0; p<image.numPlanes(); p++) {
+//          const int stretch = (CPalette_vector[p].size()>64 ? 0 : 2);
           for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
                 ColorVal P=0;
                 for (ColorVal x : CPalette_vector[p]) {if (x==image(p,r,c)) break; else P++;}
+//                image.set(p,r,c, P << stretch);
                 image.set(p,r,c, P);
             }
           }
