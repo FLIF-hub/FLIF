@@ -325,8 +325,8 @@ int main(int argc, char **argv)
         {"divisor", 1, NULL, 'D'},
         {"min-size", 1, NULL, 'M'},
         {"split-threshold", 1, NULL, 'S'},
-        {"rgb", 1, NULL, 'R'},
-        {"no-plc", 1, NULL, 'C'},
+        {"rgb", 0, NULL, 'R'},
+        {"no-plc", 0, NULL, 'C'},
 #endif
         {0, 0, 0, 0}
     };
