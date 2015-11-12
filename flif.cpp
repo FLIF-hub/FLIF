@@ -127,7 +127,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
       v_printf(3," ______ __  (())______");
-    v_printf(3,"\n \\___  |  | |  |  ___/   ");v_printf(2,"FLIF 0.1.4 [11 November 2015]");
+    v_printf(3,"\n \\___  |  | |  |  ___/   ");v_printf(2,"FLIF 0.1.5 [12 November 2015]");
     v_printf(3,"\n  \\__  |  |_|__|  __/    Free Lossless Image Format");
     v_printf(3,"\n    \\__|_______|__/    ");v_printf(2,"  (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
     v_printf(3,"\n");
@@ -185,6 +185,12 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
     if (flat && images[0].numPlanes() == 4) {
         v_printf(2,"Alpha channel not actually used, dropping it.\n");
         for (Image &image : images) image.drop_alpha();
+    }
+    bool grayscale=true;
+    for (Image &image : images) if (image.uses_color()) grayscale=false;
+    if (grayscale && images[0].numPlanes() == 3) {
+        v_printf(2,"Chroma not actually used, dropping it.\n");
+        for (Image &image : images) image.drop_color();
     }
     uint64_t nb_pixels = (uint64_t)images[0].rows() * images[0].cols();
     std::vector<std::string> desc;

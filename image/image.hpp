@@ -253,6 +253,14 @@ public:
               if (operator()(3,r,c) < (1<<depth)-1) return true;
         return false; // alpha plane is completely opaque, so it is useless
     }
+    bool uses_color() const {
+        assert(depth == 8 || depth == 16);
+        if (num<3) return false;
+        for (uint32_t r=0; r<height; r++)
+           for (uint32_t c=0; c<width; c++)
+              if (operator()(0,r,c) != operator()(1,r,c) || operator()(0,r,c) != operator()(2,r,c)) return true;
+        return false; // R=G=B for all pixels, so image is grayscale
+    }
     void drop_alpha() {
         if (num<4) return;
         assert(num==4);
