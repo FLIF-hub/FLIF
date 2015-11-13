@@ -328,7 +328,7 @@ protected:
             srcRanges->min(1) == srcRanges->max(1) &&
             srcRanges->min(2) == srcRanges->max(2)) return false; // only alpha plane contains information
 //        if (srcRanges->max(0) > 255) return false; // do not attempt this on high bit depth images (TODO: generalize color bucket quantization!)
-        if (srcRanges->max(0) > 1023) return false; // do not attempt this on high bit depth images (TODO: generalize color bucket quantization!)
+        if (srcRanges->max(0) > 4096) return false; // do not attempt this on high bit depth images (TODO: generalize color bucket quantization!)
         cb = new ColorBuckets(srcRanges);
         return true;
     }
@@ -437,15 +437,9 @@ protected:
                         return;
                 }
         }
-//        SimpleBitCoder<FLIFBitChanceMeta, RacOut> bcoder(rac);
-//        if (b.min > b.max) printf("SHOULD NOT HAPPEN!\n");
-
         ColorVal smin,smax;
         minmax(srcRanges,plane,pixelL,pixelU,smin,smax);
         if (smin==smax) { return;}
-
-//        b.printshort();
-//        b.print();
 
         if (b.min > b.max) {
                 coder.write_int(0, 1, 0);  // empty bucket

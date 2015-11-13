@@ -65,15 +65,15 @@ bool image_load_rggb(const char *filename, Image& image)
           for (unsigned int x=0; x<width; x+=2) {
                 ColorVal pixel= (fgetc(fp) << 8);
                 pixel += fgetc(fp);
-                ColorVal pixel2= (fgetc(fp) << 8);
-                pixel2 += fgetc(fp);
+                image.set(0,y/2,x/2, pixel); // R
+                pixel= (fgetc(fp) << 8);
+                pixel += fgetc(fp);
                 image.set(1,y/2,x/2, pixel); // G1
-                image.set(3,y/2,x/2, 1+pixel2); // G2
           }
           for (unsigned int x=0; x<width; x+=2) {
                 ColorVal pixel= (fgetc(fp) << 8);
                 pixel += fgetc(fp);
-                image.set(0,y/2,x/2, pixel); // R
+                image.set(3,y/2,x/2, 1+pixel); // G2
                 pixel= (fgetc(fp) << 8);
                 pixel += fgetc(fp);
                 image.set(2,y/2,x/2, pixel); // B
@@ -82,12 +82,12 @@ bool image_load_rggb(const char *filename, Image& image)
       } else {
         for (unsigned int y=0; y<height; y+=2) {
           for (unsigned int x=0; x<width; x+=2) {
+                image.set(0,y/2,x/2, fgetc(fp)); // R
                 image.set(1,y/2,x/2, fgetc(fp)); // G1
-                image.set(3,y/2,x/2, 1+fgetc(fp)); // G2
           }
           for (unsigned int x=0; x<width; x+=2) {
-                image.set(0,y/2,x/2, fgetc(fp)); // R
-                image.set(2,y/2,x/2, 1+fgetc(fp)); // B
+                image.set(3,y/2,x/2, 1+fgetc(fp)); // G2
+                image.set(2,y/2,x/2, fgetc(fp)); // B
           }
         }
       }
