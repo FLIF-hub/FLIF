@@ -57,29 +57,40 @@ bool image_load_rggb(const char *filename, Image& image)
         return false;
     }
 #endif
-    
     unsigned int nbplanes=4;
+//    if (maxval == 0xffff) maxval = 0x3fff; // raw data has no more than 14 bits per subpixel (probably only 10-12)
     image.init(width/2, height/2, 0, maxval, nbplanes);
       if (maxval > 0xff) {
         for (unsigned int y=0; y<height; y+=2) {
           for (unsigned int x=0; x<width; x+=2) {
                 ColorVal pixel= (fgetc(fp) << 8);
                 pixel += fgetc(fp);
+//                if (pixel > 0x3fff) {e_printf("RGGB file has more than 14 bpc, not expected\n"); return false;}
                 image.set(0,y/2,x/2, pixel); // R
                 pixel= (fgetc(fp) << 8);
                 pixel += fgetc(fp);
+//                if (pixel > 0x3fff) {e_printf("RGGB file has more than 14 bpc, not expected\n"); return false;}
                 image.set(1,y/2,x/2, pixel); // G1
           }
           for (unsigned int x=0; x<width; x+=2) {
                 ColorVal pixel= (fgetc(fp) << 8);
                 pixel += fgetc(fp);
-                image.set(3,y/2,x/2, 1+pixel); // G2
+//                if (pixel > 0x3fff) {e_printf("RGGB file has more than 14 bpc, not expected\n"); return false;}
+                image.set(3,y/2,x/2, 1 + pixel);
+                /*  // commented out because it does not seem to be a good idea
+                ColorVal G1 = image(1,y/2,x/2);
+                ColorVal G2 = pixel;
+                image.set(3,y/2,x/2, 0x4000 + G1-G2);
+                image.set(1,y/2,x/2, (G1+G2)/2);
+                */
                 pixel= (fgetc(fp) << 8);
                 pixel += fgetc(fp);
+//                if (pixel > 0x3fff) {e_printf("RGGB file has more than 14 bpc, not expected\n"); return false;}
                 image.set(2,y/2,x/2, pixel); // B
           }
         }
       } else {
+        // if the .rggb file has a maxval of 255, silently accept it as long as we don't run into trouble because of the uint8_t
         for (unsigned int y=0; y<height; y+=2) {
           for (unsigned int x=0; x<width; x+=2) {
                 image.set(0,y/2,x/2, fgetc(fp)); // R
@@ -87,6 +98,7 @@ bool image_load_rggb(const char *filename, Image& image)
           }
           for (unsigned int x=0; x<width; x+=2) {
                 image.set(3,y/2,x/2, 1+fgetc(fp)); // G2
+                if (image(3,y/2,x/2) == 0) {e_printf("Oops. An RGGB file is not supposed to be 8 bpc.\n"); return false;}
                 image.set(2,y/2,x/2, fgetc(fp)); // B
           }
         }
