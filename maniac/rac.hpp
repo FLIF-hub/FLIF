@@ -123,9 +123,6 @@ public:
     int ftell() {
       return io.ftell();
     }
-    char getc() {
-      return io.getc();
-    }
     char * gets(char *buf, int n) {
       return io.gets(buf, n);
     }

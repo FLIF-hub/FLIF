@@ -345,17 +345,20 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
        }
     }
     if (strcmp(buff,"FLIF")) { e_printf("Not a FLIF file: %s (header: \"%s\")\n",io.getName(),buff); return false; }
-    int c = io.getc();
+    int c;
+    if (!fget_int_8bit (io, &c))
+        return false;
     if (c < ' ' || c > ' '+32+15+32) { e_printf("Invalid or unknown FLIF format byte\n"); return false;}
     c -= ' ';
     int numFrames=1;
     if (c > 47) {
         c -= 32;
-        numFrames = io.getc();
+        if (!fget_int_8bit (io, &numFrames))
+            return false;
         if (numFrames < 2 || numFrames >= 256) return false;
         if (numFrames == 0xff) {
-          numFrames = (io.getc() << 8);
-          numFrames += io.getc();
+          if (!fget_int_16bit_bigendian (io, &numFrames))
+            return false;
         }
     }
     const int encoding=c/16;
@@ -364,13 +367,16 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     if (quality < 100 && encoding==1) { v_printf(1,"Cannot decode non-interlaced FLIF file at lower quality! Ignoring quality...\n");}
     int numPlanes=c%16;
     if (numPlanes < 1 || numPlanes > 4) {e_printf("Invalid FLIF header (unsupported color channels)\n"); return false;}
-    c = io.getc();
+    if (!fget_int_8bit (io, &c))
+        return false;
     if (c < '0' || c > '2')  {e_printf("Invalid FLIF header (unsupported color depth)\n"); return false;}
 
-    int width=io.getc() << 8;
-    width += io.getc();
-    int height=io.getc() << 8;
-    height += io.getc();
+    int width;
+    int height;
+    if (!fget_int_16bit_bigendian (io, &width))
+        return false;
+    if (!fget_int_16bit_bigendian (io, &height))
+        return false;
     if (width < 1 || height < 1) {e_printf("Invalid FLIF header\n"); return false;}
 
     // TODO: implement downscaled decoding without allocating a fullscale image buffer!
