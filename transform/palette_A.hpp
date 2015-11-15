@@ -75,7 +75,7 @@ public:
     }
 
 #if HAS_ENCODER
-    bool process(const ColorRanges *, const Images &images) {
+    bool process(const ColorRanges *srcRanges, const Images &images) {
         for (const Image& image : images)
         for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
@@ -85,6 +85,9 @@ public:
                 if (Palette.size() > max_palette_size) return false;
             }
         }
+        uint64_t max_nb_colors = 1;
+        for (int p=0; p<4; p++) max_nb_colors *= 1+srcRanges->max(p)-srcRanges->min(p);
+        if (Palette.size() == max_nb_colors) return false; // don't make a trivial palette
         for (Color c : Palette) Palette_vector.push_back(c);
 //        printf("Palette size: %lu\n",Palette.size());
         return true;

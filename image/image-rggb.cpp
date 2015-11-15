@@ -57,48 +57,46 @@ bool image_load_rggb(const char *filename, Image& image)
         return false;
     }
 #endif
-    unsigned int nbplanes=4;
-//    if (maxval == 0xffff) maxval = 0x3fff; // raw data has no more than 14 bits per subpixel (probably only 10-12)
-    image.init(width/2, height/2, 0, maxval, nbplanes);
+    
+	unsigned int nbplanes=4;
+	// For now, storing G1 pixels in R plane, G2 pixels in G plane, B pixels in B plane and R pixels in Alpha plane could slightly improve compression
+	// TODO: Detecting the sensor CFA pattern. This should improve compression of attypic CFA like the fujifilm X e1 sensor
+	// IDEAS: (1) Scaling the planes values using the coefficients read in RAW files for YIQ efficiency improvement, (2) Make a new YIQ transform that could handle 2 green planes instead of one
       if (maxval > 0xff) {
+	// Initialising 16bpp planes, adjusting the bpp to the image sensor does not improve compression 
+	// TODO: (BUG) Alpha plane cleanup should be deactivated. If the image sensor is 16bpp coded, the encoded file might be lossless or broken. 
+	maxval=0xFFFF;
+	image.init(width/2, height/2, 0, maxval, nbplanes);
         for (unsigned int y=0; y<height; y+=2) {
           for (unsigned int x=0; x<width; x+=2) {
                 ColorVal pixel= (fgetc(fp) << 8);
                 pixel += fgetc(fp);
-//                if (pixel > 0x3fff) {e_printf("RGGB file has more than 14 bpc, not expected\n"); return false;}
-                image.set(0,y/2,x/2, pixel); // R
+                image.set(3,y/2,x/2, 1 + pixel); // R (BUG if 16bpp sensor)
                 pixel= (fgetc(fp) << 8);
                 pixel += fgetc(fp);
-//                if (pixel > 0x3fff) {e_printf("RGGB file has more than 14 bpc, not expected\n"); return false;}
-                image.set(1,y/2,x/2, pixel); // G1
+                image.set(0,y/2,x/2, pixel); // G1
           }
           for (unsigned int x=0; x<width; x+=2) {
                 ColorVal pixel= (fgetc(fp) << 8);
                 pixel += fgetc(fp);
-//                if (pixel > 0x3fff) {e_printf("RGGB file has more than 14 bpc, not expected\n"); return false;}
-                image.set(3,y/2,x/2, 1 + pixel);
-                /*  // commented out because it does not seem to be a good idea
-                ColorVal G1 = image(1,y/2,x/2);
-                ColorVal G2 = pixel;
-                image.set(3,y/2,x/2, 0x4000 + G1-G2);
-                image.set(1,y/2,x/2, (G1+G2)/2);
-                */
+                image.set(1,y/2,x/2, pixel); // G2
                 pixel= (fgetc(fp) << 8);
                 pixel += fgetc(fp);
-//                if (pixel > 0x3fff) {e_printf("RGGB file has more than 14 bpc, not expected\n"); return false;}
                 image.set(2,y/2,x/2, pixel); // B
           }
         }
       } else {
-        // if the .rggb file has a maxval of 255, silently accept it as long as we don't run into trouble because of the uint8_t
+	// Initialising 8bpp planes, adjusting the bpp to the image sensor does not improve compression 
+	// TODO: (BUG) Alpha plane should be deactivated. If the image sensor is 8bpp coded, the encoded file might be lossless or broken. 
+	maxval=0xFF;
+	image.init(width/2, height/2, 0, maxval, nbplanes);
         for (unsigned int y=0; y<height; y+=2) {
           for (unsigned int x=0; x<width; x+=2) {
-                image.set(0,y/2,x/2, fgetc(fp)); // R
-                image.set(1,y/2,x/2, fgetc(fp)); // G1
+                image.set(3,y/2,x/2, 1 + fgetc(fp)); // R (BUG if 8bpp sensor)
+                image.set(0,y/2,x/2, fgetc(fp)); // G1
           }
           for (unsigned int x=0; x<width; x+=2) {
-                image.set(3,y/2,x/2, 1+fgetc(fp)); // G2
-                if (image(3,y/2,x/2) == 0) {e_printf("Oops. An RGGB file is not supposed to be 8 bpc.\n"); return false;}
+                image.set(1,y/2,x/2, fgetc(fp)); // G2
                 image.set(2,y/2,x/2, fgetc(fp)); // B
           }
         }
@@ -129,15 +127,15 @@ bool image_save_rggb(const char *filename, const Image& image)
         fprintf(fp,"P5\n%u %u\n%i\n", width*2, height*2, max);
         for (unsigned int y = 0; y < height; y++) {
             for (unsigned int x = 0; x < width; x++) {
-                if (max > 0xff) fputc(image(1,y,x) >> 8,fp);
-                fputc(image(1,y,x) & 0xFF,fp);
-                if (max > 0xff) fputc((image(3,y,x)-1) >> 8,fp);
+                if (max > 0xff) fputc((image(3,y,x)-1) >> 8,fp);  // R
                 fputc((image(3,y,x)-1) & 0xFF,fp);
+                if (max > 0xff) fputc(image(0,y,x) >> 8,fp);  // G1
+                fputc((image(0,y,x)) & 0xFF,fp);
             }
             for (unsigned int x = 0; x < width; x++) {
-                if (max > 0xff) fputc(image(0,y,x) >> 8,fp);
-                fputc(image(0,y,x) & 0xFF,fp);
-                if (max > 0xff) fputc(image(2,y,x) >> 8,fp);
+                if (max > 0xff) fputc(image(1,y,x) >> 8,fp);  // G2
+                fputc(image(1,y,x) & 0xFF,fp);
+                if (max > 0xff) fputc(image(2,y,x) >> 8,fp);  // B
                 fputc(image(2,y,x) & 0xFF,fp);
             }
         }

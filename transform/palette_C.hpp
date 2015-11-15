@@ -79,8 +79,8 @@ public:
           }
          }
          if ((int)CPalette[p].size() <= srcRanges->max(p)-srcRanges->min(p)) nontrivial = true;
-         if (CPalette[p].size() < 50) {
-           // add up to 50 shades of gray
+         if (CPalette[p].size() < 10) {
+           // add up to 10 shades of gray
            ColorVal prev=0;
            for (ColorVal c : CPalette[p]) {
              if (c > prev+1) CPalette_vector[p].push_back((c+prev)/2);
