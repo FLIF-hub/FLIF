@@ -80,7 +80,7 @@ protected:
                     for (int prev=1; prev <= fr; prev++) {
                         if (prev>user_max_lookback) break;
                         bool identical=true;
-                        if (nump>3 && image(3,r,c) == 0 && images[fr-prev](3,r,c) == 0) identical=true;
+                        if (image.alpha_zero_special && nump>3 && image(3,r,c) == 0 && images[fr-prev](3,r,c) == 0) identical=true;
                         else
                         for (int p=0; p<nump; p++) {
                           if(image(p,r,c) != images[fr-prev](p,r,c)) { identical=false; break;}
@@ -113,7 +113,7 @@ protected:
                     for (int prev=1; prev <= fr; prev++) {
                         if (prev>max_lookback) break;
                         bool identical=true;
-                        if (image(3,r,c) == 0 && images[fr-prev](3,r,c) == 0) identical=true;
+                        if (image.alpha_zero_special && image(3,r,c) == 0 && images[fr-prev](3,r,c) == 0) identical=true;
                         else
                         for (int p=0; p<4; p++) {
                           if(image(p,r,c) != images[fr-prev](p,r,c)) { identical=false; break;}

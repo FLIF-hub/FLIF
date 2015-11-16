@@ -88,7 +88,7 @@ protected:
             for (const Image& image : images)
             for (uint32_t r=0; r<image.rows(); r++) {
                 for (uint32_t c=0; c<image.cols(); c++) {
-                    if (nump>3 && p<3 && image(3,r,c)==0) continue; // don't take fully transparent pixels into account
+                    if (image.alpha_zero_special && nump>3 && p<3 && image(3,r,c)==0) continue; // don't take fully transparent pixels into account
                     ColorVal v = image(p,r,c);
                     if (v < min) min = v;
                     if (v > max) max = v;

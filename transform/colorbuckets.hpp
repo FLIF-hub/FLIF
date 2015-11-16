@@ -513,7 +513,7 @@ protected:
                     ColorVal v = image(p,r,c);
                     pixel[p] = v;
                   }
-                  if (p>3 && pixel[3]==0) { cb->findBucket(3, pixel).addColor(0,max_per_colorbucket[3]); continue;}
+                  if (image.alpha_zero_special && p>3 && pixel[3]==0) { cb->findBucket(3, pixel).addColor(0,max_per_colorbucket[3]); continue;}
                   cb->addColor(pixel);
                 }
             }

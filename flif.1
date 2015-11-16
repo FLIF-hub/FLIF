@@ -90,6 +90,11 @@ Force the resulting image to be non-interlaced (also known as 'scanlines'). By d
 produce interlaced files. Non-interlaced files tend to be (slightly) smaller for most image types, but
 they cannot be decoded progressively.
 .TP
+\fB\-A\fR, \fB\-\-keep\-alpha\-zero\fR
+By default, pixels that are fully transparent have undefined RGB values in a FLIF image, since those values
+are irrelevant for nearly all purposes. If you insist on storing the RGB values hidden behind A=0, use this
+option.
+.TP
 \fB\-p\fR, \fB\-\-palette\fR=\fINB_COLORS\fR
 Images which use relatively few different colors, e.g. ex-GIF images, can be compressed better using
 a palette of colors instead of the full RGB(A) color space. By default, \fBflif\fP uses a palette if

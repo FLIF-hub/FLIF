@@ -87,8 +87,9 @@ void show_help() {
     v_printf(1,"   -i, --interlace          interlacing (default, except for tiny images)\n");
     v_printf(1,"   -n, --no-interlace       force no interlacing\n");
     v_printf(1,"   -f, --frame-delay=N      delay between animation frames, in ms; default: -f100\n");
+    v_printf(1,"   -A, --keep-alpha-zero    store original RGB values behind A=0\n");
 //    v_printf(1,"Multiple input images (for animated FLIF) must have the same dimensions.\n");
-    v_printf(2,"Advanced encode options: (useful for flifcrushing)\n");
+    v_printf(2,"Advanced encode options: (mostly useful for flifcrushing)\n");
     v_printf(2,"   -a, --acb                force auto color buckets (ACB)\n");
     v_printf(2,"   -b, --no-acb             force no auto color buckets\n");
     v_printf(2,"   -p, --palette=N          max palette size for PLT and PLA; default: -p1024\n");
@@ -127,7 +128,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
       v_printf(3," ______ __  (())______");
-    v_printf(3,"\n \\___  |  | |  |  ___/   ");v_printf(2,"FLIF 0.1.5 [13 November 2015]");
+    v_printf(3,"\n \\___  |  | |  |  ___/   ");v_printf(2,"FLIF 0.1.6 [16 November 2015]");
     v_printf(3,"\n  \\__  |  |_|__|  __/    Free Lossless Image Format");
     v_printf(3,"\n    \\__|_______|__/    ");v_printf(2,"  (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
     v_printf(3,"\n");
@@ -238,9 +239,10 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
     return flif_encode(fio, images, desc, method.encoding, learn_repeats, acb, frame_delay, palette_size, lookback, divisor, min_size, split_threshold);
 }
 
-bool handle_encode(int argc, char **argv, Images &images, int palette_size, int acb, flifEncodingOptional method, int lookback, int learn_repeats, int frame_delay, int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int yiq=1, int plc=1) {
+bool handle_encode(int argc, char **argv, Images &images, int palette_size, int acb, flifEncodingOptional method, int lookback, int learn_repeats, int frame_delay, int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int yiq=1, int plc=1, bool alpha_zero_special=true) {
     if (!encode_load_input_images(argc,argv,images)) return false;
     for (Image& i : images) i.frame_delay = frame_delay;
+    if (!alpha_zero_special) for (Image& i : images) i.alpha_zero_special = false;
     argv += (argc-1);
     argc = 1;
     return encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc);
@@ -296,6 +298,7 @@ int main(int argc, char **argv)
     int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD;
     int yiq = 1;
     int plc = 1;
+    bool alpha_zero_special = true;
 #else
     int mode = 1;
 #endif
@@ -328,12 +331,13 @@ int main(int argc, char **argv)
         {"split-threshold", 1, NULL, 'S'},
         {"rgb", 0, NULL, 'R'},
         {"no-plc", 0, NULL, 'C'},
+        {"keep-alpha-zero", 0, NULL, 'A'},
 #endif
         {0, 0, 0, 0}
     };
     int i,c;
 #ifdef HAS_ENCODER
-    while ((c = getopt_long (argc, argv, "hedtvinabq:s:p:r:f:l:D:M:S:RC", optlist, &i)) != -1) {
+    while ((c = getopt_long (argc, argv, "hedtvinabq:s:p:r:f:l:D:M:S:RCA", optlist, &i)) != -1) {
 #else
     while ((c = getopt_long (argc, argv, "hdvq:s:", optlist, &i)) != -1) {
 #endif
@@ -378,7 +382,7 @@ int main(int argc, char **argv)
                   break;
         case 'R': yiq=0; break;
         case 'C': plc=0; break;
-
+        case 'A': alpha_zero_special=false; break;
 #endif
         case 'h': showhelp=true; break;
         default: show_help(); return 0;
@@ -438,7 +442,7 @@ int main(int argc, char **argv)
 
 #ifdef HAS_ENCODER
     if (mode == 0) {
-        if (!handle_encode(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc)) return 2;
+        if (!handle_encode(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, alpha_zero_special)) return 2;
     } else if (mode == 1) {
 #endif
         return handle_decode(argv, images, quality, scale);

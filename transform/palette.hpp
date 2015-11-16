@@ -79,7 +79,7 @@ public:
         for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
                 int Y=image(0,r,c), I=image(1,r,c), Q=image(2,r,c);
-                if (image.numPlanes()>3 && image(3,r,c)==0) continue;
+                if (image.alpha_zero_special && image.numPlanes()>3 && image(3,r,c)==0) continue;
                 Palette.insert(Color(Y,I,Q));
                 if (Palette.size() > max_palette_size) return false;
             }

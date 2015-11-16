@@ -109,6 +109,7 @@ class Image {
 public:
     bool palette;
     int frame_delay;
+    bool alpha_zero_special;
     std::vector<uint32_t> col_begin;
     std::vector<uint32_t> col_end;
     int seen_before;
@@ -125,6 +126,7 @@ public:
       depth = 0;
 #endif
       palette = false;
+      alpha_zero_special = true;
       seen_before = 0;
       for (int i=0; i<4; i++) constant[i] = false;
     }
@@ -167,11 +169,13 @@ public:
       }
 
       palette = other.palette;
+      alpha_zero_special = other.alpha_zero_special;
       col_begin = std::move(other.col_begin);
       col_end = std::move(other.col_end);
       seen_before = other.seen_before;
 
       other.palette = false;
+      other.alpha_zero_special = true;
       other.seen_before = 0;
       return *this;
     }
@@ -194,6 +198,7 @@ public:
 #endif
       frame_delay=0;
       palette=false;
+      alpha_zero_special=true;
       assert(min == 0);
       assert(max < (1<<depth));
       assert(p <= 4);

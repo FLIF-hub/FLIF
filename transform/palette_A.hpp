@@ -80,7 +80,7 @@ public:
         for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
                 int Y=image(0,r,c), I=image(1,r,c), Q=image(2,r,c), A=image(3,r,c);
-                if (A==0) { Y=I=Q=0; }
+                if (image.alpha_zero_special && A==0) { Y=I=Q=0; }
                 Palette.insert(Color(A,Y,I,Q));  // alpha first so sorting makes more sense
                 if (Palette.size() > max_palette_size) return false;
             }
@@ -98,7 +98,7 @@ public:
           for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
                 Color C(image(3,r,c), image(0,r,c), image(1,r,c), image(2,r,c));
-                if (std::get<0>(C) == 0) { std::get<1>(C) = std::get<2>(C) = std::get<3>(C) = 0; }
+                //if (image.alpha_zero_special && std::get<0>(C) == 0) { std::get<1>(C) = std::get<2>(C) = std::get<3>(C) = 0; }
                 ColorVal P=0;
                 for (Color c : Palette_vector) {if (c==C) break; else P++;}
                 image.set(0,r,c, 0);
@@ -126,7 +126,7 @@ public:
             for (Color c : Palette_vector) {
                 ColorVal A=std::get<0>(c);
                 coderA.write_int(std::get<0>(min), std::get<0>(max), A);
-                if (std::get<0>(c) == 0) continue;
+                //if (image???.alpha_zero_special && std::get<0>(c) == 0) continue;
                 ColorVal Y=std::get<1>(c);
                 coderY.write_int((std::get<0>(prev) == A ? std::get<1>(prev) : std::get<1>(min)), std::get<1>(max), Y);
                 pp[0]=Y; srcRanges->minmax(1,pp,std::get<2>(min), std::get<2>(max));
@@ -143,7 +143,7 @@ public:
             for (Color c : Palette_vector) {
                 ColorVal A=std::get<0>(c);
                 coderA.write_int(srcRanges->min(3),srcRanges->max(3), A);
-                if (std::get<0>(c) == 0) continue;
+                //if (image???.alpha_zero_special && std::get<0>(c) == 0) continue;
                 srcRanges->minmax(0,pp,min,max);
                 ColorVal Y=std::get<1>(c);
                 coderY.write_int(min,max,Y);
@@ -175,7 +175,7 @@ public:
             Color prev(-1,-1,-1,-1);
             for (unsigned int p=0; p<size; p++) {
                 ColorVal A=coderA.read_int(std::get<0>(min), std::get<0>(max));
-                if (A == 0) { Palette_vector.push_back(Color(0,0,0,0)); continue; }
+                //if (image???.alpha_zero_special && A == 0) { Palette_vector.push_back(Color(0,0,0,0)); continue; }
                 ColorVal Y=coderY.read_int((std::get<0>(prev) == A ? std::get<1>(prev) : std::get<1>(min)), std::get<1>(max));
                 pp[0]=Y; srcRanges->minmax(1,pp,std::get<2>(min), std::get<2>(max));
                 ColorVal I=coderI.read_int(std::get<2>(min), std::get<2>(max));
@@ -190,7 +190,7 @@ public:
             ColorVal min, max;
             for (unsigned int p=0; p<size; p++) {
                 ColorVal A=coderA.read_int(srcRanges->min(3),srcRanges->max(3));
-                if (A == 0) { Palette_vector.push_back(Color(0,0,0,0)); continue; }
+                //if (image???.alpha_zero_special && A == 0) { Palette_vector.push_back(Color(0,0,0,0)); continue; }
                 srcRanges->minmax(0,pp,min,max);
                 ColorVal Y=coderY.read_int(min,max);
                 pp[0]=Y; srcRanges->minmax(1,pp,min,max);

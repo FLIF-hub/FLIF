@@ -68,18 +68,18 @@ protected:
             for (uint32_t r=0; r<image.rows(); r++) {
                 bool beginfound=false;
                 for (uint32_t c=0; c<image.cols(); c++) {
-                    if (np>3 && image(3,r,c) == 0 && (fr==0 || images[fr-1](3,r,c)==0)) continue;
+                    if (image.alpha_zero_special && np>3 && image(3,r,c) == 0 && images[fr-1](3,r,c)==0) continue;
                     for (int p=0; p<np; p++) {
-                       if((fr==0 && image(p,r,c)!=0) || (fr>0 && image(p,r,c) != images[fr-1](p,r,c))) { beginfound=true; break;}
+                       if(image(p,r,c) != images[fr-1](p,r,c)) { beginfound=true; break;}
                     }
                     if (beginfound) {b.push_back(c); break;}
                 }
                 if (!beginfound) {b.push_back(image.cols()); e.push_back(image.cols()); continue;}
                 bool endfound=false;
                 for (uint32_t c=image.cols()-1; c >= b.back(); c--) {
-                    if (np>3 && image(3,r,c) == 0 && (fr==0 || images[fr-1](3,r,c)==0)) continue;
+                    if (image.alpha_zero_special && np>3 && image(3,r,c) == 0 && images[fr-1](3,r,c)==0) continue;
                     for (int p=0; p<np; p++) {
-                       if((fr==0 && image(p,r,c)!=0) || (fr>0 && image(p,r,c) != images[fr-1](p,r,c))) { endfound=true; break;}
+                       if(image(p,r,c) != images[fr-1](p,r,c)) { endfound=true; break;}
                     }
                     if (endfound) {e.push_back(c+1); break;}
                 }
