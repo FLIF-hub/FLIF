@@ -265,12 +265,12 @@ template <typename BitChance, typename RAC, int bits> class FinalPropertySymbolC
 {
 private:
     FinalCompoundSymbolCoder<BitChance, RAC, bits> coder;
-    Ranges range;
+    //Ranges range;
     unsigned int nb_properties;
     std::vector<FinalCompoundSymbolChances<BitChance,bits> > leaf_node;
     Tree &inner_node;
 
-    FinalCompoundSymbolChances<BitChance,bits> inline &find_leaf(Properties &properties) {
+    FinalCompoundSymbolChances<BitChance,bits> inline &find_leaf(const Properties &properties) {
         Tree::size_type pos = 0;
         while(inner_node[pos].property != -1) {
             if (inner_node[pos].count < 0) {
@@ -306,39 +306,39 @@ private:
 public:
     FinalPropertySymbolCoder(RAC& racIn, Ranges &rangeIn, Tree &treeIn, int ignored_split_threshold = 0) :
         coder(racIn),
-        range(rangeIn),
-        nb_properties(range.size()),
+//        range(rangeIn),
+        nb_properties(rangeIn.size()),
         leaf_node(1,FinalCompoundSymbolChances<BitChance,bits>()),
         inner_node(treeIn) 
     {
         inner_node[0].leafID = 0;
     }
 
-    int read_int(Properties &properties, int min, int max) {
+    int read_int(const Properties &properties, int min, int max) {
         if (min == max) { return min; }
-        assert(properties.size() == range.size());
+        assert(properties.size() == nb_properties);
         FinalCompoundSymbolChances<BitChance,bits> &chances = find_leaf(properties);
         return coder.read_int(chances, min, max);
     }
 
 #ifdef HAS_ENCODER
-    void write_int(Properties &properties, int min, int max, int val) {
+    void write_int(const Properties &properties, int min, int max, int val) {
         if (min == max) { assert(val==min); return; }
-        assert(properties.size() == range.size());
+        assert(properties.size() == nb_properties);
         FinalCompoundSymbolChances<BitChance,bits> &chances = find_leaf(properties);
         coder.write_int(chances, min, max, val);
     }
 #endif
 
-    int read_int(Properties &properties, int nbits) {
-        assert(properties.size() == range.size());
+    int read_int(const Properties &properties, int nbits) {
+        assert(properties.size() == nb_properties);
         FinalCompoundSymbolChances<BitChance,bits> &chances = find_leaf(properties);
         return coder.read_int(chances, nbits);
     }
 
 #ifdef HAS_ENCODER
-    void write_int(Properties &properties, int nbits, int val) {
-        assert(properties.size() == range.size());
+    void write_int(const Properties &properties, int nbits, int val) {
+        assert(properties.size() == nb_properties);
         FinalCompoundSymbolChances<BitChance,bits> &chances = find_leaf(properties);
         coder.write_int(chances, nbits, val);
     }

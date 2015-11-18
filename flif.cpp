@@ -128,7 +128,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
       v_printf(3," ______ __  (())______");
-    v_printf(3,"\n \\___  |  | |  |  ___/   ");v_printf(2,"FLIF 0.1.6 [16 November 2015]");
+    v_printf(3,"\n \\___  |  | |  |  ___/   ");v_printf(2,"FLIF 0.1.7 [18 November 2015]");
     v_printf(3,"\n  \\__  |  |_|__|  __/    Free Lossless Image Format");
     v_printf(3,"\n    \\__|_______|__/    ");v_printf(2,"  (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
     v_printf(3,"\n");
@@ -201,7 +201,7 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
         desc.push_back("PLC");  // compactify channels
       if (yiq)
         desc.push_back("YIQ");  // convert RGB(A) to YIQ(A)
-      desc.push_back("BND");  // get the bounds of the color spaces
+        desc.push_back("BND");  // get the bounds of the color spaces
     }
     if (palette_size < 0) {
         palette_size = 1024;

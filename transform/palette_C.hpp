@@ -14,7 +14,7 @@ protected:
     int nb_colors[4];
 public:
     ColorRangesPaletteC(const ColorRanges *rangesIn, const int nb[4]) : ranges(rangesIn) { for (int i=0; i<4; i++) nb_colors[i] = nb[i]; }
-    bool isStatic() const { return false; }
+    bool isStatic() const { return true; }
     int numPlanes() const { return ranges->numPlanes(); }
 
     ColorVal min(int p) const { return 0; }

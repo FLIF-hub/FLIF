@@ -31,10 +31,10 @@ typedef std::vector<std::pair<ColorVal, ColorVal> > StaticColorRangeList;
 class StaticColorRanges : public ColorRanges
 {
 protected:
-    StaticColorRangeList ranges;
+    const StaticColorRangeList ranges;
 
 public:
-    StaticColorRanges(StaticColorRangeList ranges) { this->ranges = ranges; }
+    StaticColorRanges(StaticColorRangeList r) : ranges(r) {}
     int numPlanes() const { return ranges.size(); }
     ColorVal min(int p) const { if (p >= numPlanes()) return 0; assert(p<numPlanes()); return ranges[p].first; }
     ColorVal max(int p) const { if (p >= numPlanes()) return 0; assert(p<numPlanes()); return ranges[p].second; }

@@ -67,6 +67,11 @@ private:
     rac_t range;
     rac_t low;
 private:
+    int read_catch_eof() {
+        int c = io.getc();
+        if(c == io.EOS) return 0;
+        return c;
+    }
     void inline input() {
         while (range <= Config::MIN_RANGE) {
             low <<= 8;
@@ -87,13 +92,6 @@ private:
             input();
             return 0;
         }
-    }
-    int read_catch_eof()
-    {
-        int c = io.getc();
-        if(c == io.EOS)
-            return 0;
-        return c;
     }
 public:
     RacInput(IO& ioin) : io(ioin), range(Config::BASE_RANGE), low(0) {

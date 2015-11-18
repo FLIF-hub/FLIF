@@ -229,7 +229,7 @@ int image_save_png(const char *filename, const Image &image) {
 
   size_t w = image.cols();
   size_t h = image.rows();
- 
+
   std::vector<unsigned char> data( w * h * nbplanes * bytes_per_value );
   unsigned char *row = data.data();
 

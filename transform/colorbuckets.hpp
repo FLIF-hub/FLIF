@@ -248,9 +248,9 @@ class ColorRangesCB : public ColorRanges
 {
 protected:
     const ColorRanges *ranges;
-    ColorBuckets *buckets;
+    const ColorBuckets *buckets;
+    const ColorBucket& bucket(const int p, const prevPlanes &pp) const { return buckets->findBucket(p,pp); }
 public:
-    ColorBucket& bucket(const int p, const prevPlanes &pp) const { return buckets->findBucket(p,pp); }
     ColorRangesCB(const ColorRanges *rangesIn, ColorBuckets *cbIn) :  ranges(rangesIn), buckets(cbIn) {} //print();}
     ~ColorRangesCB() {
         delete buckets;
@@ -272,9 +272,10 @@ public:
         maxv=b.max;
         if (b.min > b.max) { assert(false); e_printf("Corruption detected!\n"); exit(4); } // this should only happen on malicious input files
     }
-    void print() {
+/*    void print() {
         buckets->print();
     }
+*/
 };
 
 
@@ -283,7 +284,7 @@ class TransformCB : public Transform<IO> {
 protected:
     ColorBuckets *cb;
     bool really_used;
-    
+
     ~TransformCB() {if (!really_used) delete cb;}
     bool undo_redo_during_decode() { return false; }
 
@@ -530,7 +531,7 @@ protected:
 
             int64_t total_pixels = (int64_t) images.size() * images[0].rows() * images[0].cols();
             v_printf(7,", [D=%i,C=%i,P=%i]",totaldiscretecolors,totalcontinuousbuckets,(int) (total_pixels/100));
-            if (totaldiscretecolors < total_pixels/100 && totalcontinuousbuckets < total_pixels/50) return true;
+            if (totaldiscretecolors < total_pixels/200 && totalcontinuousbuckets < total_pixels/50) return true;
 
             // simplify buckets
             for (int factor = 95; factor >= 35; factor -= 10) {

@@ -61,6 +61,8 @@ public:
     }
     void invData(Images& images) const {
         for (Image& image : images) {
+          image.undo_make_constant_plane(0);
+          image.undo_make_constant_plane(2);
           for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
                 int P=image(1,r,c);
@@ -96,11 +98,13 @@ public:
                 Color C(image(0,r,c), image(1,r,c), image(2,r,c));
                 ColorVal P=0;
                 for (Color c : Palette_vector) {if (c==C) break; else P++;}
-                image.set(0,r,c, 0);
+//                image.set(0,r,c, 0);
                 image.set(1,r,c, P);
-                image.set(2,r,c, 0);
+//                image.set(2,r,c, 0);
             }
           }
+          image.make_constant_plane(0,0);
+          image.make_constant_plane(2,0);
         }
     }
     void save(const ColorRanges *srcRanges, RacOut<IO> &rac) const {
