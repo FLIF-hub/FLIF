@@ -53,6 +53,7 @@ struct FLIF_ENCODER
     int32_t divisor;
     int32_t min_size;
     int32_t split_threshold;
+    int32_t alpha_zero_special;
 
 private:
     std::vector<FLIF_IMAGE*> images;

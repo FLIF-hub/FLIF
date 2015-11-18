@@ -380,10 +380,11 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     if (c=='1') v_printf(3," %i, depth: 8 bit",numPlanes);
     if (c=='2') v_printf(3," %i, depth: 16 bit",numPlanes);
     if (numFrames>1) v_printf(3,", frames: %i",numFrames);
-    bool alphazero=false;
+    int alphazero=0;
     if (numPlanes > 3) {
-        alphazero=images[0].alpha_zero_special;
-        metaCoder.write_int(0,1,alphazero);
+        if (images[0].alpha_zero_special) alphazero=1;
+        if (alphazero) metaCoder.write_int(0,1,1);
+        else metaCoder.write_int(0,1,0);
         if (!alphazero) v_printf(3, ", store RGB at A=0");
     }
     v_printf(3,"\n");

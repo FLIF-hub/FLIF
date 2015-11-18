@@ -132,11 +132,13 @@ FLIF_ENCODER::FLIF_ENCODER()
 , divisor(CONTEXT_TREE_COUNT_DIV)
 , min_size(CONTEXT_TREE_MIN_SUBTREE_SIZE)
 , split_threshold(CONTEXT_TREE_SPLIT_THRESHOLD)
+, alpha_zero_special(1)
 {
 }
 
 void FLIF_ENCODER::add_image(FLIF_IMAGE* image) {
     images.push_back(image);
+    if (!alpha_zero_special) image->image.alpha_zero_special = false;
 }
 
 /*!
@@ -153,7 +155,7 @@ int32_t FLIF_ENCODER::encode_file(const char* filename) {
     for(size_t i = 0; i < images.size(); ++i)
         copies.push_back(images[i]->image.clone());
 
-    std::vector<std::string> transDesc = {"YIQ","BND","PLA","PLT","ACB","DUP","FRS","FRA"};
+    std::vector<std::string> transDesc = {"PLC","YIQ","BND","PLA","PLT","ACB","DUP","FRS","FRA"};
 
     if(!flif_encode(fio, copies, transDesc,
         interlaced != 0 ? flifEncoding::interlaced : flifEncoding::nonInterlaced,
@@ -437,6 +439,10 @@ FLIF_DLLEXPORT void FLIF_API flif_encoder_set_min_size(FLIF_ENCODER* encoder, in
 }
 FLIF_DLLEXPORT void FLIF_API flif_encoder_set_split_threshold(FLIF_ENCODER* encoder, int32_t split_threshold) {
     try { encoder->split_threshold = split_threshold; }
+    catch(...) { }
+}
+FLIF_DLLEXPORT void FLIF_API flif_encoder_set_alpha_zero_lossless(FLIF_ENCODER* encoder) {
+    try { encoder->alpha_zero_special = 0; }
     catch(...) { }
 }
 

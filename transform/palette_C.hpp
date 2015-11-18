@@ -56,6 +56,7 @@ public:
         for (Image& image : images) {
          for (int p=0; p<image.numPlanes(); p++) {
 //          const int stretch = (CPalette_vector[p].size()>64 ? 0 : 2);
+          image.undo_make_constant_plane(p);
           for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
 //                image.set(p,r,c, CPalette_vector[p][image(p,r,c) >> stretch]);
