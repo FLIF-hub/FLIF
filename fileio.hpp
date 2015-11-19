@@ -242,28 +242,3 @@ public:
     }
 };
 
-template<class IO>
-bool fget_int_8bit (IO& io, int* result)
-{
-    int c = io.getc();
-    if (c == io.EOS) {
-        e_printf ("Unexpected EOF");
-        return false;
-    }
-
-    *result = c;
-    return true;
-}
-
-template<class IO>
-bool fget_int_16bit_bigendian (IO& io, int* result)
-{
-    int c1;
-    int c2;
-    if (!(fget_int_8bit (io, &c1) &&
-          fget_int_8bit (io, &c2)))
-        return false;
-
-    *result = (c1 << 8) + c2;
-    return true;
-}
