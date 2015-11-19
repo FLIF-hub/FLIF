@@ -67,6 +67,10 @@ the resulting output image will have dimensions \fBwidth\fR/\fIFACTOR\fR x \fBhe
 Only powers of two (1,2,4,8,16,32,...) are allowed as scale-down factors.
 .br
 This option is only effective for interlaced FLIF files.
+.TP
+\fB\-I\fR, \fB\-\-identify\fR
+Do not fully decode the input FLIF file, just decode its header and output some metadata like dimensions
+and color depth. You can specify multiple input files when this option is used.
 
 .SH ENCODING
 To encode an image to FLIF, the input file(s) can be in any of the output formats supported by the decoder:

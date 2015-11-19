@@ -131,7 +131,7 @@ public:
 #ifdef HAS_ENCODER
     void data(Images& images) const {
 //        printf("TransformYIQ::data: par=%i\n", par);
-        register ColorVal R,G,B,Y,I,Q;
+        ColorVal R,G,B,Y,I,Q;
         for (Image& image : images)
         for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {

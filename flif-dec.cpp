@@ -355,7 +355,9 @@ bool flif_decode_main(RacIn<IO>& rac, IO& io, Images &images, const ColorRanges 
 
 template <typename IO>
 bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*callback)(int,int), Images &partial_images) {
-    if (scale != 1 && scale != 2 && scale != 4 && scale != 8 && scale != 16 && scale != 32 && scale != 64 && scale != 128) {
+    bool just_identify = false;
+    if (scale == -1) just_identify=true;
+    else if (scale != 1 && scale != 2 && scale != 4 && scale != 8 && scale != 16 && scale != 32 && scale != 64 && scale != 128) {
                 e_printf("Invalid scale down factor: %i\n", scale);
                 return false;
     }
@@ -381,7 +383,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
           }
        }
     }
-    if (strcmp(buff,"FLIF")) { e_printf("Not a FLIF file: %s (header: \"%s\")\n",io.getName(),buff); return false; }
+    if (strcmp(buff,"FLIF")) { e_printf("%s is not a FLIF file\n",io.getName()); return false; }
     int c;
     if (!ioget_int_8bit (io, &c))
         return false;
@@ -400,7 +402,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     }
     const int encoding=c/16;
     if (encoding < 1 || encoding > 2) { e_printf("Invalid or unknown FLIF encoding method\n"); return false;}
-    if (scale != 1 && encoding==1) { v_printf(1,"Cannot decode non-interlaced FLIF file at lower scale! Ignoring scale...\n");}
+    if (scale != 1 && encoding==1 && !just_identify) { v_printf(1,"Cannot decode non-interlaced FLIF file at lower scale! Ignoring scale...\n");}
     if (quality < 100 && encoding==1) { v_printf(1,"Cannot decode non-interlaced FLIF file at lower quality! Ignoring quality...\n");}
     int numPlanes=c%16;
     if (numPlanes < 1 || numPlanes > 4) {e_printf("Invalid FLIF header (unsupported color channels)\n"); return false;}
@@ -443,7 +445,22 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
         if (!alphazero) v_printf(3, ", store RGB at A=0");
     }
     v_printf(3,"\n");
-
+    if (just_identify) {
+        v_printf(1,"%s: ",io.getName());
+        if (numFrames == 1) v_printf(1,"FLIF image");
+        else v_printf(1,"FLIF animation, %i frames",numFrames);
+        v_printf(1,", %ux%u, ", width, height);
+        if (c=='1') v_printf(1,"8-bit ");
+        else if (c=='2') v_printf(1,"16-bit ");
+        else if (c=='0') v_printf(1,"%i-bit ", ilog2(maxmax+1));
+        if (numPlanes == 1) v_printf(1,"grayscale");
+        else if (numPlanes == 3) v_printf(1,"RGB");
+        else if (numPlanes == 4) v_printf(1,"RGBA");
+        if (encoding == 1) v_printf(1,", non-interlaced");
+        else if (encoding == 2) v_printf(1,", interlaced");
+        v_printf(1,"\n");
+        return true;
+    }
     if (numFrames>1) {
         // ignored for now (assuming loop forever)
         metaCoder.read_int(0, 100); // repeats (0=infinite)
@@ -508,7 +525,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
 
     for (int p = 0; p < ranges->numPlanes(); p++) {
         if (ranges->min(p) >= ranges->max(p)) {
-            v_printf(4,"Constant plane %i at color value %i\n",p,ranges->min(p));
+            v_printf(5,"Constant plane %i at color value %i\n",p,ranges->min(p));
             pixels_todo -= (int64_t)width*height/scale/scale;
             for (int fr = 0; fr < numFrames; fr++)
                 images[fr].make_constant_plane(p,ranges->min(p));
