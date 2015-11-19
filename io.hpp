@@ -7,7 +7,7 @@ void increase_verbosity();
 int get_verbosity();
 
 template<class IO>
-bool fget_int_8bit (IO& io, int* result)
+bool ioget_int_8bit (IO& io, int* result)
 {
     int c = io.getc();
     if (c == io.EOS) {
@@ -20,12 +20,12 @@ bool fget_int_8bit (IO& io, int* result)
 }
 
 template<class IO>
-bool fget_int_16bit_bigendian (IO& io, int* result)
+bool ioget_int_16bit_bigendian (IO& io, int* result)
 {
     int c1;
     int c2;
-    if (!(fget_int_8bit (io, &c1) &&
-          fget_int_8bit (io, &c2)))
+    if (!(ioget_int_8bit (io, &c1) &&
+          ioget_int_8bit (io, &c2)))
         return false;
 
     *result = (c1 << 8) + c2;
