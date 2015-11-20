@@ -40,13 +40,13 @@ viewflif: libflif.so flif.h viewflif.c
 viewflif.prof: libflif.prof.so flif.h viewflif.c
 	$(CC) -std=gnu11 -O2 -pg -ggdb3 $(shell sdl2-config --cflags) -Wall -I. viewflif.c -L. -lflif.prof $(shell sdl2-config --libs) -o viewflif.prof
 
-test-interface: libflif.dbg.so flif.h tools/test.c
-	$(CC) -O0 -ggdb3 -Wall -I. tools/test.c -L. -lflif.dbg  -o test-interface
+test-interface: libflif.dbg.so flif.h ../tools/test.c
+	$(CC) -O0 -ggdb3 -Wall -I. ../tools/test.c -L. -lflif.dbg  -o test-interface
 
 install: all
 	install -s -m 755 flif viewflif $(PREFIX)/bin
 	install -s -m 755 libflif.so $(PREFIX)/lib
-	install -m 644 flif.1 $(PREFIX)/share/man/man1
+	install -m 644 ../flif.1 $(PREFIX)/share/man/man1
 
 remove:
 	rm -f $(PREFIX)/bin/flif
@@ -58,8 +58,8 @@ clean:
 	rm -f flif libflif*.so viewflif
 
 test: flif test-interface
-	mkdir -p testFiles
+	mkdir -p ../tmp-test
 	./test-interface
-	./tools/test-roundtrip.sh tools/2_webp_ll.png testFiles/2_webp_ll.flif testFiles/decoded_2_webp_ll.png
-	./tools/test-roundtrip.sh tools/kodim01.png testFiles/kodim01.flif testFiles/decoded_kodim01.png
+	../tools/test-roundtrip.sh ../tools/2_webp_ll.png ../tmp-test/2_webp_ll.flif ../tmp-test/decoded_2_webp_ll.png
+	../tools/test-roundtrip.sh ../tools/kodim01.png ../tmp-test/kodim01.flif ../tmp-test/decoded_kodim01.png
 

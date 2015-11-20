@@ -10,6 +10,7 @@ PLATFORM=x86
 
 Rt = MD
 LibDir = $(PLATFORM)_$(Rt)
+SrcDir = ..\..\src
 
 !if "$(Rt)" == "MT" || "$(Rt)" == "MD"
 CFLAGS = /nologo /WX /EHsc /GL /Ox /Oy /Gy /DNDEBUG /$(Rt)
@@ -30,17 +31,17 @@ LIBOBJS  = $(OBJ1)
 FLIFOBJS = $(OBJ1) $(OBJ2)
 
 flif.exe: $(OBJDIR) $(LibDir)\zlib.lib $(LibDir)\libpng.lib $(FLIFOBJS)
-	cl $(CFLAGS) /I$(Incdir) /Igetopt ..\..\flif.cpp getopt\getopt.c /DSTATIC_GETOPT /Fd$O /Fo$O -c
+	cl $(CFLAGS) /I$(Incdir) /Igetopt $(SrcDir)\flif.cpp getopt\getopt.c /DSTATIC_GETOPT /Fd$O /Fo$O -c
 	link /out:$(LibDir)\$@ $Oflif.obj $Ogetopt.obj $(FLIFOBJS) $(LibDir)\zlib.lib $(LibDir)\libpng.lib $(LDFLAGS)
 	copy "$(LibDir)\$@" $@
 
 libflif.dll: $(OBJDIR) $(LIBOBJS)
-	cl $(CFLAGS) ..\..\flif-interface.cpp /DFLIF_BUILD_DLL /Fd$O /Fo$O -c
+	cl $(CFLAGS) $(SrcDir)\flif-interface.cpp /DFLIF_BUILD_DLL /Fd$O /Fo$O -c
 	link /dll /out:"$(LibDir)\$@" $Oflif-interface.obj $(LIBOBJS) $(LDFLAGS)
 	copy "$(LibDir)\$@" $@
 
 viewflif.exe: libflif.dll
-	cl $(CFLAGS) /I..\..\ /I$(sdl2dir)\include /Tp ..\..\viewflif.c /FI..\build\MSVC\$(Incdir)\sdl2v140.h /DFLIF_USE_DLL /Fd$O /Fo$O -c
+	cl $(CFLAGS) /I$(SrcDir)\ /I$(sdl2dir)\include /Tp $(SrcDir)\viewflif.c /FI..\build\MSVC\$(Incdir)\sdl2v140.h /DFLIF_USE_DLL /Fd$O /Fo$O -c
 	link /out:$(LibDir)\$@ $Oviewer.obj libflif.lib SDL2.lib SDL2main.lib $(LDFLAGS) /SUBSYSTEM:CONSOLE /LIBPATH:$(LibDir) /LIBPATH:$(sdl2dir)\lib\$(PLATFORM)\ 
 	copy "$(LibDir)\$@" $@
 	copy $(sdl2dir)\lib\$(PLATFORM)\SDL2.dll SDL2.dll
@@ -57,7 +58,7 @@ test: test-interface.exe
 	start output.png
 
 test-interface.exe: libflif.dll
-	cl $(CFLAGS) /I$(Incdir) /I..\..\ ..\..\tools\test.c /DFLIF_USE_DLL /Fd$O /Fo$O -c
+	cl $(CFLAGS) /I$(Incdir) /I$(SrcDir)\ ..\..\tools\test.c /DFLIF_USE_DLL /Fd$O /Fo$O -c
 	link /out:$(LibDir)\$@ $Otest.obj libflif.lib $(LDFLAGS) /LIBPATH:$(LibDir) 
 	copy "$(LibDir)\$@" $@
 
@@ -83,15 +84,15 @@ $(LibDir)\libpng.lib: $(LibDir)\zlib.lib
 	copy pnglibconf.h ..\$(Incdir)\\
 	cd ..
 
-{..\..\}.cpp{$(O)}.obj:
+{$(SrcDir)\}.cpp{$(O)}.obj:
 	cl $(CFLAGS) /Fd$O /Fo$O -c $<
 {getopt\}.c{$(O)}.obj:
 	cl $(CFLAGS) /DSTATIC_GETOPT /Fd$O /Fo$O -c $<
-{..\..\image\}.cpp{$(O)}.obj:
+{$(SrcDir)\image\}.cpp{$(O)}.obj:
 	cl $(CFLAGS) /I$(Incdir) /Fd$O /Fo$O -c $<
-{..\..\maniac\}.cpp{$(O)}.obj:
+{$(SrcDir)\maniac\}.cpp{$(O)}.obj:
 	cl $(CFLAGS) /Fd$O /Fo$O -c $<
-{..\..\transform\}.cpp{$(O)}.obj:
+{$(SrcDir)\transform\}.cpp{$(O)}.obj:
 	cl $(CFLAGS) /Fd$O /Fo$O -c $<
 
 all: flif.exe viewflif.exe test-interface.exe

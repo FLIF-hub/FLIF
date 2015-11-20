@@ -151,7 +151,7 @@ int main()
 
     const size_t WIDTH = 256;
     const size_t HEIGHT = 256;
-    const char* dummy_file = "testFiles/dummy.flif";
+    const char* dummy_file = "../tmp-test/dummy.flif";
 
     FLIF_IMAGE* im = flif_create_image(WIDTH, HEIGHT);
     if(im == 0)

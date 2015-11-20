@@ -21,7 +21,7 @@ For more information on FLIF, visit http://flif.info
 * Install the dependencies:
   * for the encoder/decoder: `sudo apt-get install libpng-dev`
   * for the viewer: `sudo apt-get install libsdl2-dev`
-* Navigate to the FLIF directory and run `make` to compile everything, or
+* Navigate to the FLIF/src directory and run `make` to compile everything, or
   * `make flif` to build just the `flif` tool
   * `make libflif.so` to build the shared library
   * `make viewflif` to build the example viewer (it depends on the library)
@@ -40,7 +40,7 @@ For more information on FLIF, visit http://flif.info
 
 * Install [homebrew](http://brew.sh)
 * Install kegs named `pkg-config` and `libpng`
-* Run `make` in the FLIF directory
+* Run `make` in the FLIF/src directory
 
 
 * * *

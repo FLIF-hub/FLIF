@@ -5,9 +5,9 @@
 
 #ifdef FLIF_USE_STB_IMAGE
 #define STB_IMAGE_IMPLEMENTATION
-#include "../extern/stb_image.h"
+#include "../../extern/stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "../extern/stb_image_write.h"
+#include "../../extern/stb_image_write.h"
 enum {
   PNG_COLOR_TYPE_GRAY = 1,
   PNG_COLOR_TYPE_GRAY_ALPHA = 2,
