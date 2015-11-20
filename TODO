@@ -1,9 +1,0 @@
-
-- animation: allow frames being subregions, blend modes, etc.
-
-- lossy?
-  - I,Q quantization + subsampling
-  - mantissa lsb elimination
-  - stopbits?
-
-- other color spaces (Lab? HSV?)

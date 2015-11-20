@@ -46,7 +46,8 @@ test-interface: libflif.dbg.so flif.h ../tools/test.c
 install: all
 	install -s -m 755 flif viewflif $(PREFIX)/bin
 	install -s -m 755 libflif.so $(PREFIX)/lib
-	install -m 644 ../flif.1 $(PREFIX)/share/man/man1
+	install -m 644 ../doc/flif.1 $(PREFIX)/share/man/man1
+	if grep -q FLIF /etc/magic; then echo "Magic already known" ; else cat ../doc/flif.magic >> /etc/magic; fi
 
 remove:
 	rm -f $(PREFIX)/bin/flif

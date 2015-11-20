@@ -181,7 +181,13 @@ of 'combine mode': it will look back at most \fINB_FRAMES\fR frames to 'reuse' p
 Using \fB\-l\fR\fI0\fR the method can be disabled. It does not make sense to use a value
 larger than the number of frames in the animation minus one.
 The default setting is \fB\-l\fR\fI1\fR. Different values can result in better or worse compression.
-
+.TP
+\fB\-F\fR, \fB\-\-no\-frs\fR
+By default, the FRS transform (frame shaping) is enabled. The shape of a frame is described
+row-by-row, so it is more general than a simplebounding box (e.g. it could also be a sphere or triangle).
+However, if the shape of the changed pixels is not convex, and if lookback is already activated
+(which it is by default), FRS does not always produce smaller files. This option can be used to disable
+the FRS transform.
 
 
 .SH BUGS
