@@ -13,8 +13,8 @@ else
     then
         # extract metadata
         exiv2 ex -l $TMPDIR $1
-        # extract raw data, presumably in some kind of RGGB format
-        dcraw -E -4 -c $1 > $TMPDIR/_image_tmp.rggb
+        # extract raw data by using raw2rggb
+        ./raw2rggb $1 $TMPDIR/_image_tmp.rggb
         # flif it
         $FLIF $TMPDIR/_image_tmp.rggb $TMPDIR/__image.flif
         # remove the uncompressed data
