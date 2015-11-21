@@ -12,7 +12,7 @@ runtest() {
 
   ./flif $encArgs "${IN}" "${OUTF}"
   ./flif -d $decArgs ${OUTF} ${OUTP}
-  test "`compare -metric AE ${IN} ${OUTP} null 2>&1`" = "0"
+  test "`compare -metric AE ${IN} ${OUTP} null: 2>&1`" = "0"
 }
 
 runtest -i

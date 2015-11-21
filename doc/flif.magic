@@ -1,0 +1,33 @@
+# Magic data for file(1) command. (append to /etc/magic)
+
+# FLIF (Free Lossless Image Format)
+0 string FLIF FLIF
+>4 string <H image data,
+>>6 beshort x %u
+>>8 beshort x x %u,
+>>5 string 1 8-bit/color
+>>5 string 2 16-bit/color
+>>4 string 1 grayscale, non-interlaced
+>>4 string 3 RGB, non-interlaced
+>>4 string 4 RGBA, non-interlaced
+>>4 string A grayscale
+>>4 string C RGB, interlaced
+>>4 string D RGBA, interlaced
+>4 string >H animation data,
+>>5 ubyte <255 %i frames,
+>>>7 beshort x %u
+>>>9 beshort x x %u,
+>>>6 string =1 8-bit/color
+>>>6 string =2 16-bit/color
+>>5 ubyte 0xFF
+>>>6 beshort x %i frames,
+>>>9 beshort x %u
+>>>11 beshort x x %u,
+>>>8 string =1 8-bit/color
+>>>8 string =2 16-bit/color
+>>4 string =Q grayscale, non-interlaced
+>>4 string =S RGB, non-interlaced
+>>4 string =T RGBA, non-interlaced
+>>4 string =a grayscale
+>>4 string =c RGB, interlaced
+>>4 string =d RGBA, interlaced
