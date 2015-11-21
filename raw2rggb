@@ -15,6 +15,21 @@ else
         CFAPattern=`dcraw -i -v "$1" | grep "Filter pattern: " | sed "s/Filter pattern: //g"`
         # get Orientation: "Horizontal (normal)", "Rotate 90 CW", "Rotate 180 CW", "Rotate 270 CW"
 	Orientation=`exiftool -Orientation "$1" | sed "s/Orientation                     : //g"`
+	# TODO: Remove this case part when FLIF can handle the "CFAPattern" comment
+	case "$CFAPattern" in
+		RGGBRGGBRGGBRGGB)
+			Rotate="-t 0";;
+		GRBGGRBGGRBGGRBG)
+			Rotate="-t 270";;
+		BGGRBGGRBGGRBGGR)
+			Rotate="-t 180";;
+		GBRGGBRGGBRGGBRG)
+			Rotate="-t 90";;
+		*)
+			echo "This pattern is unknown: $CFAPattern"
+			exit 1
+	esac
+	# Determine the CFA pattern of output image (without the -t parameter)
 	case "$CFAPattern" in
 		RGGBRGGBRGGBRGGB)
 			case "$Orientation" in
@@ -72,20 +87,6 @@ else
 					echo "This orientation is unknown: $Orientation"
 					exit 1
 			esac;;
-		*)
-			echo "This pattern is unknown: $CFAPattern"
-			exit 1
-	esac
-	# TODO: Remove this case part when FLIF can handle the "CFAPattern" comment
-	case "$CFAPattern" in
-		RGGB)
-			Rotate="";;
-		GRBG)
-			Rotate="-t 5";;
-		BGGR)
-			Rotate="-t 3";;
-		GBRG)
-			Rotate="-t 6";;
 		*)
 			echo "This pattern is unknown: $CFAPattern"
 			exit 1
