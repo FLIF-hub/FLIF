@@ -42,8 +42,8 @@ else
 				"Rotate 270 CW")
 					CFAPattern="GBRG";;
 				*)
-					echo "This orientation is unknown: $Orientation"
-					exit 1
+					echo "This orientation is unknown: $Orientation"". Assuming Horizontal."
+					CFAPattern="RGGB";;
 			esac;;
 		GRBGGRBGGRBGGRBG)
 			case "$Orientation" in
@@ -56,8 +56,8 @@ else
 				"Rotate 270 CW")
 					CFAPattern="RGGB";;
 				*)
-					echo "This orientation is unknown: $Orientation"
-					exit 1
+					echo "This orientation is unknown: $Orientation"". Assuming Horizontal."
+					CFAPattern="GRBG";;
 			esac;;
 		BGGRBGGRBGGRBGGR)
 			case "$Orientation" in
@@ -70,8 +70,8 @@ else
 				"Rotate 270 CW")
 					CFAPattern="GRBG";;
 				*)
-					echo "This orientation is unknown: $Orientation"
-					exit 1
+					echo "This orientation is unknown: $Orientation"". Assuming Horizontal."
+					CFAPattern="BGGR";;
 			esac;;
 		GBRGGBRGGBRGGBRG)
 			case "$Orientation" in
@@ -84,8 +84,8 @@ else
 				"Rotate 270 CW")
 					CFAPattern="BGGR";;
 				*)
-					echo "This orientation is unknown: $Orientation"
-					exit 1
+					echo "This orientation is unknown: $Orientation"". Assuming Horizontal."
+					CFAPattern="GBRG";;
 			esac;;
 		*)
 			echo "This pattern is unknown: $CFAPattern"

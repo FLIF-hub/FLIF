@@ -135,16 +135,16 @@ bool image_save_rggb(const char *filename, const Image& image)
         fprintf(fp,"P5\n%u %u\n%i\n", width*2, height*2, max);
         for (unsigned int y = 0; y < height; y++) {
             for (unsigned int x = 0; x < width; x++) {
-                if (max > 0xff) fputc((image(3,y,x)-1) >> 8,fp);  // R
-                fputc((image(3,y,x)-1) & 0xFF,fp);
+                if (max > 0xff) fputc(image(3,y,x) >> 8,fp);  // R
+                fputc(image(3,y,x) & 0xFF,fp);
                 if (max > 0xff) fputc(image(0,y,x) >> 8,fp);  // G1
-                fputc((image(0,y,x)) & 0xFF,fp);
+                fputc(image(0,y,x) & 0xFF,fp);
             }
             for (unsigned int x = 0; x < width; x++) {
                 if (max > 0xff) fputc(image(2,y,x) >> 8,fp);  // G2
-                fputc(image(1,y,x) & 0xFF,fp);
-                if (max > 0xff) fputc(image(1,y,x) >> 8,fp);  // B
                 fputc(image(2,y,x) & 0xFF,fp);
+                if (max > 0xff) fputc(image(1,y,x) >> 8,fp);  // B
+                fputc(image(1,y,x) & 0xFF,fp);
             }
         }
     fclose(fp);
