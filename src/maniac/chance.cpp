@@ -4,7 +4,7 @@
 #include "chance.hpp"
 #include "bit.hpp"
 
-void build_table(uint16_t *zero_state, uint16_t *one_state, size_t size, int factor, unsigned int max_p)
+void build_table(uint16_t *zero_state, uint16_t *one_state, size_t size, uint32_t factor, unsigned int max_p)
 {
     const int64_t one = 1LL << 32;
     int64_t p;
@@ -38,10 +38,6 @@ void build_table(uint16_t *zero_state, uint16_t *one_state, size_t size, int fac
 
     for (i = 1; i < size; i++)
         zero_state[i] = size - one_state[size - i];
-
-    /*  for (int i=0; i<size; i++) {
-        e_printf("%i -> [%i,%i]\n",i,zero_state[i],one_state[i]);
-      } */
 }
 
 /** Computes an approximation of log(4096 / x) / log(2) * base */
