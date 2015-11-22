@@ -1,34 +1,12 @@
 #pragma once
 
+#ifdef STATS
+#include <stdio.h>
+#endif
+
 #include <stdint.h>
 #include <assert.h>
 #include "../config.h"
-
-/* RAC configuration for 40-bit RAC */
-#ifndef FAST_BUT_WORSE_COMPRESSION
-class RacConfig40
-{
-public:
-    typedef uint64_t data_t;
-    static const int MAX_RANGE_BITS = 40;
-    static const int MIN_RANGE_BITS = (MAX_RANGE_BITS-8);
-    static const data_t MIN_RANGE = (1ULL << (data_t)(MIN_RANGE_BITS));
-    static const data_t BASE_RANGE = (1ULL << MAX_RANGE_BITS);
-
-    static inline data_t chance_12bit_chance(int b12, data_t range) {
-        assert(b12 > 0);
-        assert((b12 >> 12) == 0);
-        return (range * b12 + 0x800) >> 12;
-    }
-
-    static inline data_t chance_fractional(int num, int denom, data_t range) {
-        assert(num > 0);
-        assert(denom > 0);
-        assert(num < denom);
-        return (((uint64_t)range * num + denom / 2) / denom);
-    }
-};
-#endif
 
 /* RAC configuration for 24-bit RAC */
 class RacConfig24
@@ -64,6 +42,9 @@ public:
 protected:
     IO& io;
 private:
+#ifdef STATS
+    uint64_t samples;
+#endif
     rac_t range;
     rac_t low;
 private:
@@ -80,6 +61,9 @@ private:
         }
     }
     bool inline get(rac_t chance) {
+#ifdef STATS
+        samples++;
+#endif
         assert(chance > 0);
         assert(chance < range);
         if (low >= range - chance) {
@@ -95,6 +79,9 @@ private:
     }
 public:
     RacInput(IO& ioin) : io(ioin), range(Config::BASE_RANGE), low(0) {
+#ifdef STATS
+        samples = 0;
+#endif
         rac_t r = Config::BASE_RANGE;
         while (r > 1) {
             low <<= 8;
@@ -102,6 +89,12 @@ public:
             r >>= 8;
         }
     }
+
+#ifdef STATS
+    ~RacInput() {
+        fprintf(stderr, "Total samples read from range coder: %llu\n", (unsigned long long)samples);
+    }
+#endif
 
     bool inline read_fractional(int num, int denom) {
         return get(Config::chance_fractional(num, denom, range));
@@ -223,22 +216,6 @@ public:
 };
 
 
-#ifndef FAST_BUT_WORSE_COMPRESSION
-template <typename IO> class RacInput40 : public RacInput<RacConfig40, IO>
-{
-public:
-    RacInput40(IO& io) : RacInput<RacConfig40, IO>(io) { }
-};
-
-#ifdef HAS_ENCODER
-template <typename IO> class RacOutput40 : public RacOutput<RacConfig40, IO>
-{
-public:
-    RacOutput40(IO& io) : RacOutput<RacConfig40, IO>(io) { }
-};
-#endif
-#endif
-
 template <typename IO> class RacInput24 : public RacInput<RacConfig24, IO>
 {
 public:
@@ -251,4 +228,5 @@ template <typename IO> class RacOutput24 : public RacOutput<RacConfig24, IO>
 public:
     RacOutput24(IO& io) : RacOutput<RacConfig24, IO>(io) { }
 };
+
 #endif
