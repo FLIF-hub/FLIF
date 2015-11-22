@@ -15,15 +15,17 @@ struct Log4kTable {
 
 extern const Log4kTable log4k;
 
-void extern build_table(uint16_t *zero_state, uint16_t *one_state, size_t size, int factor, unsigned int max_p);
+void extern build_table(uint16_t *zero_state, uint16_t *one_state, size_t size, uint32_t factor, unsigned int max_p);
 
 class SimpleBitChanceTable
 {
 public:
     uint16_t next[2][4096]; // stored as 12-bit numbers
+    uint32_t alpha;
 
-    void init(int cut, int alpha) {
-        build_table(next[0], next[1], 4096, alpha, 4096-cut);
+    void init(int cut, int alpha_) {
+        alpha = alpha_;
+        build_table(next[0], next[1], 4096, alpha_, 4096-cut);
     }
 
     SimpleBitChanceTable(int cut = 2, int alpha = 0xFFFFFFFF / 19) {
@@ -34,30 +36,30 @@ public:
 #ifdef STATS
 struct BitChanceStats
 {
-    uint64_t total;
-    uint64_t ones;
+    double weight;
+    double sum;
+    double factor;
 
-    BitChanceStats() : total(0), ones(0) {}
+    BitChanceStats() : weight(0), sum(0), factor(1.0) {}
 
-    void add(bool bit) {
-        total++;
-        ones += bit;
+    void add(bool bit, unsigned int alpha) {
+        weight += factor;
+        if (bit) {
+            sum += factor;
+        }
+        factor *= (1.0 - alpha / 4294967296.0);
     }
 
     BitChanceStats& operator+=(const BitChanceStats& stats) {
-        total += stats.total;
-        ones += stats.ones;
+        weight += stats.weight;
+        sum += stats.sum;
         return *this;
     }
 
     std::string format() const {
-        if (total == 0) {
-            return "0*0";
-        } else {
-            std::stringstream ss;
-            ss << (int)((double)ones / total * 4096.0 + 0.5) << '*' << total;
-            return ss.str();
-        }
+        std::stringstream ss;
+        ss << sum << '/' << weight;
+        return ss.str();
     }
 };
 #endif
@@ -85,7 +87,7 @@ public:
     }
     void inline put(bool bit, const Table &table) {
 #ifdef STATS
-        stats_.add(bit);
+        stats_.add(bit, table.alpha);
 #endif
         chance = table.next[bit][chance];
     }
@@ -158,7 +160,7 @@ public:
 
     void put(bool bit, const Table &table) {
 #ifdef STATS
-        stats_.add(bit);
+        stats_.add(bit, table.subTable[best].alpha);
 #endif
 /*        if (bit == 0)  {
           for (int i=0; i<N; i++) {
