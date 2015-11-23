@@ -107,16 +107,6 @@ public:
     bool inline read_bit() {
         return get(range >> 1);
     }
-
-    bool isEOF() {
-      return io.isEOF();
-    }
-    int ftell() {
-      return io.ftell();
-    }
-    char * gets(char *buf, int n) {
-      return io.gets(buf, n);
-    }
 };
 
 #ifdef HAS_ENCODER
@@ -194,10 +184,6 @@ public:
         output();
         io.flush();
     }
-
-    int ftell() {
-      return io.ftell();
-    }
 };
 #endif
 
@@ -209,10 +195,6 @@ public:
     void inline write_12bit_chance(uint16_t b12, bool) { }
     void inline write_bit(bool) { }
     void inline flush() { }
-
-    int ftell() {
-      return 0;
-    }
 };
 
 
