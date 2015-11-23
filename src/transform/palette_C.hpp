@@ -33,6 +33,7 @@ protected:
     std::set<ColorVal> CPalette[4];
 #endif
     std::vector<ColorVal> CPalette_vector[4];
+    std::vector<ColorVal> CPalette_inv_vector[4];
 
 public:
     bool init(const ColorRanges *) {
@@ -93,6 +94,8 @@ public:
            for (ColorVal c : CPalette[p]) CPalette_vector[p].push_back(c);
          }
          CPalette[p].clear();
+         CPalette_inv_vector[p].resize(srcRanges->max(p)+1);
+         for (unsigned int i=0; i<CPalette_vector[p].size(); i++) CPalette_inv_vector[p][CPalette_vector[p][i]]=i;
         }
         return nontrivial;
     }
@@ -102,8 +105,8 @@ public:
 //          const int stretch = (CPalette_vector[p].size()>64 ? 0 : 2);
           for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
-                ColorVal P=0;
-                for (ColorVal x : CPalette_vector[p]) {if (x==image(p,r,c)) break; else P++;}
+                ColorVal P = CPalette_inv_vector[p][image(p,r,c)];
+//                for (ColorVal x : CPalette_vector[p]) {if (x==image(p,r,c)) break; else P++;}
 //                image.set(p,r,c, P << stretch);
                 image.set(p,r,c, P);
             }
