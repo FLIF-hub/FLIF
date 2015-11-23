@@ -33,10 +33,10 @@ template<typename RAC> void static write_name(RAC& rac, std::string desc)
 // alphazero = true: image has alpha plane and A=0 implies RGB(YIQ) is irrelevant
 // alphazero = false: image either has no alpha plane, or A=0 has no special meaning
 // FRA = true: image has FRA plane (animation with lookback)
-template<typename Rac, typename Coder>
-void flif_encode_scanlines_inner(Rac rac, std::vector<Coder> &coders, const Images &images, const ColorRanges *ranges) {
+template<typename IO, typename Rac, typename Coder>
+void flif_encode_scanlines_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const Images &images, const ColorRanges *ranges) {
     ColorVal min,max;
-    long fs = rac.ftell();
+    long fs = io.ftell();
     long pixels = images[0].cols()*images[0].rows()*images.size();
     const int nump = images[0].numPlanes();
     const bool alphazero = (nump>3 && images[0].alpha_zero_special);
@@ -65,7 +65,7 @@ void flif_encode_scanlines_inner(Rac rac, std::vector<Coder> &coders, const Imag
               }
             }
         }
-        long nfs = rac.ftell();
+        long nfs = io.ftell();
         if (nfs-fs > 0) {
            v_printf(3,"filesize : %li (+%li for %li pixels, %f bpp)", nfs, nfs-fs, pixels, 8.0*(nfs-fs)/pixels );
            v_printf(4,"\n");
@@ -74,8 +74,8 @@ void flif_encode_scanlines_inner(Rac rac, std::vector<Coder> &coders, const Imag
     }
 }
 
-template<typename Rac, typename Coder>
-void flif_encode_scanlines_pass(Rac &rac, const Images &images, const ColorRanges *ranges, std::vector<Tree> &forest,
+template<typename IO, typename Rac, typename Coder>
+void flif_encode_scanlines_pass(IO& io, Rac &rac, const Images &images, const ColorRanges *ranges, std::vector<Tree> &forest,
                                 int repeats, int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int cutoff = 2, int alpha = 0xFFFFFFFF / 19) {
     std::vector<Coder> coders;
     coders.reserve(ranges->numPlanes());
@@ -87,7 +87,7 @@ void flif_encode_scanlines_pass(Rac &rac, const Images &images, const ColorRange
     }
 
     while(repeats-- > 0) {
-     flif_encode_scanlines_inner<Rac,Coder>(rac, coders, images, ranges);
+     flif_encode_scanlines_inner<IO,Rac,Coder>(io, rac, coders, images, ranges);
     }
 
     for (int p = 0; p < ranges->numPlanes(); p++) {
@@ -95,14 +95,14 @@ void flif_encode_scanlines_pass(Rac &rac, const Images &images, const ColorRange
     }
 }
 
-template<typename Rac, typename Coder>
-void flif_encode_FLIF2_inner(Rac rac, std::vector<Coder> &coders, const Images &images,
+template<typename IO, typename Rac, typename Coder>
+void flif_encode_FLIF2_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const Images &images,
                              const ColorRanges *ranges, const int beginZL, const int endZL) {
     ColorVal min,max;
     const int nump = images[0].numPlanes();
     const bool alphazero = (nump>3 && images[0].alpha_zero_special);
     const bool FRA = (nump == 5);
-    long fs = rac.ftell();
+    long fs = io.ftell();
     for (int i = 0; i < plane_zoomlevels(images[0], beginZL, endZL); i++) {
       std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i);
       int p = pzl.first;
@@ -154,16 +154,16 @@ void flif_encode_FLIF2_inner(Rac rac, std::vector<Coder> &coders, const Images &
             }
           }
       }
-      if (endZL==0 && rac.ftell()>fs) {
-          v_printf(3,"    wrote %li bytes    ", rac.ftell());
+      if (endZL==0 && io.ftell()>fs) {
+          v_printf(3,"    wrote %li bytes    ", io.ftell());
           v_printf(5,"\n");
-          fs = rac.ftell();
+          fs = io.ftell();
       }
     }
 }
 
-template<typename Rac, typename Coder>
-void flif_encode_FLIF2_pass(Rac &rac, const Images &images, const ColorRanges *ranges, std::vector<Tree> &forest, const int beginZL, const int endZL,
+template<typename IO, typename Rac, typename Coder>
+void flif_encode_FLIF2_pass(IO& io, Rac &rac, const Images &images, const ColorRanges *ranges, std::vector<Tree> &forest, const int beginZL, const int endZL,
                             int repeats, int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int cutoff = 2, int alpha = 0xFFFFFFFF / 19) {
     std::vector<Coder> coders;
     coders.reserve(ranges->numPlanes());
@@ -186,7 +186,7 @@ void flif_encode_FLIF2_pass(Rac &rac, const Images &images, const ColorRanges *r
       }
     }
     while(repeats-- > 0) {
-     flif_encode_FLIF2_inner<Rac,Coder>(rac, coders, images, ranges, beginZL, endZL);
+     flif_encode_FLIF2_inner<IO,Rac,Coder>(io, rac, coders, images, ranges, beginZL, endZL);
     }
     for (int p = 0; p < images[0].numPlanes(); p++) {
         coders[p].simplify(divisor, min_size);
@@ -245,7 +245,7 @@ void flif_encode_scanlines_interpol_zero_alpha(Images &images, const ColorRanges
 }
 
 
-template<typename BitChance, typename Rac> void flif_encode_tree(Rac &rac, const ColorRanges *ranges, const std::vector<Tree> &forest, const flifEncoding encoding)
+template<typename IO, typename BitChance, typename Rac> void flif_encode_tree(IO& io, Rac &rac, const ColorRanges *ranges, const std::vector<Tree> &forest, const flifEncoding encoding)
 {
     for (int p = 0; p < ranges->numPlanes(); p++) {
         Ranges propRanges;
@@ -279,17 +279,17 @@ void flif_encode_main(RacOut<IO>& rac, IO& io, Images &images, flifEncoding enco
       roughZL = image.zooms() - NB_NOLEARN_ZOOMS-1;
       if (roughZL < 0) roughZL = 0;
       //v_printf(2,"Encoding rough data\n");
-      flif_encode_FLIF2_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, bits> >(rac, images, ranges, forest, image.zooms(), roughZL+1, 1, divisor, min_size, split_threshold, cutoff, alpha);
+      flif_encode_FLIF2_pass<IO, RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, bits> >(io, rac, images, ranges, forest, image.zooms(), roughZL+1, 1, divisor, min_size, split_threshold, cutoff, alpha);
     }
 
     //v_printf(2,"Encoding data (pass 1)\n");
     if (learn_repeats>1) v_printf(3,"Learning a MANIAC tree. Iterating %i times.\n",learn_repeats);
     switch(encoding) {
         case flifEncoding::nonInterlaced:
-           flif_encode_scanlines_pass<RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, bits> >(dummy, images, ranges, forest, learn_repeats, divisor, min_size, split_threshold, cutoff, alpha);
+           flif_encode_scanlines_pass<IO, RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, bits> >(io, dummy, images, ranges, forest, learn_repeats, divisor, min_size, split_threshold, cutoff, alpha);
            break;
         case flifEncoding::interlaced:
-           flif_encode_FLIF2_pass<RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, bits> >(dummy, images, ranges, forest, roughZL, 0, learn_repeats, divisor, min_size, split_threshold, cutoff, alpha);
+           flif_encode_FLIF2_pass<IO, RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, bits> >(io, dummy, images, ranges, forest, roughZL, 0, learn_repeats, divisor, min_size, split_threshold, cutoff, alpha);
            break;
     }
     v_printf(3,"\rHeader: %li bytes.", fs);
@@ -298,15 +298,15 @@ void flif_encode_main(RacOut<IO>& rac, IO& io, Images &images, flifEncoding enco
 
     //v_printf(2,"Encoding tree\n");
     fs = io.ftell();
-    flif_encode_tree<FLIFBitChanceTree, RacOut<IO>>(rac, ranges, forest, encoding);
+    flif_encode_tree<IO, FLIFBitChanceTree, RacOut<IO>>(io, rac, ranges, forest, encoding);
     v_printf(3," MANIAC tree: %li bytes.\n", io.ftell()-fs);
     //v_printf(2,"Encoding data (pass 2)\n");
     switch(encoding) {
         case flifEncoding::nonInterlaced:
-           flif_encode_scanlines_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, bits> >(rac, images, ranges, forest, 1, 0, 0, 0, cutoff, alpha);
+           flif_encode_scanlines_pass<IO, RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, bits> >(io, rac, images, ranges, forest, 1, 0, 0, 0, cutoff, alpha);
            break;
         case flifEncoding::interlaced:
-           flif_encode_FLIF2_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, bits> >(rac, images, ranges, forest, roughZL, 0, 1, 0, 0, 0, cutoff, alpha);
+           flif_encode_FLIF2_pass<IO, RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, bits> >(io, rac, images, ranges, forest, roughZL, 0, 1, 0, 0, 0, cutoff, alpha);
            break;
     }
 
