@@ -26,7 +26,7 @@ flif.asan: $(FILES_H) $(FILES_CPP) flif.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) -O3 -fsanitize=address,undefined -fno-omit-frame-pointer -g3 -Wall $(FILES_CPP) flif.cpp $(LDFLAGS) -o flif.asan
 
 libflif.so: $(FILES_H) $(FILES_CPP) flif.h flif-interface-private.h flif-interface.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) -DNDEBUG -O3 -g0 -Wall -shared -fPIC $(FILES_CPP) flif-interface.cpp $(LDFLAGS) -o libflif.so
+	$(CXX) -std=gnu++11 $(CXXFLAGS) -DNDEBUG -O3 -flto -g0 -Wall -shared -fPIC $(FILES_CPP) flif-interface.cpp $(LDFLAGS) -o libflif.so
 
 libflif.prof.so: $(FILES_H) $(FILES_CPP) flif.h flif-interface-private.h flif-interface.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) -DNDEBUG -O3 -g0 -pg -Wall -shared -fPIC $(FILES_CPP) flif-interface.cpp $(LDFLAGS) -o libflif.prof.so

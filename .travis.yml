@@ -2,7 +2,6 @@ language: cpp
 
 compiler:
   - gcc
-  - clang
 
 sudo: true
 
