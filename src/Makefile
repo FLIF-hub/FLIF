@@ -11,7 +11,7 @@ FILES_CPP := maniac/chance.cpp maniac/symbol.cpp image/crc32k.cpp image/image.cp
 all: flif libflif.so viewflif
 
 flif: $(FILES_H) $(FILES_CPP) flif.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) -DNDEBUG -O3 -g0 -Wall $(FILES_CPP) flif.cpp $(LDFLAGS) -o flif
+	$(CXX) -std=gnu++11 $(CXXFLAGS) -DNDEBUG -O3 -flto -g0 -Wall $(FILES_CPP) flif.cpp $(LDFLAGS) -o flif
 
 flif.stats: $(FILES_H) $(FILES_CPP) flif.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) -DSTATS -DNDEBUG -O3 -g0 -Wall $(FILES_CPP) flif.cpp $(LDFLAGS) -o flif.stats
