@@ -76,14 +76,14 @@ void flif_encode_scanlines_inner(Rac rac, std::vector<Coder> &coders, const Imag
 
 template<typename Rac, typename Coder>
 void flif_encode_scanlines_pass(Rac &rac, const Images &images, const ColorRanges *ranges, std::vector<Tree> &forest,
-                                int repeats, int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD) {
+                                int repeats, int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int cutoff = 2, int alpha = 0xFFFFFFFF / 19) {
     std::vector<Coder> coders;
     coders.reserve(ranges->numPlanes());
 
     for (int p = 0; p < ranges->numPlanes(); p++) {
         Ranges propRanges;
         initPropRanges_scanlines(propRanges, *ranges, p);
-        coders.emplace_back(rac, propRanges, forest[p], split_threshold);
+        coders.emplace_back(rac, propRanges, forest[p], split_threshold, cutoff, alpha);
     }
 
     while(repeats-- > 0) {
@@ -164,13 +164,13 @@ void flif_encode_FLIF2_inner(Rac rac, std::vector<Coder> &coders, const Images &
 
 template<typename Rac, typename Coder>
 void flif_encode_FLIF2_pass(Rac &rac, const Images &images, const ColorRanges *ranges, std::vector<Tree> &forest, const int beginZL, const int endZL,
-                            int repeats, int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD) {
+                            int repeats, int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int cutoff = 2, int alpha = 0xFFFFFFFF / 19) {
     std::vector<Coder> coders;
     coders.reserve(ranges->numPlanes());
     for (int p = 0; p < ranges->numPlanes(); p++) {
         Ranges propRanges;
         initPropRanges(propRanges, *ranges, p);
-        coders.emplace_back(rac, propRanges, forest[p], split_threshold);
+        coders.emplace_back(rac, propRanges, forest[p], split_threshold, cutoff, alpha);
     }
 
     for (const Image& image : images)
@@ -260,7 +260,7 @@ template<typename BitChance, typename Rac> void flif_encode_tree(Rac &rac, const
 template <int bits, typename IO>
 void flif_encode_main(RacOut<IO>& rac, IO& io, Images &images, flifEncoding encoding,
                  int learn_repeats, const ColorRanges *ranges,
-                 int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD) {
+                 int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int cutoff = 2, int alpha = 0xFFFFFFFF / 19) {
 
     Image& image=images[0];
 
@@ -279,17 +279,17 @@ void flif_encode_main(RacOut<IO>& rac, IO& io, Images &images, flifEncoding enco
       roughZL = image.zooms() - NB_NOLEARN_ZOOMS-1;
       if (roughZL < 0) roughZL = 0;
       //v_printf(2,"Encoding rough data\n");
-      flif_encode_FLIF2_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, bits> >(rac, images, ranges, forest, image.zooms(), roughZL+1, 1, divisor, min_size, split_threshold);
+      flif_encode_FLIF2_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, bits> >(rac, images, ranges, forest, image.zooms(), roughZL+1, 1, divisor, min_size, split_threshold, cutoff, alpha);
     }
 
     //v_printf(2,"Encoding data (pass 1)\n");
     if (learn_repeats>1) v_printf(3,"Learning a MANIAC tree. Iterating %i times.\n",learn_repeats);
     switch(encoding) {
         case flifEncoding::nonInterlaced:
-           flif_encode_scanlines_pass<RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, bits> >(dummy, images, ranges, forest, learn_repeats, divisor, min_size, split_threshold);
+           flif_encode_scanlines_pass<RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, bits> >(dummy, images, ranges, forest, learn_repeats, divisor, min_size, split_threshold, cutoff, alpha);
            break;
         case flifEncoding::interlaced:
-           flif_encode_FLIF2_pass<RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, bits> >(dummy, images, ranges, forest, roughZL, 0, learn_repeats, divisor, min_size, split_threshold);
+           flif_encode_FLIF2_pass<RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, bits> >(dummy, images, ranges, forest, roughZL, 0, learn_repeats, divisor, min_size, split_threshold, cutoff, alpha);
            break;
     }
     v_printf(3,"\rHeader: %li bytes.", fs);
@@ -303,10 +303,10 @@ void flif_encode_main(RacOut<IO>& rac, IO& io, Images &images, flifEncoding enco
     //v_printf(2,"Encoding data (pass 2)\n");
     switch(encoding) {
         case flifEncoding::nonInterlaced:
-           flif_encode_scanlines_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, bits> >(rac, images, ranges, forest, 1);
+           flif_encode_scanlines_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, bits> >(rac, images, ranges, forest, 1, 0, 0, 0, cutoff, alpha);
            break;
         case flifEncoding::interlaced:
-           flif_encode_FLIF2_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, bits> >(rac, images, ranges, forest, roughZL, 0, 1);
+           flif_encode_FLIF2_pass<RacOut<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacOut<IO>, bits> >(rac, images, ranges, forest, roughZL, 0, 1, 0, 0, 0, cutoff, alpha);
            break;
     }
 
@@ -315,7 +315,7 @@ void flif_encode_main(RacOut<IO>& rac, IO& io, Images &images, flifEncoding enco
 template <typename IO>
 bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding,
                  int learn_repeats, int acb, int frame_delay, int palette_size, int lookback,
-                 int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD) {
+                 int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int cutoff=2, int alpha=19) {
 
     io.fputs("FLIF");  // bytes 1-4 are fixed magic
     int numPlanes = images[0].numPlanes();
@@ -396,6 +396,10 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     }
 //    v_printf(2,"Header: %li bytes.\n", ftell(f));
 
+    metaCoder.write_int(1,128,cutoff);
+    metaCoder.write_int(4,128,alpha);
+    alpha = 0xFFFFFFFF/alpha;
+
     std::vector<const ColorRanges*> rangesList;
     std::vector<Transform<IO>*> transforms;
     rangesList.push_back(getRanges(image));
@@ -467,10 +471,10 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
 
 
     if (bits ==10) {
-      flif_encode_main<10>(rac, io, images, encoding, learn_repeats, ranges, divisor, min_size, split_threshold);
+      flif_encode_main<10>(rac, io, images, encoding, learn_repeats, ranges, divisor, min_size, split_threshold, cutoff, alpha);
 #ifdef SUPPORT_HDR
     } else {
-      flif_encode_main<18>(rac, io, images, encoding, learn_repeats, ranges, divisor, min_size, split_threshold);
+      flif_encode_main<18>(rac, io, images, encoding, learn_repeats, ranges, divisor, min_size, split_threshold, cutoff, alpha);
 #endif
     }
 
@@ -499,7 +503,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
 }
 
 
-template bool flif_encode(FileIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int frame_delay, int palette_size, int lookback, int divisor, int min_size, int split_threshold);
-template bool flif_encode(BlobIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int frame_delay, int palette_size, int lookback, int divisor, int min_size, int split_threshold);
+template bool flif_encode(FileIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int frame_delay, int palette_size, int lookback, int divisor, int min_size, int split_threshold, int cutoff, int alpha);
+template bool flif_encode(BlobIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int frame_delay, int palette_size, int lookback, int divisor, int min_size, int split_threshold, int cutoff, int alpha);
 
 #endif
