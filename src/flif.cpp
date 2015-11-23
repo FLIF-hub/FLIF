@@ -131,7 +131,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
       v_printf(3,"  ____ _[_]____");
-    v_printf(3,"\n [__  | | |  __]   ");v_printf(2,"FLIF 0.1.8 [23 November 2015]");
+    v_printf(3,"\n [__  | | |  __]   ");v_printf(2,"FLIF 0.1.9 [23 November 2015]");
     v_printf(3,"\n  |_  | |_|  _|    Free Lossless Image Format");
     v_printf(3,"\n    ]_|___|_[    ");v_printf(2,"  (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
     v_printf(3,"\n");
