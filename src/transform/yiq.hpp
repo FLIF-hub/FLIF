@@ -5,7 +5,7 @@
 #include "transform.hpp"
 #include <algorithm>
 
-#define clip(x,l,u)   if (x < l) x=l; if (x > u) x=u
+#define clip(x,l,u)   if ((x) < (l)) {(x)=(l);} else if ((x) > (u)) {(x)=(u);}
 
 ColorVal static inline get_min_y(int) {
     return 0;
