@@ -200,25 +200,35 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
     uint64_t nb_pixels = (uint64_t)images[0].rows() * images[0].cols();
     std::vector<std::string> desc;
     if (nb_pixels > 2) {         // no point in doing anything for 1- or 2-pixel images
-      if (plc)
+      if (plc) {
         desc.push_back("PLC");  // compactify channels
-      if (yiq)
+      }
+      if (yiq) {
         desc.push_back("YIQ");  // convert RGB(A) to YIQ(A)
-        desc.push_back("BND");  // get the bounds of the color spaces
+      }
+      desc.push_back("BND");  // get the bounds of the color spaces
     }
     if (palette_size < 0) {
         palette_size = 1024;
-        if (nb_pixels * images.size() / 2 < 1024) palette_size = nb_pixels * images.size() / 2;
+        if (nb_pixels * images.size() / 2 < 1024) {
+          palette_size = nb_pixels * images.size() / 2;
+        }
     }
-    if (palette_size > 0)
+    if (palette_size > 0) {
         desc.push_back("PLA");  // try palette (including alpha)
-    if (palette_size > 0)
+    }
+    if (palette_size > 0) {
         desc.push_back("PLT");  // try palette (without alpha)
+    }
 
     if (acb == -1) {
-        // not specified if ACB should be used
-        if (nb_pixels * images.size() > 10000) desc.push_back("ACB");  // try auto color buckets on large images
-    } else if (acb) desc.push_back("ACB");  // try auto color buckets if forced
+      // not specified if ACB should be used
+      if (nb_pixels * images.size() > 10000) {
+        desc.push_back("ACB");  // try auto color buckets on large images
+      }
+    } else if (acb) {
+      desc.push_back("ACB");  // try auto color buckets if forced
+    }
     if (method.o == Optional::undefined) {
         // no method specified, pick one heuristically
         if (nb_pixels * images.size() < 10000) method.encoding=flifEncoding::nonInterlaced; // if the image is small, not much point in doing interlacing
