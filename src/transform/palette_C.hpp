@@ -29,9 +29,6 @@ public:
 template <typename IO>
 class TransformPaletteC : public Transform<IO> {
 protected:
-#if HAS_ENCODER
-    std::set<ColorVal> CPalette[4];
-#endif
     std::vector<ColorVal> CPalette_vector[4];
     std::vector<ColorVal> CPalette_inv_vector[4];
 
@@ -70,30 +67,31 @@ public:
 
 #if HAS_ENCODER
     bool process(const ColorRanges *srcRanges, const Images &images) {
+        std::set<ColorVal> CPalette;
         bool nontrivial=false;
         for (int p=0; p<srcRanges->numPlanes(); p++) {
-         if (p==3) CPalette[p].insert(0); // ensure that A=0 is still A=0 even if image does not contain zero-alpha pixels
+         if (p==3) CPalette.insert(0); // ensure that A=0 is still A=0 even if image does not contain zero-alpha pixels
          for (const Image& image : images) {
           for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
-                CPalette[p].insert(image(p,r,c));
+                CPalette.insert(image(p,r,c));
             }
           }
          }
-         if ((int)CPalette[p].size() <= srcRanges->max(p)-srcRanges->min(p)) nontrivial = true;
-         if (CPalette[p].size() < 10) {
+         if ((int)CPalette.size() <= srcRanges->max(p)-srcRanges->min(p)) nontrivial = true;
+         if (CPalette.size() < 10) {
            // add up to 10 shades of gray
            ColorVal prev=0;
-           for (ColorVal c : CPalette[p]) {
+           for (ColorVal c : CPalette) {
              if (c > prev+1) CPalette_vector[p].push_back((c+prev)/2);
              CPalette_vector[p].push_back(c);
              prev=c;
              nontrivial=true;
            }
          } else {
-           for (ColorVal c : CPalette[p]) CPalette_vector[p].push_back(c);
+           for (ColorVal c : CPalette) CPalette_vector[p].push_back(c);
          }
-         CPalette[p].clear();
+         CPalette.clear();
          CPalette_inv_vector[p].resize(srcRanges->max(p)+1);
          for (unsigned int i=0; i<CPalette_vector[p].size(); i++) CPalette_inv_vector[p][CPalette_vector[p][i]]=i;
         }
