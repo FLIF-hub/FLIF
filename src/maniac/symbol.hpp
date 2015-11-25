@@ -24,10 +24,10 @@ public:
         // split in [0..med] [med+1..max]
         int med = max/2;
         if (val > med) {
-            rac.write_fractional(med+1, max+1, true);
+            rac.write_bit(true);
             write_int(med+1, max, val);
         } else {
-            rac.write_fractional(med+1, max+1, false);
+            rac.write_bit(false);
             write_int(0, med, val);
         }
         return;
@@ -42,7 +42,7 @@ public:
 
         // split in [0..med] [med+1..max]
         int med = max/2;
-        bool bit = rac.read_fractional(med+1, max+1);
+        bool bit = rac.read_bit();
         if (bit) {
             return read_int(min+med+1, min+max);
         } else {
@@ -306,7 +306,7 @@ private:
     RAC &rac;
 
 public:
-    SimpleBitCoder(RAC &racIn) : rac(racIn) {}
+    SimpleBitCoder(RAC &racIn, int cut = 2, int alpha = 0xFFFFFFFF / 19) : rac(racIn), table(cut,alpha) {}
 
     void set(uint16_t chance) {
         ctx.set(chance);
@@ -362,7 +362,7 @@ private:
     RAC &rac;
 
 public:
-    SimpleSymbolCoder(RAC& racIn) : rac(racIn) {
+    SimpleSymbolCoder(RAC& racIn, int cut = 2, int alpha = 0xFFFFFFFF / 19) :  table(cut,alpha), rac(racIn) {
     }
 
 #ifdef HAS_ENCODER

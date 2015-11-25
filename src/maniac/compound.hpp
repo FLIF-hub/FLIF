@@ -194,7 +194,7 @@ private:
 
 public:
 
-    FinalCompoundSymbolCoder(RAC& racIn) : rac(racIn) {}
+    FinalCompoundSymbolCoder(RAC& racIn, int cut = 2, int alpha = 0xFFFFFFFF / 19) : rac(racIn), table(cut,alpha) {}
 
     int read_int(FinalCompoundSymbolChances<BitChance, bits> &chancesIn, int min, int max) {
         FinalCompoundSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, rac, chancesIn);
@@ -234,7 +234,7 @@ private:
 
 public:
 
-    CompoundSymbolCoder(RAC& racIn) : rac(racIn) {}
+    CompoundSymbolCoder(RAC& racIn, int cut = 2, int alpha = 0xFFFFFFFF / 19) : rac(racIn), table(cut,alpha) {}
 
     int read_int(CompoundSymbolChances<BitChance, bits> &chancesIn, std::vector<bool> &selectIn, int min, int max) {
         if (min == max) { return min; }
@@ -304,8 +304,8 @@ private:
     }
 
 public:
-    FinalPropertySymbolCoder(RAC& racIn, Ranges &rangeIn, Tree &treeIn, int ignored_split_threshold = 0) :
-        coder(racIn),
+    FinalPropertySymbolCoder(RAC& racIn, Ranges &rangeIn, Tree &treeIn, int ignored_split_threshold = 0, int cut = 4, int alpha = 0xFFFFFFFF / 20) :
+        coder(racIn, cut, alpha),
 //        range(rangeIn),
         nb_properties(rangeIn.size()),
         leaf_node(1,FinalCompoundSymbolChances<BitChance,bits>()),
@@ -437,9 +437,9 @@ private:
     }
 
 public:
-    PropertySymbolCoder(RAC& racIn, Ranges &rangeIn, Tree &treeIn, int st=CONTEXT_TREE_SPLIT_THRESHOLD) :
+    PropertySymbolCoder(RAC& racIn, Ranges &rangeIn, Tree &treeIn, int st=CONTEXT_TREE_SPLIT_THRESHOLD, int cut = 2, int alpha = 0xFFFFFFFF / 19) :
         rac(racIn),
-        coder(racIn),
+        coder(racIn, cut, alpha),
         range(rangeIn),
         nb_properties(range.size()),
         leaf_node(1,CompoundSymbolChances<BitChance,bits>(nb_properties)),
@@ -520,8 +520,8 @@ private:
     unsigned int nb_properties;
 
 public:
-    MetaPropertySymbolCoder(RAC &racIn, const Ranges &rangesIn) :
-        coder(racIn),
+    MetaPropertySymbolCoder(RAC &racIn, const Ranges &rangesIn, int cut = 2, int alpha = 0xFFFFFFFF / 19) :
+        coder(racIn, cut, alpha),
         range(rangesIn),
         nb_properties(rangesIn.size())
     {

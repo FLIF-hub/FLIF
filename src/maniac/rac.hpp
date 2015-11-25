@@ -26,13 +26,6 @@ public:
         // in its lower and upper 12 bits, and compute separately.
         return ((((range & 0xFFF) * b12 + 0x800) >> 12) + ((range >> 12) * b12));
     }
-
-    static inline data_t chance_fractional(int num, int denom, data_t range) {
-        assert(num > 0);
-        assert(denom > 0);
-        assert(num < denom);
-        return (((uint64_t)range * num + denom / 2) / denom);
-    }
 };
 
 template <typename Config, typename IO> class RacInput
@@ -96,26 +89,12 @@ public:
     }
 #endif
 
-    bool inline read_fractional(int num, int denom) {
-        return get(Config::chance_fractional(num, denom, range));
-    }
-
     bool inline read_12bit_chance(int b12) {
         return get(Config::chance_12bit_chance(b12, range));
     }
 
     bool inline read_bit() {
         return get(range >> 1);
-    }
-
-    bool isEOF() {
-      return io.isEOF();
-    }
-    int ftell() {
-      return io.ftell();
-    }
-    char * gets(char *buf, int n) {
-      return io.gets(buf, n);
     }
 };
 
@@ -172,10 +151,6 @@ private:
 public:
     RacOutput(IO& ioin) : io(ioin), range(Config::BASE_RANGE), low(0), delayed_byte(-1), delayed_count(0) { }
 
-    void inline write_fractional(int num, int denom, bool bit) {
-        put(Config::chance_fractional(num, denom, range), bit);
-    }
-
     void inline write_12bit_chance(uint16_t b12, bool bit) {
         put(Config::chance_12bit_chance(b12, range), bit);
     }
@@ -194,10 +169,6 @@ public:
         output();
         io.flush();
     }
-
-    int ftell() {
-      return io.ftell();
-    }
 };
 #endif
 
@@ -205,14 +176,9 @@ public:
 class RacDummy
 {
 public:
-    void inline write_fractional(int num, int denom, bool) { }
     void inline write_12bit_chance(uint16_t b12, bool) { }
     void inline write_bit(bool) { }
     void inline flush() { }
-
-    int ftell() {
-      return 0;
-    }
 };
 
 
