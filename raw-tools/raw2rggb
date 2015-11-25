@@ -1,14 +1,11 @@
 #!/bin/bash
 
 FLIF="./flif -vvv"
-TMPDIR="tmp_raw2flif"
 
 if [ $# -lt 2 ]
 then
     echo "Usage: $0  input_raw_file  output.rggb"
 else
-    mkdir -p $TMPDIR
-    rm -f $TMPDIR/*
     if dcraw -i "$1" > /dev/null
     then
         # get Filter pattern //Fuji_xf1: BGGRBGGRBGGRBGGR, Pana_gh3: GBRGGBRGGBRGGBRG, leica_m82: RGGBRGGBRGGBRGGB
@@ -92,12 +89,10 @@ else
 			exit 1
 	esac
 	# Add CFAPattern comment
-	echo "# CFAPattern: $CFAPattern" > "$2"	
+	echo "# CFAPattern: $CFAPattern" > "$2"
         # extract raw data, presumably in some kind of RGGB format
         dcraw -E -4 -c $Rotate "$1" >> "$2"
     else
         echo "Not a camera raw file: $1"
     fi
-    rm -f $TMPDIR/*
-    rmdir $TMPDIR
 fi
