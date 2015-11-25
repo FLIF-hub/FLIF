@@ -17,7 +17,7 @@
 
 using namespace maniac::util;
 
-template<typename RAC> void static write_name(RAC& rac, std::string desc)
+template<typename RAC> void static write_name(RAC& rac, std::string desc, uint8_t &transform_l)
 {
     int nb = transform_l;
     while (nb <= MAX_TRANSFORM) {
@@ -405,7 +405,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     rangesList.push_back(getRanges(image));
     int tcount=0;
     v_printf(4,"Transforms: ");
-    transform_l=0;
+    uint8_t transform_l=0;
 
     for (unsigned int i=0; i<transDesc.size(); i++) {
         Transform<IO> *trans = create_transform<IO>(transDesc[i]);
@@ -420,7 +420,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
             v_printf(4,"%s", transDesc[i].c_str());
             fflush(stdout);
             rac.write_bit(true);
-            write_name(rac, transDesc[i]);
+            write_name(rac, transDesc[i], transform_l);
             trans->save(rangesList.back(), rac);
             fflush(stdout);
             rangesList.push_back(trans->meta(images, rangesList.back()));
