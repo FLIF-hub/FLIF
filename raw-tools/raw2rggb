@@ -10,86 +10,103 @@ else
 	then
 		# get Filter pattern //Fuji_xf1: BGGRBGGRBGGRBGGR, Pana_gh3: GBRGGBRGGBRGGBRG, leica_m82: RGGBRGGBRGGBRGGB
 		CFAPattern=`dcraw -i -v "$1" | grep "Filter pattern: " | sed "s/Filter pattern: //g"`
-		# get Orientation: "Horizontal (normal)", "Rotate 90 CW", "Rotate 180 CW", "Rotate 270 CW"
-		Orientation=`exiftool -Orientation "$1" | sed "s/Orientation                     : //g"`
-		# TODO: Remove this case part when FLIF can handle the "CFAPattern" comment
-		case "$CFAPattern" in
-			RGGBRGGBRGGBRGGB)
-				Rotate="-t 0";;
-			GRBGGRBGGRBGGRBG)
-				Rotate="-t 270";;
-			BGGRBGGRBGGRBGGR)
-				Rotate="-t 180";;
-			GBRGGBRGGBRGGBRG)
-				Rotate="-t 90";;
-			*)
-				echo "This pattern is unknown: $CFAPattern"
+		if [ -z "$CFAPattern" ]
+		then
+			Raw_color=`dcraw -i -v "$1" | grep "Raw colors: " | sed "s/Raw colors: //g"`
+			if [ "$Raw_color" == "3" ]
+			then
+				PNMType="P6"
+			else
+				echo "This raw color is unknown: $Raw_color"
 				exit 1
-		esac
-		# Determine the CFA pattern of output image (without the -t parameter)
-		case "$CFAPattern" in
-			RGGBRGGBRGGBRGGB)
-				case "$Orientation" in
-					"Horizontal (normal)")
-						CFAPattern="RGGB";;
-					"Rotate 90 CW")
-						CFAPattern="GRBG";;
-					"Rotate 180 CW")
-						CFAPattern="BGGR";;
-					"Rotate 270 CW")
-						CFAPattern="GBRG";;
-					*)
-						echo "This orientation is unknown: $Orientation"". Assuming Horizontal."
-						CFAPattern="RGGB";;
-				esac;;
-			GRBGGRBGGRBGGRBG)
-				case "$Orientation" in
-					"Horizontal (normal)")
-						CFAPattern="GRBG";;
-					"Rotate 90 CW")
-						CFAPattern="BGGR";;
-					"Rotate 180 CW")
-						CFAPattern="GBRG";;
-					"Rotate 270 CW")
-						CFAPattern="RGGB";;
-					*)
-						echo "This orientation is unknown: $Orientation"". Assuming Horizontal."
-						CFAPattern="GRBG";;
-				esac;;
-			BGGRBGGRBGGRBGGR)
-				case "$Orientation" in
-					"Horizontal (normal)")
-						CFAPattern="BGGR";;
-					"Rotate 90 CW")
-						CFAPattern="GBRG";;
-					"Rotate 180 CW")
-						CFAPattern="RGGB";;
-					"Rotate 270 CW")
-						CFAPattern="GRBG";;
-					*)
-						echo "This orientation is unknown: $Orientation"". Assuming Horizontal."
-						CFAPattern="BGGR";;
-				esac;;
-			GBRGGBRGGBRGGBRG)
-				case "$Orientation" in
-					"Horizontal (normal)")
-						CFAPattern="GBRG";;
-					"Rotate 90 CW")
-						CFAPattern="RGGB";;
-					"Rotate 180 CW")
-						CFAPattern="GRBG";;
-					"Rotate 270 CW")
-						CFAPattern="BGGR";;
-					*)
-						echo "This orientation is unknown: $Orientation"". Assuming Horizontal."
-						CFAPattern="GBRG";;
-				esac;;
-			*)
-				echo "This pattern is unknown: $CFAPattern"
-				exit 1
-		esac
+			fi
+		else
+			PNMType="P5"
+		fi
+		Rotate=""
+		if [ "$PNMType" == "P5" ]
+		then
+			# get Orientation: "Horizontal (normal)", "Rotate 90 CW", "Rotate 180 CW", "Rotate 270 CW"
+			Orientation=`exiftool -Orientation "$1" | sed "s/Orientation                     : //g"`
+			# TODO: Remove this case part when FLIF can handle the "CFAPattern" comment
+			case "$CFAPattern" in
+				RGGBRGGBRGGBRGGB)
+					Rotate="-t 0";;
+				GRBGGRBGGRBGGRBG)
+					Rotate="-t 270";;
+				BGGRBGGRBGGRBGGR)
+					Rotate="-t 180";;
+				GBRGGBRGGBRGGBRG)
+					Rotate="-t 90";;
+				*)
+					echo "This pattern is unknown: $CFAPattern"
+					exit 1
+			esac
+			# Determine the CFA pattern of output image (without the -t parameter)
+			case "$CFAPattern" in
+				RGGBRGGBRGGBRGGB)
+					case "$Orientation" in
+						"Horizontal (normal)")
+							CFAPattern="RGGB";;
+						"Rotate 90 CW")
+							CFAPattern="GRBG";;
+						"Rotate 180 CW")
+							CFAPattern="BGGR";;
+						"Rotate 270 CW")
+							CFAPattern="GBRG";;
+						*)
+							echo "This orientation is unknown: $Orientation"". Assuming Horizontal."
+							CFAPattern="RGGB";;
+					esac;;
+				GRBGGRBGGRBGGRBG)
+					case "$Orientation" in
+						"Horizontal (normal)")
+							CFAPattern="GRBG";;
+						"Rotate 90 CW")
+							CFAPattern="BGGR";;
+						"Rotate 180 CW")
+							CFAPattern="GBRG";;
+						"Rotate 270 CW")
+							CFAPattern="RGGB";;
+						*)
+							echo "This orientation is unknown: $Orientation"". Assuming Horizontal."
+							CFAPattern="GRBG";;
+					esac;;
+				BGGRBGGRBGGRBGGR)
+					case "$Orientation" in
+						"Horizontal (normal)")
+							CFAPattern="BGGR";;
+						"Rotate 90 CW")
+							CFAPattern="GBRG";;
+						"Rotate 180 CW")
+							CFAPattern="RGGB";;
+						"Rotate 270 CW")
+							CFAPattern="GRBG";;
+						*)
+							echo "This orientation is unknown: $Orientation"". Assuming Horizontal."
+							CFAPattern="BGGR";;
+					esac;;
+				GBRGGBRGGBRGGBRG)
+					case "$Orientation" in
+						"Horizontal (normal)")
+							CFAPattern="GBRG";;
+						"Rotate 90 CW")
+							CFAPattern="RGGB";;
+						"Rotate 180 CW")
+							CFAPattern="GRBG";;
+						"Rotate 270 CW")
+							CFAPattern="BGGR";;
+						*)
+							echo "This orientation is unknown: $Orientation"". Assuming Horizontal."
+							CFAPattern="GBRG";;
+					esac;;
+				*)
+					echo "This pattern is unknown: $CFAPattern"
+					exit 1
+			esac
+		fi
 		# Add CFAPattern comment
-		echo "P5" > "$2"	
+		echo "$PNMType" > "$2"	
 		echo "# CFAPattern: $CFAPattern" >> "$2"	
 		# extract raw data, presumably in some kind of RGGB format
 		dcraw -E -4 -c $Rotate "$1" | sed -e "1d" >> "$2"
