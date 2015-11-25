@@ -1,4 +1,4 @@
-.TH FLIF 1 "Oct 28, 2015" "Free Lossless Image Format" "User Commands"
+.TH FLIF 1 "Nov 24, 2015" "Free Lossless Image Format" "User Commands"
 .SH NAME
 flif \- convert a image files from or to FLIF
 .SH SYNOPSIS
@@ -97,7 +97,9 @@ they cannot be decoded progressively.
 \fB\-A\fR, \fB\-\-keep\-alpha\-zero\fR
 By default, pixels that are fully transparent have undefined RGB values in a FLIF image, since those values
 are irrelevant for nearly all purposes. If you insist on storing the RGB values hidden behind A=0, use this
-option.
+option. In rare cases this can lead to better compression.
+.PP
+The options below can be used to tune some encoder parameters in order to get (slightly) better compression.
 .TP
 \fB\-p\fR, \fB\-\-palette\fR=\fINB_COLORS\fR
 Images which use relatively few different colors, e.g. ex-GIF images, can be compressed better using
@@ -151,7 +153,17 @@ size of the trees (which is important since they are part of the compressed file
 frequently visited, i.e. the sum of the counters in the subtree is small. As a result these contexts will be merged with the one of the parent node.
 This option controls the threshold at which such pruning is done.
 The default setting is \fB\-M\fR\fI50\fR, which roughly means that subtrees are pruned if they are used for less than 50/NB_ITERATIONS subpixels.
-
+.TP
+\fB\-X\fR, \fB\-\-rac-cutoff\fR=\fICUTOFF\fR
+The entropy coding ultimately outputs bits according to some adaptive chance. Chances are represented as 12-bit numbers which represent
+a rational number of the form \fIx\fR/4096. The lowest possible chance is set at \fICUTOFF\fR/4096, the highest possible chance
+is (4096-\fICUTOFF\fR)/4096. The default value is \fB\-X\fR\fI2\fR.
+.TP
+\fB\-Y\fR, \fB\-\-rac-alpha\fR=\fIALPHA\fR
+The chance adaptation in the entropy coding uses this parameter to control how rapidly the chance is allowed to change.
+If it changes too rapidly, it will fluctuate wildly around the optimal chance instead of converging to it.
+If it changes too slowly, it will not compress well because it takes too long to adapt.
+The default value is \fB\-Y\fR\fI19\fR
 
 .SH ANIMATION
 FLIF supports animation, so if multiple input files are given, an animated FLIF file will be produced
