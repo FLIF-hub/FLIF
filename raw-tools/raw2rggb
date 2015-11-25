@@ -13,7 +13,7 @@ else
 		if [ -z "$CFAPattern" ]
 		then
 			Raw_color=`dcraw -i -v "$1" | grep "Raw colors: " | sed "s/Raw colors: //g"`
-			if [ "$Raw_color" -ne "3" ]
+			if [ "$Raw_color" == "3" ]
 			then
 				PNMType="P6"
 			else
