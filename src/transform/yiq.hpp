@@ -80,7 +80,7 @@ class ColorRangesYIQ : public ColorRanges
 {
 protected:
 //    const int par=64; // range: [0..4*par-1]
-    int par;
+    const int par;
     const ColorRanges *ranges;
 public:
     ColorRangesYIQ(int parIn, const ColorRanges *rangesIn)
@@ -140,8 +140,8 @@ public:
                 B=image(2,r,c);
 
                 Y = (((R + B)>>1) + G)>>1;
-                I = R - B + par*4 - 1;
-                Q = ((R + B)>>1) - G + par*4 - 1;
+                I = (R - B) - 1;
+                Q = (((R + B)>>1) - G) - 1;
 
                 image.set(0,r,c, Y);
                 image.set(1,r,c, I);
@@ -163,8 +163,8 @@ public:
                 I=image(1,r,c);
                 Q=image(2,r,c);
 
-                R = Y + ((Q + 2)>>1) + ((I + 2)>>1) - 4*par;
-                G = Y - ((Q + 1)>>1) + 2*par;
+                R = Y + ((Q + 2)>>1) + ((I + 2)>>1);
+                G = Y - ((Q + 1)>>1);
                 B = Y + ((Q + 2)>>1) - ((I + 1)>>1);
 
                 clip(R, 0, max[0]);                // clipping only needed in case of lossy/partial decoding

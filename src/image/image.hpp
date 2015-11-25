@@ -13,7 +13,7 @@
 typedef int32_t ColorVal;  // used in computations
 
 typedef uint8_t ColorVal_intern_8;
-typedef uint16_t ColorVal_intern_16;
+typedef int16_t ColorVal_intern_16;
 typedef int32_t ColorVal_intern_32;
 
 // It's a part of C++14. Following impl was taken from GotW#102
