@@ -6,7 +6,6 @@
 #include "image.hpp"
 #include "image-pam.hpp"
 #include "image-pnm.hpp"
-#include "../common.hpp"
 
 #define PPMREADBUFLEN 256
 

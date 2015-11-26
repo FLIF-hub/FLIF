@@ -4,7 +4,6 @@
 #include "../image/color_range.hpp"
 #include "../maniac/rac.hpp"
 #include "../flif_config.h"
-#include "../common.hpp"
 
 
 template <typename IO>

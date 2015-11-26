@@ -89,7 +89,7 @@ public:
     }
 #endif
 
-    bool inline read_12bit_chance(int b12) {
+    bool inline read_12bit_chance(uint16_t b12) {
         return get(Config::chance_12bit_chance(b12, range));
     }
 

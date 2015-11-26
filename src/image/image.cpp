@@ -5,7 +5,6 @@
 #include "image-pnm.hpp"
 #include "image-pam.hpp"
 #include "image-rggb.hpp"
-#include "../common.hpp"
 
 #ifdef _MSC_VER
 #define strcasecmp stricmp

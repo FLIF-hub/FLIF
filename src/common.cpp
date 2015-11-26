@@ -1,7 +1,5 @@
 #include "common.hpp"
 
-using namespace maniac::util;
-
 std::vector<ColorVal> grey; // a pixel with values in the middle of the bounds
 
 const std::vector<std::string> transforms = {"PLC","YIQ","BND","PLA","PLT","ACB","DUP","FRS","FRA","???"};
@@ -129,7 +127,7 @@ ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges
       ColorVal gradientTL = left + top - topleft;
       ColorVal bottom = (r+1 < image.rows(z) ? image(p,z,r+1,c) : top); //grey[p]);
       ColorVal gradientBL = left + bottom - bottomleft;
-      ColorVal avg = (top + bottom)/2;
+      ColorVal avg = (top + bottom)>>1;
       guess = median3(gradientTL, gradientBL, avg);
       ranges->snap(p,properties,min,max,guess);
       if (guess == avg) which = 0;
@@ -142,7 +140,7 @@ ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges
       ColorVal gradientTL = left + top - topleft;
       ColorVal right = (c+1 < image.cols(z) ? image(p,z,r,c+1) : left); //grey[p]);
       ColorVal gradientTR = right + top - topright;
-      ColorVal avg = (left + right      )/2;
+      ColorVal avg = (left + right)>>1;
       guess = median3(gradientTL, gradientTR, avg);
       ranges->snap(p,properties,min,max,guess);
       if (guess == avg) which = 0;

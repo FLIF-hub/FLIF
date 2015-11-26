@@ -13,22 +13,6 @@ static inline int ilog2(uint32_t l) {
 
 void indent(int n);
 
-template<typename I> I static median3(I a, I b, I c)
-{
-    if (a < b) {
-	if (b < c) {
-          return b;
-        } else {
-          return a < c ? c : a;
-        }
-    } else {
-       if (a < c) {
-         return a;
-       } else {
-          return b < c ? c : b;
-       }
-    }
-}
 
 } // namespace util
 } // namespace maniac
