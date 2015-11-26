@@ -11,7 +11,7 @@ FILES_CPP := maniac/chance.cpp maniac/symbol.cpp image/crc32k.cpp image/image.cp
 all: flif libflif.so viewflif
 
 # options to consider: -ftree-vectorize -fvect-cost-model=unlimited -funroll-all-loops
-OPTIMIZATIONS := -DNDEBUG -O3 -flto -fwhole-program -ftree-vectorize -fvect-cost-model=unlimited
+OPTIMIZATIONS := -DNDEBUG -O3 -flto -fwhole-program -ftree-vectorize
 flif: $(FILES_H) $(FILES_CPP) flif.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) $(OPTIMIZATIONS) -g0 -Wall $(FILES_CPP) flif.cpp $(LDFLAGS) -o flif
 
