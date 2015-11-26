@@ -467,7 +467,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
         }
     }
     // not computing checksum until after transformations and potential zero-alpha changes
-    uint32_t checksum = image.checksum();
+    const uint32_t checksum = image.checksum();
 
 
     if (bits ==10) {

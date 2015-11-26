@@ -9,4 +9,6 @@ struct CRC32KTable {
 
 extern const CRC32KTable crc32k;
 
-#define crc32k_transform(var,byte) do { (var) = ((var) << 8) ^ crc32k.tab[(((var) >> 24) ^ (byte)) & 0xFF]; } while(0);
+inline void crc32k_transform(uint_fast32_t& crc, const uint8_t byte) {
+  crc = ((crc) << 8) ^ crc32k.tab[(((crc) >> 24) ^ (byte)) & 0xFF];
+}

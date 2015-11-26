@@ -380,7 +380,7 @@ public:
                for (uint32_t c=0; c<width; c++) {
                   ColorVal d = operator()(p,r,c);
                   crc32k_transform(crc, d & 255);
-                  crc32k_transform(crc, d >> 8);
+                  crc32k_transform(crc, (d >> 8) & 255);
                }
 //          printf("Computed checksum: %X\n", (~crc & 0xFFFFFFFF));
           return (~crc & 0xFFFFFFFF);
