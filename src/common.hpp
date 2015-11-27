@@ -105,3 +105,9 @@ ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges
 int plane_zoomlevels(const Image &image, const int beginZL, const int endZL);
 
 std::pair<int, int> plane_zoomlevel(const Image &image, const int beginZL, const int endZL, int i);
+
+inline std::vector<ColorVal> computeGreys(const ColorRanges *ranges) {
+    std::vector<ColorVal> greys; // a pixel with values in the middle of the bounds
+    for (int p = 0; p < ranges->numPlanes(); p++) greys.push_back((ranges->min(p)+ranges->max(p))/2);
+    return greys;
+}

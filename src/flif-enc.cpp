@@ -35,6 +35,7 @@ template<typename RAC> void static write_name(RAC& rac, std::string desc, uint8_
 // FRA = true: image has FRA plane (animation with lookback)
 template<typename IO, typename Rac, typename Coder>
 void flif_encode_scanlines_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const Images &images, const ColorRanges *ranges) {
+    const std::vector<ColorVal> greys = computeGreys(ranges);
     ColorVal min,max;
     long fs = io.ftell();
     long pixels = images[0].cols()*images[0].rows()*images.size();
@@ -195,14 +196,13 @@ void flif_encode_FLIF2_pass(IO& io, Rac &rac, const Images &images, const ColorR
 
 void flif_encode_FLIF2_interpol_zero_alpha(Images &images, const ColorRanges * ranges, const int beginZL, const int endZL)
 {
-    std::vector<ColorVal> grey; // a pixel with values in the middle of the bounds
-    for (int p = 0; p < ranges->numPlanes(); p++) grey.push_back((ranges->min(p)+ranges->max(p))/2);
+    const std::vector<ColorVal> greys = computeGreys(ranges);
 
     for (Image& image : images) {
      if (image(3,0,0) == 0) {
-       image.set(0,0,0,grey[0]);
-       image.set(1,0,0,grey[1]);
-       image.set(2,0,0,grey[2]);
+       image.set(0,0,0,greys[0]);
+       image.set(1,0,0,greys[1]);
+       image.set(2,0,0,greys[2]);
      }
      for (int i = 0; i < plane_zoomlevels(image, beginZL, endZL); i++) {
       std::pair<int, int> pzl = plane_zoomlevel(image, beginZL, endZL, i);
@@ -232,8 +232,7 @@ void flif_encode_FLIF2_interpol_zero_alpha(Images &images, const ColorRanges * r
 }
 
 void flif_encode_scanlines_interpol_zero_alpha(Images &images, const ColorRanges *ranges){
-    std::vector<ColorVal> grey; // a pixel with values in the middle of the bounds
-    for (int p = 0; p < ranges->numPlanes(); p++) grey.push_back((ranges->min(p)+ranges->max(p))/2);
+    const std::vector<ColorVal> greys = computeGreys(ranges);
 
     int nump = images[0].numPlanes();
     if (nump > 3)
@@ -243,7 +242,7 @@ void flif_encode_scanlines_interpol_zero_alpha(Images &images, const ColorRanges
         for (uint32_t r = 0; r < image.rows(); r++) {
             for (uint32_t c = 0; c < image.cols(); c++) {
                 if (image(3,r,c) == 0) {
-                    image.set(p,r,c, predictScanlines(image,p,r,c, grey[p]));
+                    image.set(p,r,c, predictScanlines(image,p,r,c, greys[p]));
                 }
             }
         }
