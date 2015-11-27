@@ -35,7 +35,7 @@ void initPropRanges_scanlines(Ranges &propRanges, const ColorRanges &ranges, int
     propRanges.push_back(std::make_pair(mind,maxd));
 }
 
-ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRanges *ranges, const Image &image, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) {
+ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRanges *ranges, const Image &image, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max, const ColorVal fallback) {
     ColorVal guess;
     int which = 0;
     int index=0;
@@ -45,7 +45,7 @@ ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRang
       }
       if (image.numPlanes()>3) properties[index++] = image(3,r,c);
     }
-    ColorVal left = (c>0 ? image(p,r,c-1) : (r > 0 ? image(p, r-1, c) : ((min + max) / 2)));
+    ColorVal left = (c>0 ? image(p,r,c-1) : (r > 0 ? image(p, r-1, c) : fallback));
     ColorVal top = (r>0 ? image(p,r-1,c) : left);
     ColorVal topleft = (r>0 && c>0 ? image(p,r-1,c-1) : (r > 0 ? top : left));
     ColorVal gradientTL = left + top - topleft;
@@ -215,4 +215,3 @@ std::pair<int, int> plane_zoomlevel(const Image &image, const int beginZL, const
 
     return std::pair<int, int>(p,zl);
 }
-

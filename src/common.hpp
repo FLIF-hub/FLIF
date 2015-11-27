@@ -54,7 +54,7 @@ extern const int PLANE_ORDERING[];
 
 void initPropRanges_scanlines(Ranges &propRanges, const ColorRanges &ranges, int p);
 
-ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRanges *ranges, const Image &image, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max);
+ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRanges *ranges, const Image &image, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max, const ColorVal fallback);
 
 void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p);
 

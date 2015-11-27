@@ -47,6 +47,7 @@ void flif_encode_scanlines_inner(IO& io, Rac& rac, std::vector<Coder> &coders, c
         if (p>=nump) continue;
         i++;
         if (ranges->min(p) >= ranges->max(p)) continue;
+        const ColorVal minP = ranges->min(p);
         Properties properties((nump>3?NB_PROPERTIES_scanlinesA[p]:NB_PROPERTIES_scanlines[p]));
         v_printf(2,"\r%i%% done [%i/%i] ENC[%ux%u]    ",(int)(100*pixels_done/pixels_todo),i,nump,images[0].cols(),images[0].rows());
         pixels_done += images[0].cols()*images[0].rows();
@@ -58,7 +59,7 @@ void flif_encode_scanlines_inner(IO& io, Rac& rac, std::vector<Coder> &coders, c
               for (uint32_t c = begin; c < end; c++) {
                 if (alphazero && p<3 && image(3,r,c) == 0) continue;
                 if (FRA && p<4 && image(4,r,c) > 0) continue;
-                ColorVal guess = predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max);
+                ColorVal guess = predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max, minP);
                 ColorVal curr = image(p,r,c);
                 assert(p != 3 || curr >= -fr);
                 if (FRA && p==4 && max > fr) max = fr;

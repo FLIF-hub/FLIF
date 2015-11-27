@@ -52,6 +52,7 @@ template<typename IO, typename Rac, typename Coder> void flif_decode_scanlines_i
         i++;
         Properties properties((nump>3?NB_PROPERTIES_scanlinesA[p]:NB_PROPERTIES_scanlines[p]));
         if (ranges->min(p) < ranges->max(p)) {
+          const ColorVal minP = ranges->min(p);
           v_printf(2,"\r%i%% done [%i/%i] DEC[%ux%u]    ",(int)(100*pixels_done/pixels_todo),i,nump,images[0].cols(),images[0].rows());
           v_printf(4,"\n");
           pixels_done += images[0].cols()*images[0].rows();
@@ -68,7 +69,7 @@ template<typename IO, typename Rac, typename Coder> void flif_decode_scanlines_i
               for (uint32_t c = begin; c < end; c++) {
                 if (alphazero && p<3 && image(3,r,c) == 0) {image.set(p,r,c,predictScanlines(image,p,r,c, greys[p])); continue;}
                 if (FRA && p<4 && image(4,r,c) > 0) {assert(fr >= image(4,r,c)); image.set(p,r,c,images[fr-image(4,r,c)](p,r,c)); continue;}
-                ColorVal guess = predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max);
+                ColorVal guess = predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max, minP);
                 if (FRA && p==4 && max > fr) max = fr;
                 ColorVal curr = coders[p].read_int(properties, min - guess, max - guess) + guess;
                 image.set(p,r,c, curr);
