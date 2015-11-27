@@ -496,8 +496,6 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     }
     if (tcount==0) v_printf(4,"none\n"); else v_printf(4,"\n");
     const ColorRanges* ranges = rangesList.back();
-    grey.clear();
-    for (int p = 0; p < ranges->numPlanes(); p++) grey.push_back((ranges->min(p)+ranges->max(p))/2);
 
     pixels_todo = (int64_t)width*height*ranges->numPlanes()/scale/scale;
     pixels_done = 0;

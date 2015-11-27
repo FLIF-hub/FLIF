@@ -23,7 +23,6 @@ enum class flifEncoding : uint8_t {
   interlaced = 2
 };
 
-extern std::vector<ColorVal> grey; // a pixel with values in the middle of the bounds
 extern int64_t pixels_todo;
 extern int64_t pixels_done;
 extern int progressive_qual_target;
@@ -77,9 +76,11 @@ template<typename I> I inline median3(I a, I b, I c) {
 
 // Prediction used for interpolation / alpha=0 pixels. Does not have to be the same as the guess used for encoding/decoding.
 inline ColorVal predict(const Image &image, int p, uint32_t r, uint32_t c) {
-    ColorVal left = (c>0 ? image(p,r,c-1) : grey[p]);;
-    ColorVal top = (r>0 ? image(p,r-1,c) : grey[p]);
-    ColorVal topleft = (r>0 && c>0 ? image(p,r-1,c-1) : grey[p]);
+    assert((c > 0) || (r > 0));   // can't predict the pixel at 0,0
+
+    ColorVal left = (c>0 ? image(p,r,c-1) : image(p, r-1, c));
+    ColorVal top = (r>0 ? image(p,r-1,c) : image(p, r, c-1));
+    ColorVal topleft = (r>0 && c>0 ? image(p,r-1,c-1) : top);
     ColorVal gradientTL = left + top - topleft;
     return median3(gradientTL, left, top);
 }
@@ -89,12 +90,12 @@ inline ColorVal predict(const Image &image, int z, int p, uint32_t r, uint32_t c
     if (p==4) return 0;
     if (z%2 == 0) { // filling horizontal lines
       ColorVal top = image(p,z,r-1,c);
-      ColorVal bottom = (r+1 < image.rows(z) ? image(p,z,r+1,c) : top); //grey[p]);
+      ColorVal bottom = (r+1 < image.rows(z) ? image(p,z,r+1,c) : (c > 0 ? image(p, z, r, c - 1) : top));
       ColorVal avg = (top + bottom)>>1;
       return avg;
     } else { // filling vertical lines
       ColorVal left = image(p,z,r,c-1);
-      ColorVal right = (c+1 < image.cols(z) ? image(p,z,r,c+1) : left); //grey[p]);
+      ColorVal right = (c+1 < image.cols(z) ? image(p,z,r,c+1) : (r > 0 ? image(p, z, r-1, c) : left));
       ColorVal avg = (left + right)>>1;
       return avg;
     }

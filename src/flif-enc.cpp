@@ -193,13 +193,16 @@ void flif_encode_FLIF2_pass(IO& io, Rac &rac, const Images &images, const ColorR
     }
 }
 
-void flif_encode_FLIF2_interpol_zero_alpha(Images &images, const ColorRanges *, const int beginZL, const int endZL)
+void flif_encode_FLIF2_interpol_zero_alpha(Images &images, const ColorRanges * ranges, const int beginZL, const int endZL)
 {
+    std::vector<ColorVal> grey; // a pixel with values in the middle of the bounds
+    for (int p = 0; p < ranges->numPlanes(); p++) grey.push_back((ranges->min(p)+ranges->max(p))/2);
+
     for (Image& image : images) {
      if (image(3,0,0) == 0) {
-        image.set(0,0,0,grey[0]);
-        image.set(1,0,0,grey[1]);
-        image.set(2,0,0,grey[2]);
+       image.set(0,0,0,grey[0]);
+       image.set(1,0,0,grey[1]);
+       image.set(2,0,0,grey[2]);
      }
      for (int i = 0; i < plane_zoomlevels(image, beginZL, endZL); i++) {
       std::pair<int, int> pzl = plane_zoomlevel(image, beginZL, endZL, i);
@@ -431,8 +434,6 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     if (tcount==0) v_printf(4,"none\n"); else v_printf(4,"\n");
     rac.write_bit(false);
     const ColorRanges* ranges = rangesList.back();
-    grey.clear();
-    for (int p = 0; p < ranges->numPlanes(); p++) grey.push_back((ranges->min(p)+ranges->max(p))/2);
 
     for (int p = 0; p < ranges->numPlanes(); p++) {
       v_printf(7,"Plane %i: %i..%i\n",p,ranges->min(p),ranges->max(p));
