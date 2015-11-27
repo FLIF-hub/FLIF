@@ -110,7 +110,7 @@ public:
             break;
         }
     }
-    const char* getName() {
+    static const char* getName() {
         return "BlobReader";
     }
 };
@@ -178,7 +178,7 @@ public:
         return ptr;
     }
 
-    void flush() {
+    static void flush() {
         // nothing to do
     }
     bool isEOF() const {
@@ -237,7 +237,7 @@ public:
             break;
         }
     }
-    const char* getName() {
+    static const char* getName() {
         return "BlobIO";
     }
 };

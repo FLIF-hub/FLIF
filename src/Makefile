@@ -11,7 +11,17 @@ FILES_CPP := maniac/chance.cpp maniac/symbol.cpp image/crc32k.cpp image/image.cp
 all: flif libflif.so viewflif
 
 # options to consider: -ftree-vectorize -fvect-cost-model=unlimited -funroll-all-loops
-OPTIMIZATIONS := -DNDEBUG -O3 -flto -fwhole-program -ftree-vectorize
+OPTIMIZATIONS := -DNDEBUG -O3 -ftree-vectorize
+# there are often problems with clang and lto also it doesn't seem to know -fwhole-program
+ifeq ($(CXX), g++)
+	OPTIMIZATIONS := $(OPTIMIZATIONS) -flto -fwhole-program
+endif
+
+LIB_OPTIMIZATIONS := -DNDEBUG -O3
+ifeq ($(CXX), g++)
+	LIB_OPTIMIZATIONS := $(LIB_OPTIMIZATIONS) -flto
+endif
+
 flif: $(FILES_H) $(FILES_CPP) flif.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) $(OPTIMIZATIONS) -g0 -Wall $(FILES_CPP) flif.cpp $(LDFLAGS) -o flif
 
@@ -28,7 +38,7 @@ flif.asan: $(FILES_H) $(FILES_CPP) flif.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) $(OPTIMIZATIONS) -fsanitize=address,undefined -fno-omit-frame-pointer -g3 -Wall $(FILES_CPP) flif.cpp $(LDFLAGS) -o flif.asan
 
 libflif.so: $(FILES_H) $(FILES_CPP) flif.h flif-interface-private.h flif-interface.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) -DNDEBUG -O3 -flto -g0 -Wall -shared -fPIC $(FILES_CPP) flif-interface.cpp $(LDFLAGS) -o libflif.so
+	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -g0 -Wall -shared -fPIC $(FILES_CPP) flif-interface.cpp $(LDFLAGS) -o libflif.so
 
 libflif.dbg.so: $(FILES_H) $(FILES_CPP) flif.h flif-interface-private.h flif-interface.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) -O1 -ggdb3 -Wall -shared -fPIC $(FILES_CPP) flif-interface.cpp $(LDFLAGS) -o libflif.dbg.so
@@ -52,7 +62,7 @@ remove:
 	rm -f $(PREFIX)/share/man/man1/flif.1
 
 clean:
-	rm -f flif libflif*.so viewflif
+	rm -f flif libflif*.so viewflif flif.asan flif.dbg flif.prof flif.stats
 
 test: flif test-interface
 	mkdir -p ../tmp-test
