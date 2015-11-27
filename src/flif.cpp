@@ -80,7 +80,7 @@ void show_help() {
 #endif
     v_printf(1,"Supported input/output image formats: PNG, PNM (PPM,PGM,PBM), PAM\n");
     v_printf(1,"General Options:\n");
-    v_printf(1,"   -h, --help               show help (use -v -h for advanced options)\n");
+    v_printf(1,"   -h, --help               show help (use -hvv for advanced options)\n");
     v_printf(1,"   -v, --verbose            increase verbosity (multiple -v for more output)\n");
 #ifdef HAS_ENCODER
     v_printf(1,"Encode options:\n");
@@ -130,11 +130,31 @@ bool file_is_flif(const char * filename){
 
 
 void show_banner() {
-      v_printf(3,"  ____ _[_]____");
-    v_printf(3,"\n [__  | | |  __]   ");v_printf(2,"FLIF 0.1.9 [23 November 2015]");
-    v_printf(3,"\n  |_  | |_|  _|    Free Lossless Image Format");
-    v_printf(3,"\n    ]_|___|_[    ");v_printf(2,"  (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
+      v_printf(3,"  ____ _(_)____");
+    v_printf(3,"\n (___ | | | ___)   ");v_printf(2,"FLIF 0.1.10 [27 November 2015]");
+    v_printf(3,"\n  (__ | |_| __)    Free Lossless Image Format");
+    v_printf(3,"\n    (_|___|_)    ");v_printf(2,"  (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
+    v_printf(5,"\n");
+    v_printf(5,"\n This program is free software: you can redistribute it and/or modify");
+    v_printf(5,"\n it under the terms of the GNU General Public License as published by");
+    v_printf(5,"\n the Free Software Foundation, either version 3 of the License, or");
+    v_printf(5,"\n (at your option) any later version.");
+    v_printf(5,"\n");
+    v_printf(5,"\n This program is distributed in the hope that it will be useful,");
+    v_printf(5,"\n but WITHOUT ANY WARRANTY; without even the implied warranty of");
+    v_printf(5,"\n MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the");
+    v_printf(5,"\n GNU General Public License for more details.\n");
     v_printf(3,"\n");
+#ifndef HAS_ENCODER
+    v_printf(2,"Non-default compile-option: DECODER ONLY\n");
+#endif
+#ifndef SUPPORT_HDR
+    v_printf(2,"Non-default compile-option: 8-BIT ONLY\n");
+#endif
+#ifndef FAST_BUT_WORSE_COMPRESSION
+    v_printf(2,"Non-default compile-option: SLOWER, BETTER COMPRESSION (CANNOT ENCODE/DECODE NORMAL FLIF FILES!)\n");
+#endif
+
 }
 
 bool check_compatible_extension (char *ext) {
@@ -145,6 +165,7 @@ bool check_compatible_extension (char *ext) {
                   || !strcasecmp(ext,".pbm")
                   || !strcasecmp(ext,".pam")
                   || !strcasecmp(ext,".rggb")
+                  || !strcasecmp(ext,"null:")
                   ))) {
         return false;
     } else {
@@ -279,13 +300,14 @@ int handle_decode(int argc, char **argv, Images &images, int quality, int scale)
         return 0;
     }
     char *ext = strrchr(argv[1],'.');
-    if (!check_compatible_extension(ext)) {
+    if (!check_compatible_extension(ext) && strcmp(argv[1],"null:")) {
         e_printf("Error: expected \".png\", \".pnm\" or \".pam\" file name extension for output file\n");
         return 1;
     }
     if (!decode_flif(argv, images, quality, scale)) {
         e_printf("Error: could not decode FLIF file\n"); return 3;
     }
+    if (!strcmp(argv[1],"null:")) return 0;
     if (scale>1)
         v_printf(3,"Downscaling output: %ux%u -> %ux%u\n",images[0].cols(),images[0].rows(),images[0].cols()/scale,images[0].rows()/scale);
     if (images.size() == 1) {
@@ -341,7 +363,8 @@ int main(int argc, char **argv)
         {"verbose", 0, NULL, 'v'},
         {"quality", 1, NULL, 'q'},
         {"scale", 1, NULL, 's'},
-        {"identify", 1, NULL, 'I'},
+        {"identify", 0, NULL, 'I'},
+        {"version", 0, NULL, 'V'},
 #ifdef HAS_ENCODER
         {"encode", 0, NULL, 'e'},
         {"transcode", 0, NULL, 't'},
@@ -367,13 +390,14 @@ int main(int argc, char **argv)
     };
     int i,c;
 #ifdef HAS_ENCODER
-    while ((c = getopt_long (argc, argv, "hedtvIinabq:s:p:r:f:l:D:M:S:RCFAX:Y:", optlist, &i)) != -1) {
+    while ((c = getopt_long (argc, argv, "hedtvIVinabq:s:p:r:f:l:D:M:S:RCFAX:Y:", optlist, &i)) != -1) {
 #else
-    while ((c = getopt_long (argc, argv, "hdvIq:s:", optlist, &i)) != -1) {
+    while ((c = getopt_long (argc, argv, "hdvIVq:s:", optlist, &i)) != -1) {
 #endif
         switch (c) {
         case 'd': mode=1; break;
         case 'v': increase_verbosity(); break;
+        case 'V': increase_verbosity(); break;
         case 'q': quality=atoi(optarg);
                   if (quality < 0 || quality > 100) {e_printf("Not a sensible number for option -q\n"); return 1; }
                   break;
@@ -431,9 +455,8 @@ int main(int argc, char **argv)
 
     show_banner();
     if (argc == 0 || showhelp) {
-        //e_printf("Input file missing.\n");
         if (get_verbosity() == 1 || showhelp) show_help();
-        return 1;
+        return 0;
     }
 
     if (argc == 1 && scale != -1) {
@@ -449,12 +472,12 @@ int main(int argc, char **argv)
         if (mode == 0 && file_is_flif(argv[0])) {
             char *f = strrchr(argv[1],'/');
             char *ext = f ? strrchr(f,'.') : strrchr(argv[1],'.');
-            if (check_compatible_extension(ext)) {
-                v_printf(3,"Input file is a FLIF file, adding implicit -d\n");
-                mode = 1;
-            } else if ((ext && ( !strcasecmp(ext,".flif")  || ( !strcasecmp(ext,".flf") )))) {
+            if ((ext && ( !strcasecmp(ext,".flif")  || ( !strcasecmp(ext,".flf") )))) {
                 v_printf(3,"Input and output file are both FLIF file, adding implicit -t\n");
                 mode = 2;
+            } else {
+                v_printf(3,"Input file is a FLIF file, adding implicit -d\n");
+                mode = 1;
             }
         }
         if (mode != 0) {

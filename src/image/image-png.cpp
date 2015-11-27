@@ -24,7 +24,6 @@ enum {
 #include "image.hpp"
 #include "image-png.hpp"
 
-#include "../common.hpp"
 
 #ifdef HAS_ENCODER
 int image_load_png(const char *filename, Image &image) {

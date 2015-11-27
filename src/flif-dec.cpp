@@ -540,14 +540,17 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
 
 
     if (quality==100 && scale==1) {
-      uint32_t checksum = images[0].checksum();
+      const uint32_t checksum = images[0].checksum();
       v_printf(8,"Computed checksum: %X\n", checksum);
       uint32_t checksum2 = metaCoder.read_int(0, 0xFFFF);
       checksum2 *= 0x10000;
       checksum2 += metaCoder.read_int(0, 0xFFFF);
       v_printf(8,"Read checksum: %X\n", checksum2);
-      if (checksum != checksum2) v_printf(1,"\nCORRUPTION DETECTED! (partial file?)\n\n");
-      else v_printf(2,"Image decoded, checksum verified.\n");
+      if (checksum != checksum2) {
+        v_printf(1,"\nCORRUPTION DETECTED: checksums don't match (computed: %x v/s read: %x)! (partial file?)\n\n", checksum, checksum2);
+      } else {
+        v_printf(2,"Image decoded, checksum verified.\n");
+      }
     } else {
       v_printf(2,"Not checking checksum, lossy partial decoding was chosen.\n");
     }

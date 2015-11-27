@@ -34,7 +34,7 @@ public:
 
     ColorBucket() {
         min = 10000;  // +infinity
-        max = -1;  // -infinity    (set to empty interval to start with)
+        max = -10000; // -infinity    (set to empty interval to start with)
         discrete = true;
     }
     void addColor(const ColorVal c, const unsigned int max_per_bucket) {
@@ -360,7 +360,7 @@ protected:
         }
     }
 
-    ColorBucket load_bucket(SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> &coder, const ColorRanges *srcRanges, const int plane, const prevPlanes &pixelL, const prevPlanes &pixelU) {
+    const ColorBucket load_bucket(SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> &coder, const ColorRanges *srcRanges, const int plane, const prevPlanes &pixelL, const prevPlanes &pixelU) const {
         ColorBucket b;
         if (plane<3)
         for (int p=0; p<plane; p++) {

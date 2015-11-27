@@ -13,7 +13,8 @@
 typedef int32_t ColorVal;  // used in computations
 
 typedef uint8_t ColorVal_intern_8;
-typedef uint16_t ColorVal_intern_16;
+typedef uint16_t ColorVal_intern_16u;
+typedef int16_t ColorVal_intern_16;
 typedef int32_t ColorVal_intern_32;
 
 // It's a part of C++14. Following impl was taken from GotW#102
@@ -30,6 +31,7 @@ public:
     virtual void set(const uint32_t r, const uint32_t c, const ColorVal x) =0;
     virtual ColorVal get(const uint32_t r, const uint32_t c) const =0;
     virtual bool is_constant() const { return false; }
+    virtual ~GeneralPlane() { }
 };
 
 
@@ -38,6 +40,9 @@ public:
     std::valarray<pixel_t> data;
     const uint32_t width, height;
     Plane(uint32_t w, uint32_t h, ColorVal color=0) : data(color, w*h), width(w), height(h) { }
+    void clear() {
+        data.clear();
+    }
     void set(const uint32_t r, const uint32_t c, const ColorVal x) {
         data[r*width + c] = x;
     }
@@ -101,10 +106,10 @@ class Image {
         if (p>3) planes[3] = make_unique<Plane<ColorVal_intern_8>>(width, height); // A
 #ifdef SUPPORT_HDR
       } else {
-        if (p>0) planes[0] = make_unique<Plane<ColorVal_intern_16>>(width, height); // R,Y
+        if (p>0) planes[0] = make_unique<Plane<ColorVal_intern_16u>>(width, height); // R,Y
         if (p>1) planes[1] = make_unique<Plane<ColorVal_intern_32>>(width, height); // G,I
         if (p>2) planes[2] = make_unique<Plane<ColorVal_intern_32>>(width, height); // B,Q
-        if (p>3) planes[3] = make_unique<Plane<ColorVal_intern_16>>(width, height); // A
+        if (p>3) planes[3] = make_unique<Plane<ColorVal_intern_16u>>(width, height); // A
 #endif
       }
       if (p>4) planes[4] = make_unique<Plane<ColorVal_intern_8>>(width, height); // FRA
@@ -210,10 +215,10 @@ public:
         if (p>3) planes[3] = make_unique<Plane<ColorVal_intern_8>>(width, height); // A
 #ifdef SUPPORT_HDR
       } else {
-        if (p>0) planes[0] = make_unique<Plane<ColorVal_intern_16>>(width, height); // R,Y
+        if (p>0) planes[0] = make_unique<Plane<ColorVal_intern_16u>>(width, height); // R,Y
         if (p>1) planes[1] = make_unique<Plane<ColorVal_intern_32>>(width, height); // G,I
         if (p>2) planes[2] = make_unique<Plane<ColorVal_intern_32>>(width, height); // B,Q
-        if (p>3) planes[3] = make_unique<Plane<ColorVal_intern_16>>(width, height); // A
+        if (p>3) planes[3] = make_unique<Plane<ColorVal_intern_16u>>(width, height); // A
 #endif
       }
       if (p>4) planes[4] = make_unique<Plane<ColorVal_intern_8>>(width, height); // FRA
@@ -290,10 +295,10 @@ public:
         if (p==3) planes[3] = make_unique<Plane<ColorVal_intern_8>>(width, height, val); // A
 #ifdef SUPPORT_HDR
       } else {
-        if (p==0) planes[0] = make_unique<Plane<ColorVal_intern_16>>(width, height, val); // R,Y
+        if (p==0) planes[0] = make_unique<Plane<ColorVal_intern_16u>>(width, height, val); // R,Y
         if (p==1) planes[1] = make_unique<Plane<ColorVal_intern_32>>(width, height, val); // G,I
         if (p==2) planes[2] = make_unique<Plane<ColorVal_intern_32>>(width, height, val); // B,Q
-        if (p==3) planes[3] = make_unique<Plane<ColorVal_intern_16>>(width, height, val); // A
+        if (p==3) planes[3] = make_unique<Plane<ColorVal_intern_16u>>(width, height, val); // A
 #endif
       }
     }
@@ -380,7 +385,7 @@ public:
                for (uint32_t c=0; c<width; c++) {
                   ColorVal d = operator()(p,r,c);
                   crc32k_transform(crc, d & 255);
-                  crc32k_transform(crc, d >> 8);
+                  crc32k_transform(crc, (d >> 8) & 255);
                }
 //          printf("Computed checksum: %X\n", (~crc & 0xFFFFFFFF));
           return (~crc & 0xFFFFFFFF);

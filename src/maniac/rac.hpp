@@ -89,7 +89,7 @@ public:
     }
 #endif
 
-    bool inline read_12bit_chance(int b12) {
+    bool inline read_12bit_chance(uint16_t b12) {
         return get(Config::chance_12bit_chance(b12, range));
     }
 
@@ -176,9 +176,9 @@ public:
 class RacDummy
 {
 public:
-    void inline write_12bit_chance(uint16_t b12, bool) { }
-    void inline write_bit(bool) { }
-    void inline flush() { }
+    static void inline write_12bit_chance(uint16_t b12, bool) { }
+    static void inline write_bit(bool) { }
+    static void inline flush() { }
 };
 
 

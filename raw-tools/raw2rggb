@@ -107,9 +107,12 @@ else
 		fi
 		# Add CFAPattern comment
 		echo "$PNMType" > "$2"	
-		echo "# CFAPattern: $CFAPattern" >> "$2"	
+		if [ "$PNMType" == "P5" ]
+		then
+			echo "# CFAPattern: $CFAPattern" >> "$2"	
+		fi
 		# extract raw data, presumably in some kind of RGGB format
-		dcraw -E -4 -c $Rotate "$1" | sed -e "1d" >> "$2"
+		dcraw -E -4 -c $Rotate "$1" | sed -b -e "1d" >> "$2"
 	else
 		echo "Not a camera raw file: $1"
 	fi

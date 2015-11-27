@@ -344,9 +344,8 @@ public:
     }
 #endif
 
-    void simplify(int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE) {}
+    static void simplify(int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE) {}
 };
-
 
 
 #ifdef HAS_ENCODER
@@ -363,6 +362,12 @@ private:
     Tree &inner_node;
     std::vector<bool> selection;
     int split_threshold;
+
+    inline PropertyVal div_down(int64_t sum, int32_t count) const {
+        assert(count > 0);
+        if (sum >= 0) return sum/count;
+        else return -((-sum + count-1)/count);
+    }
 
     CompoundSymbolChances<BitChance,bits> inline &find_leaf(const Properties &properties) {
         uint32_t pos = 0;
@@ -386,8 +391,7 @@ private:
            && current_ranges[result.best_property].first < current_ranges[result.best_property].second) {
 
           int8_t p = result.best_property;
-          PropertyVal splitval = result.virtPropSum[p]/result.count;
-  //        if (splitval > current_ranges[result.best_property].first && splitval <= 0) splitval--; // division rounds towards zero, we want to round down
+          PropertyVal splitval = div_down(result.virtPropSum[p],result.count);
           if (splitval >= current_ranges[result.best_property].second)
              splitval = current_ranges[result.best_property].second-1; // == does happen because of rounding and running average
 
@@ -428,12 +432,9 @@ private:
             assert(properties[i] >= range[i].first);
             assert(properties[i] <= range[i].second);
             chances.virtPropSum[i] += properties[i];
-//        fprintf(stdout,"Property %i: %i ||",i,properties[i]);
-            PropertyVal splitval = chances.virtPropSum[i]/chances.count;
-//            if (splitval > range[i].first && splitval <= 0) splitval--;
+            PropertyVal splitval = div_down(chances.virtPropSum[i],chances.count);
             selection[i] = (properties[i] > splitval);
         }
-//    fprintf(stdout,"\n");
     }
 
 public:
