@@ -75,11 +75,9 @@ template<typename I> I inline median3(I a, I b, I c) {
 }
 
 // Prediction used for interpolation / alpha=0 pixels. Does not have to be the same as the guess used for encoding/decoding.
-inline ColorVal predict(const Image &image, int p, uint32_t r, uint32_t c) {
-    assert((c > 0) || (r > 0));   // can't predict the pixel at 0,0
-
-    ColorVal left = (c>0 ? image(p,r,c-1) : image(p, r-1, c));
-    ColorVal top = (r>0 ? image(p,r-1,c) : image(p, r, c-1));
+inline ColorVal predictScanlines(const Image &image, int p, uint32_t r, uint32_t c, ColorVal grey) {
+    ColorVal left = (c>0 ? image(p,r,c-1) : (r > 0 ? image(p, r-1, c) : grey));
+    ColorVal top = (r>0 ? image(p,r-1,c) : left);
     ColorVal topleft = (r>0 && c>0 ? image(p,r-1,c-1) : top);
     ColorVal gradientTL = left + top - topleft;
     return median3(gradientTL, left, top);

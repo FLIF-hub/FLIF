@@ -43,6 +43,10 @@ template<typename IO, typename Rac, typename Coder> void flif_decode_scanlines_i
            }
          }
     }
+
+    std::vector<ColorVal> grey; // a pixel with values in the middle of the bounds
+    for (int p = 0; p < ranges->numPlanes(); p++) grey.push_back((ranges->min(p)+ranges->max(p))/2);
+
     for (int k=0,i=0; k < 5; k++) {
         int p=PLANE_ORDERING[k];
         if (p>=nump) continue;
@@ -59,11 +63,11 @@ template<typename IO, typename Rac, typename Coder> void flif_decode_scanlines_i
               if (image.seen_before >= 0) { for(uint32_t c=0; c<image.cols(); c++) image.set(p,r,c,images[image.seen_before](p,r,c)); continue; }
               if (fr>0) {
                 for (uint32_t c = 0; c < begin; c++)
-                   if (alphazero && p<3 && image(3,r,c) == 0) image.set(p,r,c,predict(image,p,r,c));
+                   if (alphazero && p<3 && image(3,r,c) == 0) image.set(p,r,c,predictScanlines(image,p,r,c, grey[p]));
                    else if (p !=4 ) image.set(p,r,c,images[fr-1](p,r,c));
               } else if (nump>3 && p<3) { begin=0; end=image.cols(); }
               for (uint32_t c = begin; c < end; c++) {
-                if (alphazero && p<3 && image(3,r,c) == 0) {image.set(p,r,c,predict(image,p,r,c)); continue;}
+                if (alphazero && p<3 && image(3,r,c) == 0) {image.set(p,r,c,predictScanlines(image,p,r,c, grey[p])); continue;}
                 if (FRA && p<4 && image(4,r,c) > 0) {assert(fr >= image(4,r,c)); image.set(p,r,c,images[fr-image(4,r,c)](p,r,c)); continue;}
                 ColorVal guess = predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max);
                 if (FRA && p==4 && max > fr) max = fr;
@@ -72,7 +76,7 @@ template<typename IO, typename Rac, typename Coder> void flif_decode_scanlines_i
               }
               if (fr>0) {
                 for (uint32_t c = end; c < image.cols(); c++)
-                   if (alphazero && p<3 && image(3,r,c) == 0) image.set(p,r,c,predict(image,p,r,c));
+                   if (alphazero && p<3 && image(3,r,c) == 0) image.set(p,r,c,predictScanlines(image,p,r,c, grey[p]));
                    else if (p !=4 ) image.set(p,r,c,images[fr-1](p,r,c));
               }
             }

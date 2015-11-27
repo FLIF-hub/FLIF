@@ -232,6 +232,9 @@ void flif_encode_FLIF2_interpol_zero_alpha(Images &images, const ColorRanges * r
 }
 
 void flif_encode_scanlines_interpol_zero_alpha(Images &images, const ColorRanges *ranges){
+    std::vector<ColorVal> grey; // a pixel with values in the middle of the bounds
+    for (int p = 0; p < ranges->numPlanes(); p++) grey.push_back((ranges->min(p)+ranges->max(p))/2);
+
     int nump = images[0].numPlanes();
     if (nump > 3)
     for (Image& image : images)
@@ -240,7 +243,7 @@ void flif_encode_scanlines_interpol_zero_alpha(Images &images, const ColorRanges
         for (uint32_t r = 0; r < image.rows(); r++) {
             for (uint32_t c = 0; c < image.cols(); c++) {
                 if (image(3,r,c) == 0) {
-                    image.set(p,r,c, predict(image,p,r,c));
+                    image.set(p,r,c, predictScanlines(image,p,r,c, grey[p]));
                 }
             }
         }

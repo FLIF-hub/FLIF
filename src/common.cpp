@@ -45,9 +45,8 @@ ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRang
       }
       if (image.numPlanes()>3) properties[index++] = image(3,r,c);
     }
-    assert((c > 0) || (r > 0));   // can't predict the pixel at 0,0
-    ColorVal left = (c>0 ? image(p,r,c-1) : image(p, r-1, c));
-    ColorVal top = (r>0 ? image(p,r-1,c) : image(p, r, c-1));
+    ColorVal left = (c>0 ? image(p,r,c-1) : (r > 0 ? image(p, r-1, c) : ((min + max) / 2)));
+    ColorVal top = (r>0 ? image(p,r-1,c) : left);
     ColorVal topleft = (r>0 && c>0 ? image(p,r-1,c-1) : (r > 0 ? top : left));
     ColorVal gradientTL = left + top - topleft;
     guess = median3(gradientTL, left, top);
