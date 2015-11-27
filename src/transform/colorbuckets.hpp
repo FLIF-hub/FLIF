@@ -34,7 +34,7 @@ public:
 
     ColorBucket() {
         min = 10000;  // +infinity
-        max = -1;  // -infinity    (set to empty interval to start with)
+        max = -10000; // -infinity    (set to empty interval to start with)
         discrete = true;
     }
     void addColor(const ColorVal c, const unsigned int max_per_bucket) {
