@@ -52,7 +52,7 @@ remove:
 	rm -f $(PREFIX)/share/man/man1/flif.1
 
 clean:
-	rm -f flif libflif*.so viewflif
+	rm -f flif libflif*.so viewflif flif.asan flif.dbg flif.prof flif.stats
 
 test: flif test-interface
 	mkdir -p ../tmp-test
