@@ -80,7 +80,7 @@ void show_help() {
 #endif
     v_printf(1,"Supported input/output image formats: PNG, PNM (PPM,PGM,PBM), PAM\n");
     v_printf(1,"General Options:\n");
-    v_printf(1,"   -h, --help               show help (use -v -h for advanced options)\n");
+    v_printf(1,"   -h, --help               show help (use -hvv for advanced options)\n");
     v_printf(1,"   -v, --verbose            increase verbosity (multiple -v for more output)\n");
 #ifdef HAS_ENCODER
     v_printf(1,"Encode options:\n");
@@ -131,7 +131,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
       v_printf(3,"  ____ _(_)____");
-    v_printf(3,"\n (___ | | | ___)   ");v_printf(2,"FLIF 0.1.9 [26 November 2015]");
+    v_printf(3,"\n (___ | | | ___)   ");v_printf(2,"FLIF 0.1.10 [27 November 2015]");
     v_printf(3,"\n  (__ | |_| __)    Free Lossless Image Format");
     v_printf(3,"\n    (_|___|_)    ");v_printf(2,"  (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
     v_printf(5,"\n");
@@ -143,7 +143,7 @@ void show_banner() {
     v_printf(5,"\n This program is distributed in the hope that it will be useful,");
     v_printf(5,"\n but WITHOUT ANY WARRANTY; without even the implied warranty of");
     v_printf(5,"\n MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the");
-    v_printf(5,"\n GNU General Public License for more details.");
+    v_printf(5,"\n GNU General Public License for more details.\n");
     v_printf(3,"\n");
 #ifndef HAS_ENCODER
     v_printf(2,"Non-default compile-option: DECODER ONLY\n");
