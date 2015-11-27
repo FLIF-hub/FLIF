@@ -532,6 +532,7 @@ protected:
             int64_t total_pixels = (int64_t) images.size() * images[0].rows() * images[0].cols();
             v_printf(7,", [D=%i,C=%i,P=%i]",totaldiscretecolors,totalcontinuousbuckets,(int) (total_pixels/100));
             if (totaldiscretecolors < total_pixels/200 && totalcontinuousbuckets < total_pixels/50) return true;
+            if (totaldiscretecolors < total_pixels/40 && totalcontinuousbuckets < total_pixels/500) return true;
 
             // simplify buckets
             for (int factor = 95; factor >= 35; factor -= 10) {
