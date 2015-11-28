@@ -1,7 +1,5 @@
 #include "common.hpp"
 
-std::vector<ColorVal> grey; // a pixel with values in the middle of the bounds
-
 const std::vector<std::string> transforms = {"PLC","YIQ","BND","PLA","PLT","ACB","DUP","FRS","FRA","???"};
 uint8_t transform_l = 0;
 
@@ -37,7 +35,7 @@ void initPropRanges_scanlines(Ranges &propRanges, const ColorRanges &ranges, int
     propRanges.push_back(std::make_pair(mind,maxd));
 }
 
-ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRanges *ranges, const Image &image, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) {
+ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRanges *ranges, const Image &image, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max, const ColorVal fallback) {
     ColorVal guess;
     int which = 0;
     int index=0;
@@ -47,9 +45,9 @@ ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRang
       }
       if (image.numPlanes()>3) properties[index++] = image(3,r,c);
     }
-    ColorVal left = (c>0 ? image(p,r,c-1) : grey[p]);;
-    ColorVal top = (r>0 ? image(p,r-1,c) : grey[p]);
-    ColorVal topleft = (r>0 && c>0 ? image(p,r-1,c-1) : grey[p]);
+    ColorVal left = (c>0 ? image(p,r,c-1) : (r > 0 ? image(p, r-1, c) : fallback));
+    ColorVal top = (r>0 ? image(p,r-1,c) : left);
+    ColorVal topleft = (r>0 && c>0 ? image(p,r-1,c-1) : (r > 0 ? top : left));
     ColorVal gradientTL = left + top - topleft;
     guess = median3(gradientTL, left, top);
     ranges->snap(p,properties,min,max,guess);
@@ -118,16 +116,19 @@ ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges
     }
     ColorVal left;
     ColorVal top;
-    ColorVal topleft = (r>0 && c>0 ? image(p,z,r-1,c-1) : grey[p]);
-    ColorVal topright = (r>0 && c+1 < image.cols(z) ? image(p,z,r-1,c+1) : grey[p]);
-    ColorVal bottomleft = (r+1 < image.rows(z) && c>0 ? image(p,z,r+1,c-1) : grey[p]);
+    ColorVal topleft;
+    ColorVal topright;
     if (z%2 == 0) { // filling horizontal lines
-      left = (c>0 ? image(p,z,r,c-1) : grey[p]);
       top = image(p,z,r-1,c);
-      ColorVal gradientTL = left + top - topleft;
-      ColorVal bottom = (r+1 < image.rows(z) ? image(p,z,r+1,c) : top); //grey[p]);
-      ColorVal gradientBL = left + bottom - bottomleft;
-      ColorVal avg = (top + bottom)>>1;
+      left = (c>0 ? image(p,z,r,c-1) : top);
+      topleft = (c>0 ? image(p,z,r-1,c-1) : top);
+      topright = (c+1 < image.cols(z) ? image(p,z,r-1,c+1) : top);
+      const ColorVal gradientTL = left + top - topleft;
+      const bool bottomPresent = r+1 < image.rows(z);
+      const ColorVal bottom = (bottomPresent ? image(p,z,r+1,c) : left);
+      const ColorVal bottomleft = (bottomPresent && c>0 ? image(p,z,r+1,c-1) : bottom);
+      const ColorVal gradientBL = left + bottom - bottomleft;
+      const ColorVal avg = (top + bottom)>>1;
       guess = median3(gradientTL, gradientBL, avg);
       ranges->snap(p,properties,min,max,guess);
       if (guess == avg) which = 0;
@@ -136,10 +137,13 @@ ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges
       properties[index++] = top-bottom;
     } else { // filling vertical lines
       left = image(p,z,r,c-1);
-      top = (r>0 ? image(p,z,r-1,c) : grey[p]);
-      ColorVal gradientTL = left + top - topleft;
-      ColorVal right = (c+1 < image.cols(z) ? image(p,z,r,c+1) : left); //grey[p]);
-      ColorVal gradientTR = right + top - topright;
+      top = (r>0 ? image(p,z,r-1,c) : left);
+      topleft = (r>0 ? image(p,z,r-1,c-1) : left);
+      const bool rightPresent = c+1 < image.cols(z);
+      const ColorVal right = (rightPresent ? image(p,z,r,c+1) : top);
+      topright = (r>0 && rightPresent ? image(p,z,r-1,c+1) : right);
+      const ColorVal gradientTL = left + top - topleft;
+      const ColorVal gradientTR = right + top - topright;
       ColorVal avg = (left + right)>>1;
       guess = median3(gradientTL, gradientTR, avg);
       ranges->snap(p,properties,min,max,guess);
@@ -211,4 +215,3 @@ std::pair<int, int> plane_zoomlevel(const Image &image, const int beginZL, const
 
     return std::pair<int, int>(p,zl);
 }
-

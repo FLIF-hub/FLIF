@@ -23,7 +23,6 @@ enum class flifEncoding : uint8_t {
   interlaced = 2
 };
 
-extern std::vector<ColorVal> grey; // a pixel with values in the middle of the bounds
 extern int64_t pixels_todo;
 extern int64_t pixels_done;
 extern int progressive_qual_target;
@@ -55,7 +54,7 @@ extern const int PLANE_ORDERING[];
 
 void initPropRanges_scanlines(Ranges &propRanges, const ColorRanges &ranges, int p);
 
-ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRanges *ranges, const Image &image, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max);
+ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRanges *ranges, const Image &image, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max, const ColorVal fallback);
 
 void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p);
 
@@ -76,10 +75,10 @@ template<typename I> I inline median3(I a, I b, I c) {
 }
 
 // Prediction used for interpolation / alpha=0 pixels. Does not have to be the same as the guess used for encoding/decoding.
-inline ColorVal predict(const Image &image, int p, uint32_t r, uint32_t c) {
-    ColorVal left = (c>0 ? image(p,r,c-1) : grey[p]);;
-    ColorVal top = (r>0 ? image(p,r-1,c) : grey[p]);
-    ColorVal topleft = (r>0 && c>0 ? image(p,r-1,c-1) : grey[p]);
+inline ColorVal predictScanlines(const Image &image, int p, uint32_t r, uint32_t c, ColorVal grey) {
+    ColorVal left = (c>0 ? image(p,r,c-1) : (r > 0 ? image(p, r-1, c) : grey));
+    ColorVal top = (r>0 ? image(p,r-1,c) : left);
+    ColorVal topleft = (r>0 && c>0 ? image(p,r-1,c-1) : top);
     ColorVal gradientTL = left + top - topleft;
     return median3(gradientTL, left, top);
 }
@@ -89,12 +88,12 @@ inline ColorVal predict(const Image &image, int z, int p, uint32_t r, uint32_t c
     if (p==4) return 0;
     if (z%2 == 0) { // filling horizontal lines
       ColorVal top = image(p,z,r-1,c);
-      ColorVal bottom = (r+1 < image.rows(z) ? image(p,z,r+1,c) : top); //grey[p]);
+      ColorVal bottom = (r+1 < image.rows(z) ? image(p,z,r+1,c) : (c > 0 ? image(p, z, r, c - 1) : top));
       ColorVal avg = (top + bottom)>>1;
       return avg;
     } else { // filling vertical lines
       ColorVal left = image(p,z,r,c-1);
-      ColorVal right = (c+1 < image.cols(z) ? image(p,z,r,c+1) : left); //grey[p]);
+      ColorVal right = (c+1 < image.cols(z) ? image(p,z,r,c+1) : (r > 0 ? image(p, z, r-1, c) : left));
       ColorVal avg = (left + right)>>1;
       return avg;
     }
@@ -106,3 +105,9 @@ ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges
 int plane_zoomlevels(const Image &image, const int beginZL, const int endZL);
 
 std::pair<int, int> plane_zoomlevel(const Image &image, const int beginZL, const int endZL, int i);
+
+inline std::vector<ColorVal> computeGreys(const ColorRanges *ranges) {
+    std::vector<ColorVal> greys; // a pixel with values in the middle of the bounds
+    for (int p = 0; p < ranges->numPlanes(); p++) greys.push_back((ranges->min(p)+ranges->max(p))/2);
+    return greys;
+}

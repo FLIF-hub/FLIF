@@ -35,6 +35,7 @@ template<typename RAC> void static write_name(RAC& rac, std::string desc, uint8_
 // FRA = true: image has FRA plane (animation with lookback)
 template<typename IO, typename Rac, typename Coder>
 void flif_encode_scanlines_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const Images &images, const ColorRanges *ranges) {
+    const std::vector<ColorVal> greys = computeGreys(ranges);
     ColorVal min,max;
     long fs = io.ftell();
     long pixels = images[0].cols()*images[0].rows()*images.size();
@@ -46,6 +47,7 @@ void flif_encode_scanlines_inner(IO& io, Rac& rac, std::vector<Coder> &coders, c
         if (p>=nump) continue;
         i++;
         if (ranges->min(p) >= ranges->max(p)) continue;
+        const ColorVal minP = ranges->min(p);
         Properties properties((nump>3?NB_PROPERTIES_scanlinesA[p]:NB_PROPERTIES_scanlines[p]));
         v_printf(2,"\r%i%% done [%i/%i] ENC[%ux%u]    ",(int)(100*pixels_done/pixels_todo),i,nump,images[0].cols(),images[0].rows());
         pixels_done += images[0].cols()*images[0].rows();
@@ -57,7 +59,7 @@ void flif_encode_scanlines_inner(IO& io, Rac& rac, std::vector<Coder> &coders, c
               for (uint32_t c = begin; c < end; c++) {
                 if (alphazero && p<3 && image(3,r,c) == 0) continue;
                 if (FRA && p<4 && image(4,r,c) > 0) continue;
-                ColorVal guess = predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max);
+                ColorVal guess = predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max, minP);
                 ColorVal curr = image(p,r,c);
                 assert(p != 3 || curr >= -fr);
                 if (FRA && p==4 && max > fr) max = fr;
@@ -193,13 +195,15 @@ void flif_encode_FLIF2_pass(IO& io, Rac &rac, const Images &images, const ColorR
     }
 }
 
-void flif_encode_FLIF2_interpol_zero_alpha(Images &images, const ColorRanges *, const int beginZL, const int endZL)
+void flif_encode_FLIF2_interpol_zero_alpha(Images &images, const ColorRanges * ranges, const int beginZL, const int endZL)
 {
+    const std::vector<ColorVal> greys = computeGreys(ranges);
+
     for (Image& image : images) {
      if (image(3,0,0) == 0) {
-        image.set(0,0,0,grey[0]);
-        image.set(1,0,0,grey[1]);
-        image.set(2,0,0,grey[2]);
+       image.set(0,0,0,greys[0]);
+       image.set(1,0,0,greys[1]);
+       image.set(2,0,0,greys[2]);
      }
      for (int i = 0; i < plane_zoomlevels(image, beginZL, endZL); i++) {
       std::pair<int, int> pzl = plane_zoomlevel(image, beginZL, endZL, i);
@@ -229,6 +233,8 @@ void flif_encode_FLIF2_interpol_zero_alpha(Images &images, const ColorRanges *, 
 }
 
 void flif_encode_scanlines_interpol_zero_alpha(Images &images, const ColorRanges *ranges){
+    const std::vector<ColorVal> greys = computeGreys(ranges);
+
     int nump = images[0].numPlanes();
     if (nump > 3)
     for (Image& image : images)
@@ -237,7 +243,7 @@ void flif_encode_scanlines_interpol_zero_alpha(Images &images, const ColorRanges
         for (uint32_t r = 0; r < image.rows(); r++) {
             for (uint32_t c = 0; c < image.cols(); c++) {
                 if (image(3,r,c) == 0) {
-                    image.set(p,r,c, predict(image,p,r,c));
+                    image.set(p,r,c, predictScanlines(image,p,r,c, greys[p]));
                 }
             }
         }
@@ -431,8 +437,6 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     if (tcount==0) v_printf(4,"none\n"); else v_printf(4,"\n");
     rac.write_bit(false);
     const ColorRanges* ranges = rangesList.back();
-    grey.clear();
-    for (int p = 0; p < ranges->numPlanes(); p++) grey.push_back((ranges->min(p)+ranges->max(p))/2);
 
     for (int p = 0; p < ranges->numPlanes(); p++) {
       v_printf(7,"Plane %i: %i..%i\n",p,ranges->min(p),ranges->max(p));
