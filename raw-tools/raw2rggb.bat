@@ -45,20 +45,20 @@ IF !Orientation!=="Rotate 90 CW" SET Orientation=90CW
 IF !Orientation!=="Rotate 180 CW" SET Orientation=180CW
 IF !Orientation!=="Rotate 270 CW" SET Orientation=270CW
 
-SET Rotate=-t 0
+REM SET Rotate=-t 0
 REM TODO: Remove this case part when FLIF can handle the "CFAP" comment
-IF "%CFAP%"=="RGGB" (
-   SET Rotate=-t 0
-) ELSE IF "%CFAP%"=="GRBG" (
-   SET Rotate=-t 270
-) ELSE IF "%CFAP%"=="BGGR" (
-   SET Rotate=-t 180
-) ELSE IF "%CFAP%"=="GBRG" (
-   SET Rotate=-t 90
-) ELSE (
-   ECHO This pattern is unknown: %CFAP%
-   EXIT /B 1
-)
+REM IF "%CFAP%"=="RGGB" (
+REM   SET Rotate=-t 0
+REM) ELSE IF "%CFAP%"=="GRBG" (
+REM   SET Rotate=-t 270
+REM ) ELSE IF "%CFAP%"=="BGGR" (
+REM   SET Rotate=-t 180
+REM) ELSE IF "%CFAP%"=="GBRG" (
+REM   SET Rotate=-t 90
+REM) ELSE (
+REM   ECHO This pattern is unknown: %CFAP%
+REM   EXIT /B 1
+REM)
 
 REM Determine the CFA pattern of output image (without the -t parameter)
 IF "%CFAP%"=="RGGB" (
@@ -111,4 +111,4 @@ REM Add CFAP comment
 REM ECHO %PNMTYPE%>%OUTFI%
 IF "%PNMTYPE%"=="P5" ECHO # CFAPattern: %CFAP%>%OUTFI%
 REM extract raw data, presumably in some kind of RGGB format
-%DCRAW% -E -4 -c %Rotate% %INFI%>>%OUTFI%
+%DCRAW% -E -4 -c %INFI%>>%OUTFI%

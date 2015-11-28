@@ -41,7 +41,7 @@ bool image_load_rggb(const char *filename, Image& image)
 					case '7':	fclose(fp);
 							return image_load_pam(filename, image);
 							break;
-					default:	e_printf("Unknown magic number.'%s'\n", magic);
+					default:	e_printf("Unknown magic number.%s\n", magic);
 							return false;
 							break;
 				}
@@ -119,8 +119,12 @@ bool image_load_rggb(const char *filename, Image& image)
 		/* Px formats can have # comments after first line */
 		t = fgets(buf, PPMREADBUFLEN, fp);
 		if ( t == NULL ) return 1;
+		if ( (t != "\n") && (strncmp(buf, "#", 1) == 0)) {
+			if (strlen(comments) != 1) strcat(comments, buf);
+			else strcpy(comments, buf);
+		}
 	} while ( strncmp(buf, "#", 1) == 0 || strncmp(buf, "\n", 1) == 0);
-	v_printf(4,"Commentaires:\n%s\n", comments);
+	v_printf(4,"Commentaires:\n%s", comments);
 	r = sscanf(buf, "%u %u", &width, &height);
 	if ( r < 2 ) {
 		fclose(fp);
@@ -143,10 +147,18 @@ bool image_load_rggb(const char *filename, Image& image)
 #endif
 	// CFA Detection
 	// TODO: Detect the CFAPattern
-	bool RGGBmode=1;
-	int CFAmode=0;
+	bool RGGBmode=0;
+	int CFAmode=4;
+	if ( strncmp(comments, "# CFAPattern: ", 14) == 0 ) {
+		RGGBmode=1;
+		if ( strncmp(comments, "# CFAPattern: RGGB", 18) == 0 ) CFAmode=0;
+		if ( strncmp(comments, "# CFAPattern: GRBG", 18) == 0 ) CFAmode=1;
+		if ( strncmp(comments, "# CFAPattern: BGGR", 18) == 0 ) CFAmode=2;
+		if ( strncmp(comments, "# CFAPattern: GBRG", 18) == 0 ) CFAmode=3;
+	}
+	if (RGGBmode == true) v_printf(2,"RGGBmode detected.\n");
 	unsigned int nbplanes;
-	if ((type==5) && (RGGBmode=1)) {		// TODO: Should detect if it's a RGGB file or just a PGM
+	if ((type==5) && (RGGBmode=1)) {
 		if (((width&1) || (height&1))) {e_printf("Expected width and height which are multiples of 2\n"); return false;}
 		nbplanes=4;
 		image.init(width/2, height/2, 0, maxval, nbplanes);
