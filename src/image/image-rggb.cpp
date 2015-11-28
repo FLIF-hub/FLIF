@@ -119,7 +119,7 @@ bool image_load_rggb(const char *filename, Image& image)
 		/* Px formats can have # comments after first line */
 		t = fgets(buf, PPMREADBUFLEN, fp);
 		if ( t == NULL ) return 1;
-		if ( (t != "\n") && (strncmp(buf, "#", 1) == 0)) {
+		if ( (strcmp(t, "\n") != 0) && (strncmp(buf, "#", 1) == 0)) {
 			if (strlen(comments) != 1) strcat(comments, buf);
 			else strcpy(comments, buf);
 		}
