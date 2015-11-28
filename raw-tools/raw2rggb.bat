@@ -1,4 +1,4 @@
-REM @ECHO OFF
+@ECHO OFF
 SET EXIFTOOL=exiftool.exe
 SET DCRAW=dcraw.exe
 SET SED=sed.exe
@@ -108,7 +108,7 @@ IF "%CFAP%"=="RGGB" (
 
 :GT_DECOMP
 REM Add CFAP comment
-ECHO %PNMTYPE% 1> %OUTFI%
-IF "%PNMTYPE%"=="P5" ECHO # CFAP: %CFAP% 1>> %OUTFI%
+REM ECHO %PNMTYPE%>%OUTFI%
+IF "%PNMTYPE%"=="P5" ECHO # CFAPattern: %CFAP%>%OUTFI%
 REM extract raw data, presumably in some kind of RGGB format
-%DCRAW% -E -4 -c %Rotate% %INFI% | %SED% -b -e "1d" >> %OUTFI%
+%DCRAW% -E -4 -c %Rotate% %INFI%>>%OUTFI%

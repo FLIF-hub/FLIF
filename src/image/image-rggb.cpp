@@ -7,6 +7,7 @@
 #include "image-rggb.hpp"
 #include "image-pnm.hpp"
 #include "image-pam.hpp"
+#include "image-png.hpp"
 
 #define PPMREADBUFLEN 256
 
@@ -21,30 +22,105 @@ bool image_load_rggb(const char *filename, Image& image)
 	}
 	unsigned int width=0,height=0;
 	unsigned int maxval=0;
-	do {
-		/* # comments before the first line */
+	unsigned int idx_comments=0,idx_magic=0;
+	char comments[PPMREADBUFLEN],magic[8];
+	int type=0;
+	// Detect file signature
+	magic[idx_magic] = fgetc(fp);
+	switch (magic[idx_magic]) {
+		case 'P' :	// Look like a PNM
+				v_printf(4,"PNM file is detected.\n");
+				magic[++idx_magic] = fgetc(fp);
+				switch (magic[idx_magic]) {
+					case '4':	type=4;
+							break;
+					case '5':	type=5;
+							break;
+					case '6':	type=6;
+							break;
+					case '7':	fclose(fp);
+							return image_load_pam(filename, image);
+							break;
+					default:	e_printf("Unknown magic number.'%s'\n", magic);
+							return false;
+							break;
+				}
+				break;
+		case '#' :	// Look like a PNM starting with comments
+				v_printf(4,"Comments in PNM file is detected.\n");
+				comments[idx_comments++] = magic[idx_magic];
+				while (magic[idx_magic]=='#') {
+					do {
+						comments[idx_comments++] = fgetc(fp);
+					} while ( comments[idx_comments -1 ] != char(0x0A));
+					magic[idx_magic] = fgetc(fp);
+				}
+				if (magic[idx_magic]!='P') {
+					e_printf("Not a PNM.\n");
+					return false;
+				}
+				magic[++idx_magic] = fgetc(fp);
+				switch (magic[idx_magic]) {
+					case '4':	type=4;
+							break;
+					case '5':	type=5;
+							break;
+					case '6':	type=6;
+							break;
+					case '7':	fclose(fp);
+							return image_load_pam(filename, image);
+							break;
+					default:	e_printf("Unknown magic number.%s\n", magic);
+							return false;
+							break;
+				}
+				break;
+		case '\211' :	// Look like a PNG
+				v_printf(4,"PNG file is detected.\n");
+				do {
+						magic[++idx_magic] = fgetc(fp);
+				} while ( idx_magic < 8 );
+				if ( strcmp(magic, "\211PNG\r\n\032\n") != 0 ) {
+					e_printf("Unknown magic number.%s\n", magic);
+					return false;
+				}
+				fclose(fp);
+				return image_load_png(filename, image); // BUG: PNG reading fail
+				break;
+		case 'I' :	// Look like a TIFF/DNG
+				e_printf("TODO: Improving TIFF/DNG magic number detection.\n");
+				return false;
+				break;
+		default :	e_printf("Unknown magic number.%s\n", magic);
+				return false;
+				break;
+	}
+/*	do {
+		// # comments before the first line
 		// TODO: Detect CFAPattern comment
 		// TODO: Save the comments as metadatas
 		t = fgets(buf, PPMREADBUFLEN, fp);
 		if ( t == NULL ) return false;
 	} while ( strncmp(buf, "#", 1) == 0 || strncmp(buf, "\n", 1) == 0);
 	int type=0;
-	if ( (!strncmp(buf, "P4\n", 3)) ) type=4;
-	if ( (!strncmp(buf, "P5\n", 3)) ) type=5;
-	if ( (!strncmp(buf, "P6\n", 3)) ) type=6;
-	if ( (!strncmp(buf, "P7\n", 3)) ) {fclose(fp); return image_load_pam(filename, image);}
-	if (type==0) {
+	if ( (!strncmp(buf, "P4", 2)) ) type=4;
+	if ( (!strncmp(buf, "P5", 2)) ) type=5;
+	if ( (!strncmp(buf, "P6", 2)) ) type=6;
+	if ( (!strncmp(buf, "P7", 2)) ) {fclose(fp); return image_load_pam(filename, image);}
+*/	if (type==0) {
 		e_printf("RGGB file should be a PGM or PNM, like the output of \"dcraw -E -4\". Cannot read other types.\n");
 		if (fp) {
 			fclose(fp);
 		}
 		return false;
 	}
+	// TODO: Save the comments as metadatas
 	do {
 		/* Px formats can have # comments after first line */
 		t = fgets(buf, PPMREADBUFLEN, fp);
 		if ( t == NULL ) return 1;
 	} while ( strncmp(buf, "#", 1) == 0 || strncmp(buf, "\n", 1) == 0);
+	v_printf(4,"Commentaires:\n%s\n", comments);
 	r = sscanf(buf, "%u %u", &width, &height);
 	if ( r < 2 ) {
 		fclose(fp);
@@ -67,12 +143,10 @@ bool image_load_rggb(const char *filename, Image& image)
 #endif
 	// CFA Detection
 	// TODO: Detect the CFAPattern
-	bool RGGBmode=0;
-	int CFAmode;
+	bool RGGBmode=1;
+	int CFAmode=0;
 	unsigned int nbplanes;
-	if (type==5) {		// TODO: Should detect if it's a RGGB file or just a PGM
-		CFAmode=0;
-		RGGBmode=1;
+	if ((type==5) && (RGGBmode=1)) {		// TODO: Should detect if it's a RGGB file or just a PGM
 		if (((width&1) || (height&1))) {e_printf("Expected width and height which are multiples of 2\n"); return false;}
 		nbplanes=4;
 		image.init(width/2, height/2, 0, maxval, nbplanes);
