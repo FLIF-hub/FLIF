@@ -29,19 +29,19 @@ else
 			# get Orientation: "Horizontal (normal)", "Rotate 90 CW", "Rotate 180 CW", "Rotate 270 CW"
 			Orientation=`exiftool -Orientation "$1" | sed "s/Orientation                     : //g"`
 			# TODO: Remove this case part when FLIF can handle the "CFAPattern" comment
-			case "$CFAPattern" in
-				RGGBRGGBRGGBRGGB)
-					Rotate="-t 0";;
-				GRBGGRBGGRBGGRBG)
-					Rotate="-t 270";;
-				BGGRBGGRBGGRBGGR)
-					Rotate="-t 180";;
-				GBRGGBRGGBRGGBRG)
-					Rotate="-t 90";;
-				*)
-					echo "This pattern is unknown: $CFAPattern"
-					exit 1
-			esac
+#			case "$CFAPattern" in
+#				RGGBRGGBRGGBRGGB)
+#					Rotate="-t 0";;
+#				GRBGGRBGGRBGGRBG)
+#					Rotate="-t 270";;
+#				BGGRBGGRBGGRBGGR)
+#					Rotate="-t 180";;
+#				GBRGGBRGGBRGGBRG)
+#					Rotate="-t 90";;
+#				*)
+#					echo "This pattern is unknown: $CFAPattern"
+#					exit 1
+#			esac
 			# Determine the CFA pattern of output image (without the -t parameter)
 			case "$CFAPattern" in
 				RGGBRGGBRGGBRGGB)
@@ -112,7 +112,7 @@ else
 			echo "# CFAPattern: $CFAPattern" >> "$2"	
 		fi
 		# extract raw data, presumably in some kind of RGGB format
-		dcraw -E -4 -c $Rotate "$1" | sed -b -e "1d" >> "$2"
+		dcraw -E -4 -c "$1" | sed -b -e "1d" >> "$2"
 	else
 		echo "Not a camera raw file: $1"
 	fi
