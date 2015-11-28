@@ -85,7 +85,7 @@ bool image_load_rggb(const char *filename, Image& image)
 					return false;
 				}
 				fclose(fp);
-				return image_load_png(filename, image); // BUG: PNG reading fail
+				return !image_load_png(filename, image);
 				break;
 		case 'I' :	// Look like a TIFF/DNG
 				e_printf("TODO: Improving TIFF/DNG magic number detection.\n");
