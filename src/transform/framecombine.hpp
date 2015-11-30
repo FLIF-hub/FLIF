@@ -5,8 +5,7 @@
 #include "transform.hpp"
 
 
-class ColorRangesFC : public ColorRanges
-{
+class ColorRangesFC final : public ColorRanges {
 protected:
     ColorVal numPrevFrames;
     ColorVal alpha_min;

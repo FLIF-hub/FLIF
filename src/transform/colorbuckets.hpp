@@ -244,8 +244,7 @@ public:
     }
 };
 
-class ColorRangesCB : public ColorRanges
-{
+class ColorRangesCB final : public ColorRanges {
 protected:
     const ColorRanges *ranges;
     const ColorBuckets *buckets;

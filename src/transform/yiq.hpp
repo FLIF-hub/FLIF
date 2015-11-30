@@ -78,8 +78,7 @@ ColorVal static inline get_max_q(int par, ColorVal y, ColorVal i) {
 }
 
 
-class ColorRangesYIQ : public ColorRanges
-{
+class ColorRangesYIQ final : public ColorRanges {
 protected:
 //    const int par=64; // range: [0..4*par-1]
     const int par;

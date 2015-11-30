@@ -35,10 +35,10 @@ public:
 };
 
 
-template <typename pixel_t> class Plane : public GeneralPlane {
-public:
+template <typename pixel_t> class Plane final : public GeneralPlane {
     std::valarray<pixel_t> data;
     const uint32_t width, height;
+public:
     Plane(uint32_t w, uint32_t h, ColorVal color=0) : data(color, w*h), width(w), height(h) { }
     void clear() {
         data.clear();
@@ -52,9 +52,9 @@ public:
     }
 };
 
-class ConstantPlane : public GeneralPlane {
-public:
+class ConstantPlane final : public GeneralPlane {
     ColorVal color;
+public:
     ConstantPlane(ColorVal c) : color(c) {}
     void set(const uint32_t r, const uint32_t c, const ColorVal x) {
         assert(x == color);

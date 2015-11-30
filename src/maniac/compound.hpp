@@ -14,43 +14,36 @@ typedef  std::vector<std::pair<PropertyVal,PropertyVal> > Ranges;
 typedef  std::vector<PropertyVal> Properties;
 
 // inner nodes
-class PropertyDecisionNode
-{
+class PropertyDecisionNode {
 public:
     int8_t property;         // -1 : leaf node, childID unused
     // 0..nb_properties-1 : childID refers to left branch  (in inner_node)
     //                      childID+1 refers to right branch
+    int16_t count;
     PropertyVal splitval;
     uint32_t childID;
     uint32_t leafID;
-    int32_t count;
-    PropertyDecisionNode(int p=-1, int s=0, int c=0) : property(p), splitval(s), childID(c), leafID(0), count(0) {}
+    PropertyDecisionNode(int p=-1, int s=0, int c=0) : property(p), count(0), splitval(s), childID(c), leafID(0) {}
 };
 
-class Tree : public std::vector<PropertyDecisionNode>
-{
-
+class Tree : public std::vector<PropertyDecisionNode> {
 public:
     Tree() : std::vector<PropertyDecisionNode>(1, PropertyDecisionNode()) {}
 };
 
 // leaf nodes when tree is known
-template <typename BitChance, int bits> class FinalCompoundSymbolChances
-{
+template <typename BitChance, int bits> class FinalCompoundSymbolChances {
 public:
     SymbolChance<BitChance, bits> realChances;
 
-    FinalCompoundSymbolChances() {
-    }
+    FinalCompoundSymbolChances() { }
 
     const SymbolChance<BitChance, bits> &chances() const { return realChances; }
-
 };
 
 #ifdef HAS_ENCODER
 // leaf nodes during tree construction phase
-template <typename BitChance, int bits> class CompoundSymbolChances : public FinalCompoundSymbolChances<BitChance, bits>
-{
+template <typename BitChance, int bits> class CompoundSymbolChances final : public FinalCompoundSymbolChances<BitChance, bits> {
 public:
     std::vector<std::pair<SymbolChance<BitChance, bits>,SymbolChance<BitChance, bits> > > virtChances;
     uint64_t realSize;
@@ -81,8 +74,7 @@ public:
 #endif
 
 
-template <typename BitChance, typename RAC, int bits> class FinalCompoundSymbolBitCoder
-{
+template <typename BitChance, typename RAC, int bits> class FinalCompoundSymbolBitCoder {
 public:
     typedef typename BitChance::Table Table;
 
@@ -117,8 +109,7 @@ public:
 
 
 #ifdef HAS_ENCODER
-template <typename BitChance, typename RAC, int bits> class CompoundSymbolBitCoder
-{
+template <typename BitChance, typename RAC, int bits> class CompoundSymbolBitCoder {
 public:
     typedef typename BitChance::Table Table;
 
@@ -135,15 +126,6 @@ private:
 
         int8_t best_property = -1;
         uint64_t best_size = chances.realSize;
-/*
-        if (best_size > (1ULL<<60)) {
-                // numbers are getting too large
-                printf("Large size counters!\n");
-                best_size -= (1ULL<<59);
-                for (auto& virt_size : chances.virtSize) virt_size -= (1ULL<<59);
-        }
-*/
-//    fprintf(stdout,"RealSize: %lu ||",best_size);
         for (unsigned int j=0; j<chances.virtChances.size(); j++) {
             BitChance& virt = (select)[j] ? chances.virtChances[j].first.bit(type,i)
                               : chances.virtChances[j].second.bit(type,i);
@@ -153,10 +135,8 @@ private:
                 best_size = chances.virtSize[j];
                 best_property = j;
             }
-//      fprintf(stdout,"Virt(%u)Size: %lu ||",j,chances.virtSize[j]);
         }
         chances.best_property = best_property;
-//    fprintf(stdout,"\n");
     }
     BitChance inline & bestChance(SymbolChanceBitType type, int i = 0) {
         signed short int p = chances.best_property;
@@ -172,7 +152,6 @@ public:
         BitChance& ch = bestChance(type, i);
         bool bit = rac.read_12bit_chance(ch.get_12bit());
         updateChances(type, i, bit);
-//    e_printf("bit %s%i = %s\n", SymbolChanceBitName[type], i, bit ? "true" : "false");
         return bit;
     }
 
@@ -180,13 +159,11 @@ public:
         BitChance& ch = bestChance(type, i);
         rac.write_12bit_chance(ch.get_12bit(), bit);
         updateChances(type, i, bit);
-//    e_printf("bit %s%i = %s\n", SymbolChanceBitName[type], i, bit ? "true" : "false");
     }
 };
 #endif
 
-template <typename BitChance, typename RAC, int bits> class FinalCompoundSymbolCoder
-{
+template <typename BitChance, typename RAC, int bits> class FinalCompoundSymbolCoder {
 private:
     typedef typename FinalCompoundSymbolBitCoder<BitChance, RAC, bits>::Table Table;
     RAC &rac;
@@ -401,7 +378,8 @@ private:
           inner_node[pos].splitval = splitval;
 //            fprintf(stdout,"Splitting on property %i, splitval=%i (count=%i)\n",p,inner_node[pos].splitval, (int)result.count);
           inner_node[pos].property = p;
-          inner_node[pos].count = result.count;
+          if (result.count < 0x8fff) inner_node[pos].count = result.count;
+          else inner_node[pos].count = 0x8fff;
           uint32_t new_leaf = leaf_node.size();
           result.resetCounters();
           leaf_node.push_back(CompoundSymbolChances<BitChance,bits>(result));
@@ -420,14 +398,6 @@ private:
 
     void inline set_selection_and_update_property_sums(const Properties &properties, CompoundSymbolChances<BitChance,bits> &chances) {
         chances.count++;
-        if (chances.count > (1LL<<50)) {
-            // numbers are getting dangerously large
-            //printf("Reducing big numbers...\n");
-            for(unsigned int i=0; i<nb_properties; i++) {
-              chances.virtPropSum[i] /= 8;
-            }
-            chances.count /= 8;
-        }
         for(unsigned int i=0; i<nb_properties; i++) {
             assert(properties[i] >= range[i].first);
             assert(properties[i] <= range[i].second);
@@ -495,6 +465,7 @@ public:
                n.count = CONTEXT_TREE_MAX_COUNT;
             }
             if (n.count < CONTEXT_TREE_MIN_COUNT) n.count=CONTEXT_TREE_MIN_COUNT;
+            if (n.count > 0xf) n.count &= 0xfff8; // remove some lsb entropy
 //            printf("%li COUNT\n",n.count);
             if (subtree_size < min_size) {
 //                printf("  PRUNING THE ABOVE SUBTREE\n");

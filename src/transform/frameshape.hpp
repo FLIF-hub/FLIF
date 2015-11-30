@@ -8,7 +8,7 @@
 
 
 template <typename IO>
-class TransformFrameShape : public Transform<IO> {
+class TransformFrameShape final : public Transform<IO> {
 protected:
     std::vector<uint32_t> b;
     std::vector<uint32_t> e;

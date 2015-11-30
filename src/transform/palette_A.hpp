@@ -8,8 +8,7 @@
 
 #define MAX_PALETTE_SIZE 30000
 
-class ColorRangesPaletteA : public ColorRanges
-{
+class ColorRangesPaletteA final : public ColorRanges {
 protected:
     const ColorRanges *ranges;
     int nb_colors;

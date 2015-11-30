@@ -45,4 +45,4 @@
 
 // bounds for node counters
 #define CONTEXT_TREE_MIN_COUNT 1
-#define CONTEXT_TREE_MAX_COUNT 4096
+#define CONTEXT_TREE_MAX_COUNT 512

@@ -7,8 +7,7 @@
 #include <set>
 
 
-class ColorRangesPaletteC : public ColorRanges
-{
+class ColorRangesPaletteC final : public ColorRanges {
 protected:
     const ColorRanges *ranges;
     int nb_colors[4];

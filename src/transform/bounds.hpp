@@ -5,8 +5,7 @@
 #include "transform.hpp"
 #include "../maniac/symbol.hpp"
 
-class ColorRangesBounds : public ColorRanges
-{
+class ColorRangesBounds final : public ColorRanges {
 protected:
     const std::vector<std::pair<ColorVal, ColorVal> > bounds;
     const ColorRanges *ranges;

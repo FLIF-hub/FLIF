@@ -8,7 +8,7 @@
 
 
 template <typename IO>
-class TransformFrameDup : public Transform<IO> {
+class TransformFrameDup final : public Transform<IO> {
 protected:
     std::vector<int> seen_before;
     uint32_t nb;
