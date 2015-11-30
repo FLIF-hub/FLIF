@@ -5,34 +5,16 @@
 #include "util.hpp"
 #include "chance.hpp"
 
-template <typename RAC> class UniformSymbolCoder
-{
+template <typename RAC> class UniformSymbolCoder {
 private:
     RAC &rac;
 
 public:
     UniformSymbolCoder(RAC &racIn) : rac(racIn) { }
 
-    void write_int(int min, int max, int val) {
-        assert(max >= min);
-        if (min != 0) {
-            max -= min;
-            val -= min;
-        }
-        if (max == 0) return;
-
-        // split in [0..med] [med+1..max]
-        int med = max/2;
-        if (val > med) {
-            rac.write_bit(true);
-            write_int(med+1, max, val);
-        } else {
-            rac.write_bit(false);
-            write_int(0, med, val);
-        }
-        return;
-    }
-
+#ifdef HAS_ENCODER
+    void write_int(int min, int max, int val);
+#endif
     int read_int(int min, int max) {
         assert(max >= min);
         if (min != 0) {
@@ -67,8 +49,7 @@ static const uint16_t ZERO_CHANCE = 1500;
 static const uint16_t SIGN_CHANCE = 2048;
 
 #ifdef STATS
-struct SymbolChanceStats
-{
+struct SymbolChanceStats {
     BitChanceStats stats_zero;
     BitChanceStats stats_sign;
     BitChanceStats stats_exp[31];
@@ -81,8 +62,7 @@ struct SymbolChanceStats
 extern SymbolChanceStats global_symbol_stats;
 #endif
 
-template <typename BitChance, int bits> class SymbolChance
-{
+template <typename BitChance, int bits> class SymbolChance {
     BitChance bit_zero;
     BitChance bit_sign;
     BitChance bit_exp[bits-1];
@@ -152,8 +132,7 @@ public:
 #endif
 };
 
-template <typename SymbolCoder> int reader(SymbolCoder& coder, int bits)
-{
+template <typename SymbolCoder> int reader(SymbolCoder& coder, int bits) {
   int pos=0;
   int value=0;
   int b=1;
@@ -164,8 +143,7 @@ template <typename SymbolCoder> int reader(SymbolCoder& coder, int bits)
   return value;
 }
 
-template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min, int max)
-{
+template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min, int max) {
     assert(min<=max);
     if (min == max) return min;
 
@@ -216,88 +194,8 @@ template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min
     }
     return (sign ? have : -have);
 }
-/*
-template <typename SymbolCoder> int reader_p(SymbolCoder& coder, int min, int max, int *p)
-{
-  int r = reader(coder, min, max);
-  *p = coder.read(BIT_EXTRA);
-//  printf("read parity %i",p);
-  return r;
-}
-*/
 
-#ifdef HAS_ENCODER
-template <typename SymbolCoder> void writer(SymbolCoder& coder, int bits, int value)
-{
-  int pos=0;
-  while (pos++ < bits) {
-    coder.write(value&1, BIT_MANT, pos);
-    value >>= 1;
-  }
-}
-
-template <int bits, typename SymbolCoder> void writer(SymbolCoder& coder, int min, int max, int value)
-{
-    assert(min<=max);
-    assert(value>=min);
-    assert(value<=max);
-
-    // avoid doing anything if the value is already known
-    if (min == max) return;
-
-    if (value == 0) { // value is zero
-        coder.write(true, BIT_ZERO);
-        return;
-    }
-
-    // only output zero bit if value could also have been zero
-    if (max >= 0 && min <= 0) coder.write(false,BIT_ZERO);
-    int sign = (value > 0 ? 1 : 0);
-    if (max > 0 && min < 0) {
-        // only output sign bit if value can be both pos and neg
-        if (min < 0 && max > 0) coder.write(sign,BIT_SIGN);
-    }
-    if (sign && min <= 0) min = 1;
-    if (!sign && max >= 0) max = -1;
-    const int a = abs(value);
-    const int e = maniac::util::ilog2(a);
-    int amin = sign ? abs(min) : abs(max);
-    int amax = sign ? abs(max) : abs(min);
-
-    int emax = maniac::util::ilog2(amax);
-    int i = maniac::util::ilog2(amin);
-
-    while (i < emax) {
-        // if exponent >i is impossible, we are done
-        if ((1 << (i+1)) > amax) break;
-        // if exponent i is possible, output the exponent bit
-        coder.write(i==e, BIT_EXP, i);
-        if (i==e) break;
-        i++;
-    }
-//  e_printf("exp=%i\n",e);
-    int have = (1 << e);
-    int left = have-1;
-    for (int pos = e; pos>0;) {
-        int bit = 1;
-        left ^= (1 << (--pos));
-        int minabs1 = have | (1<<pos);
-        // int maxabs1 = have | left | (1<<pos);
-        // int minabs0 = have;
-        int maxabs0 = have | left;
-        if (minabs1 > amax) { // 1-bit is impossible
-            bit = 0;
-        } else if (maxabs0 >= amin) { // 0-bit and 1-bit are both possible
-            bit = (a >> pos) & 1;
-            coder.write(bit, BIT_MANT, pos);
-        }
-        have |= (bit << pos);
-    }
-}
-#endif
-
-template <typename BitChance, typename RAC> class SimpleBitCoder
-{
+template <typename BitChance, typename RAC> class SimpleBitCoder {
     typedef typename BitChance::Table Table;
 
 private:
@@ -311,12 +209,9 @@ public:
     void set(uint16_t chance) {
         ctx.set(chance);
     }
-
-    void write(bool bit) {
-        rac.write(ctx.get(), bit);
-        ctx.put(bit, table);
-    }
-
+#ifdef HAS_ENCODER
+    void write(bool bit);
+#endif
     bool read() {
         bool bit = rac.read(ctx.get());
         ctx.put(bit, table);
@@ -324,8 +219,7 @@ public:
     }
 };
 
-template <typename BitChance, typename RAC, int bits> class SimpleSymbolBitCoder
-{
+template <typename BitChance, typename RAC, int bits> class SimpleSymbolBitCoder {
     typedef typename BitChance::Table Table;
 
 private:
@@ -336,24 +230,19 @@ private:
 public:
     SimpleSymbolBitCoder(const Table &tableIn, SymbolChance<BitChance,bits> &ctxIn, RAC &racIn) : table(tableIn), ctx(ctxIn), rac(racIn) {}
 
-    void write(bool bit, SymbolChanceBitType typ, int i = 0) {
-        BitChance& bch = ctx.bit(typ, i);
-        rac.write_12bit_chance(bch.get_12bit(), bit);
-        bch.put(bit, table);
-//    e_printf("bit %s%i = %s\n", SymbolChanceBitName[typ], i, bit ? "true" : "false");
-    }
+#ifdef HAS_ENCODER
+    void write(bool bit, SymbolChanceBitType typ, int i = 0);
+#endif
 
     bool read(SymbolChanceBitType typ, int i = 0) {
         BitChance& bch = ctx.bit(typ, i);
         bool bit = rac.read_12bit_chance(bch.get_12bit());
         bch.put(bit, table);
-//    e_printf("bit %s%i = %s\n", SymbolChanceBitName[typ], i, bit ? "true" : "false");
         return bit;
     }
 };
 
-template <typename BitChance, typename RAC, int bits> class SimpleSymbolCoder
-{
+template <typename BitChance, typename RAC, int bits> class SimpleSymbolCoder {
     typedef typename BitChance::Table Table;
 
 private:
@@ -366,28 +255,21 @@ public:
     }
 
 #ifdef HAS_ENCODER
-    void write_int(int min, int max, int value) {
-        SimpleSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, ctx, rac);
-        writer<bits, SimpleSymbolBitCoder<BitChance, RAC, bits> >(bitCoder, min, max, value);
-    }
+    void write_int(int min, int max, int value);
+    void write_int(int nbits, int value);
 #endif
 
     int read_int(int min, int max) {
         SimpleSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, ctx, rac);
         return reader<bits, SimpleSymbolBitCoder<BitChance, RAC, bits>>(bitCoder, min, max);
     }
-
-#ifdef HAS_ENCODER
-    void write_int(int nbits, int value) {
-        assert (nbits <= bits);
-        SimpleSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, ctx, rac);
-        writer(bitCoder, nbits, value);
-    }
-#endif
-
     int read_int(int nbits) {
         assert (nbits <= bits);
         SimpleSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, ctx, rac);
         return reader(bitCoder, nbits);
     }
 };
+
+#ifdef HAS_ENCODER
+#include "symbol_enc.hpp"
+#endif
