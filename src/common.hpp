@@ -88,12 +88,12 @@ inline ColorVal predict(const Image &image, int z, int p, uint32_t r, uint32_t c
     if (p==4) return 0;
     if (z%2 == 0) { // filling horizontal lines
       ColorVal top = image(p,z,r-1,c);
-      ColorVal bottom = (r+1 < image.rows(z) ? image(p,z,r+1,c) : (c > 0 ? image(p, z, r, c - 1) : top));
+      ColorVal bottom = (r+1 < image.rows(z) ? image(p,z,r+1,c) : top ); // (c > 0 ? image(p, z, r, c - 1) : top));
       ColorVal avg = (top + bottom)>>1;
       return avg;
     } else { // filling vertical lines
       ColorVal left = image(p,z,r,c-1);
-      ColorVal right = (c+1 < image.cols(z) ? image(p,z,r,c+1) : (r > 0 ? image(p, z, r-1, c) : left));
+      ColorVal right = (c+1 < image.cols(z) ? image(p,z,r,c+1) : left ); //(r > 0 ? image(p, z, r-1, c) : left));
       ColorVal avg = (left + right)>>1;
       return avg;
     }
