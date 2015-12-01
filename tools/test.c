@@ -172,7 +172,6 @@ int main()
             flif_encoder_set_interlaced(e, 1);
             flif_encoder_set_learn_repeat(e, 3);
             flif_encoder_set_auto_color_buckets(e, 1);
-            flif_encoder_set_frame_delay(e, 100);
             flif_encoder_set_palette_size(e, 512);
             flif_encoder_set_lookback(e, 1);
 
