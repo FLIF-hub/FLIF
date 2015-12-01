@@ -1,0 +1,48 @@
+#!/bin/sh
+
+FLIF="flif"
+APNGDIS="apngdis"
+TMP_PREFIX="apng2flif_tmp_frame"
+TMP_FORMAT="png"
+
+if ! $FLIF 2>/dev/null >/dev/null
+then
+   echo "FLIF not found, please install FLIF first!"
+   exit 1
+fi
+if ! $APNGDIS 2>/dev/null |grep -q APNG
+then
+   echo "APNG Disassembler not found, please install it first!"
+   echo "sudo apt-get install apngdis"
+   exit 1
+fi
+
+if [ $# -lt 1 ]
+then
+echo "Usage: apng2flif input.png [output.flif [flif-options]]"
+exit
+fi
+
+IN="$1"
+shift
+
+if [ $# -lt 1 ]
+then
+OUT="$(dirname $IN)/$(basename $IN .png).flif"
+else
+OUT="$1"
+shift
+fi
+
+echo "Decoding $IN ..."
+$APNGDIS $IN $TMP_PREFIX >/dev/null
+FRAME_DELAY=""
+for d in $TMP_PREFIX*.txt
+do
+    . ./$d
+    FRAME_DELAY="$FRAME_DELAY$((1000 * $delay)),"
+done
+echo "Encoding $OUT ..."
+$FLIF -f$FRAME_DELAY $@ $TMP_PREFIX*.$TMP_FORMAT $OUT
+rm $TMP_PREFIX*.$TMP_FORMAT
+rm $TMP_PREFIX*.txt

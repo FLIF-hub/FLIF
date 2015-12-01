@@ -134,7 +134,7 @@ void show_banner() {
     v_printf(3,"\n (___ | | | ___)   ");v_printf(2,"FLIF 0.1.11 [30 November 2015]");
     v_printf(3,"\n  (__ | |_| __)    Free Lossless Image Format");
     v_printf(3,"\n    (_|___|_)    ");v_printf(2,"  (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
-    v_printf(5,"\n");
+
     v_printf(5,"\n This program is free software: you can redistribute it and/or modify");
     v_printf(5,"\n it under the terms of the GNU General Public License as published by");
     v_printf(5,"\n the Free Software Foundation, either version 3 of the License, or");
@@ -205,7 +205,7 @@ bool encode_load_input_images(int argc, char **argv, Images &images) {
     v_printf(2,"\n");
     return true;
 }
-bool encode_flif(int argc, char **argv, Images &images, int palette_size, int acb, flifEncodingOptional method, int lookback, int learn_repeats, int frame_delay, int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int yiq=1, int plc=1, int frs=1, int cutoff=2, int alpha=19) {
+bool encode_flif(int argc, char **argv, Images &images, int palette_size, int acb, flifEncodingOptional method, int lookback, int learn_repeats, int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int yiq=1, int plc=1, int frs=1, int cutoff=2, int alpha=19) {
     bool flat=true;
     for (Image &image : images) if (image.uses_alpha()) flat=false;
     if (flat && images[0].numPlanes() == 4) {
@@ -270,16 +270,20 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
     if (!file)
         return false;
     FileIO fio(file, argv[0]);
-    return flif_encode(fio, images, desc, method.encoding, learn_repeats, acb, frame_delay, palette_size, lookback, divisor, min_size, split_threshold, cutoff, alpha);
+    return flif_encode(fio, images, desc, method.encoding, learn_repeats, acb, palette_size, lookback, divisor, min_size, split_threshold, cutoff, alpha);
 }
 
-bool handle_encode(int argc, char **argv, Images &images, int palette_size, int acb, flifEncodingOptional method, int lookback, int learn_repeats, int frame_delay, int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int yiq=1, int plc=1, bool alpha_zero_special=true, int frs=1, int cutoff=2, int alpha=19) {
+bool handle_encode(int argc, char **argv, Images &images, int palette_size, int acb, flifEncodingOptional method,
+                   int lookback, int learn_repeats, std::vector<int> &frame_delay, int divisor=CONTEXT_TREE_COUNT_DIV,
+                   int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD,
+                   int yiq=1, int plc=1, bool alpha_zero_special=true, int frs=1, int cutoff=2, int alpha=19) {
     if (!encode_load_input_images(argc,argv,images)) return false;
-    for (Image& i : images) i.frame_delay = frame_delay;
+    unsigned int framenb=0;
+    for (Image& i : images) { i.frame_delay = frame_delay[framenb]; if (framenb+1 < frame_delay.size()) framenb++; }
     if (!alpha_zero_special) for (Image& i : images) i.alpha_zero_special = false;
     argv += (argc-1);
     argc = 1;
-    return encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, frs, cutoff, alpha);
+    return encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, divisor, min_size, split_threshold, yiq, plc, frs, cutoff, alpha);
 }
 #endif
 
@@ -335,7 +339,8 @@ int main(int argc, char **argv)
     flifEncodingOptional method;
     int learn_repeats = -1;
     int acb = -1; // try auto color buckets
-    int frame_delay = 100;
+    std::vector<int> frame_delay;
+    frame_delay.push_back(100);
     int palette_size = -1;
     int lookback = 1;
     int divisor=CONTEXT_TREE_COUNT_DIV;
@@ -419,8 +424,15 @@ int main(int argc, char **argv)
         case 'r': learn_repeats=atoi(optarg);
                   if (learn_repeats < 0 || learn_repeats > 20) {e_printf("Not a sensible number for option -r\n"); return 1; }
                   break;
-        case 'f': frame_delay=atoi(optarg);
-                  if (frame_delay < 0 || frame_delay > 60000) {e_printf("Not a sensible number for option -f\n"); return 1; }
+        case 'f': frame_delay.clear();
+                  while(optarg != 0) {
+                    int d=strtol(optarg,&optarg,10);
+                    if (d==0) break;
+                    if (*optarg == ',' || *optarg == '+') optarg++;
+                    frame_delay.push_back(d);
+                    if (d < 0 || d > 60000) {e_printf("Not a sensible number for option -f: %i\n",d); return 1; }
+                  }
+                  if (frame_delay.size() < 1) frame_delay.push_back(100);
                   break;
         case 'l': lookback=atoi(optarg);
                   if (lookback < -1 || lookback > 256) {e_printf("Not a sensible number for option -l\n"); return 1; }
@@ -512,7 +524,7 @@ int main(int argc, char **argv)
         if (scale > 1) {e_printf("Not yet supported: transcoding downscaled image; use decode + encode!\n");}
         if (!decode_flif(argv, images, quality, scale)) return 2;
         argc--; argv++;
-        if (!encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, frs, cutoff, alpha)) return 2;
+        if (!encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, divisor, min_size, split_threshold, yiq, plc, frs, cutoff, alpha)) return 2;
     }
 #endif
     return 0;

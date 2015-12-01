@@ -53,11 +53,14 @@ install: all
 	install -s -m 755 flif viewflif $(PREFIX)/bin
 	install -s -m 755 libflif.so $(PREFIX)/lib
 	install -m 644 ../doc/flif.1 $(PREFIX)/share/man/man1
-	if grep -q FLIF /etc/magic; then echo "Magic already known" ; else cat ../doc/flif.magic >> /etc/magic; fi
+	install -m 755 ../tools/gif2flif $(PREFIX)/bin
+	if ! grep -q FLIF /etc/magic; then cat ../doc/flif.magic >> /etc/magic; fi
 
 remove:
 	rm -f $(PREFIX)/bin/flif
 	rm -f $(PREFIX)/bin/viewflif
+	rm -f $(PREFIX)/bin/gif2flif
+	rm -f $(PREFIX)/bin/apng2flif
 	rm -f $(PREFIX)/lib/libflif.so
 	rm -f $(PREFIX)/share/man/man1/flif.1
 

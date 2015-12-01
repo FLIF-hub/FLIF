@@ -1,0 +1,41 @@
+#!/bin/sh
+
+FLIF="flif"
+CONVERT="convert"
+TMP_PREFIX="gif2flif_tmp_frame"
+TMP_FORMAT="png"
+
+if ! $FLIF 2>/dev/null >/dev/null
+then
+   echo "FLIF not found, please install FLIF first!"
+   exit 1
+fi
+if ! $CONVERT -version 2>/dev/null >/dev/null
+then
+   echo "ImageMagick not found, please install it first!"
+   echo "sudo apt-get install imagemagick"
+   exit 1
+fi
+
+if [ $# -lt 1 ]
+then
+echo "Usage: gif2flif input.gif [output.flif [flif-options]]"
+exit
+fi
+
+IN="$1"
+shift
+
+if [ $# -lt 1 ]
+then
+OUT="$(dirname $IN)/$(basename $IN .gif).flif"
+else
+OUT="$1"
+shift
+fi
+
+echo "Decoding $IN ..."
+FRAME_DELAY="$($CONVERT -identify -format "%T0," -coalesce $IN $TMP_PREFIX%04d.$TMP_FORMAT)"
+echo "Encoding $OUT ..."
+$FLIF -f$FRAME_DELAY $@ $TMP_PREFIX*.$TMP_FORMAT $OUT
+rm $TMP_PREFIX*.$TMP_FORMAT

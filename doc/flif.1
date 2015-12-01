@@ -181,11 +181,11 @@ are constructed as follows: if the output filename is \fIfilename.ext\fR, then t
 .PP
 Options specific to encoding (or transcoding) animations are as follows:
 .TP
-\fB\-f\fR, \fB\-\-frame\-delay\fR=\fIDELAY\fR
+\fB\-f\fR, \fB\-\-frame\-delay\fR=\fIDELAY\fR[,\fIDELAY\fR,...]
 The time between two consecutive frames of the animation, in milliseconds.
-Note: at this point, \fBflif\fR can only produce animations where each frame has the same delay.
-The FLIF format can represent variable-delay animations too though.
-The default setting is \fB\-f\fR\fI100\fR (10 frames per second).
+The default setting is \fB\-f\fR\fI100\fR (100ms for all frames), which corresponds to 10 frames per second.
+If multiple delays are given, each number corresponds to the duration of one frame.
+In case the number of delays is smaller than the number of frames, the last number is repeated implicitly.
 .TP
 \fB\-l\fR, \fB\-\-lookback\fR=\fINB_FRAMES\fR
 In animations, typically the frames are somewhat similar. To improve compression, FLIF does a generalization

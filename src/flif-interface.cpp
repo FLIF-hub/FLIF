@@ -159,7 +159,7 @@ int32_t FLIF_ENCODER::encode_file(const char* filename) {
 
     if(!flif_encode(fio, copies, transDesc,
         interlaced != 0 ? flifEncoding::interlaced : flifEncoding::nonInterlaced,
-        learn_repeats, acb, frame_delay, palette_size, lookback,
+        learn_repeats, acb, palette_size, lookback,
         divisor, min_size, split_threshold))
         return 0;
 
@@ -181,7 +181,7 @@ int32_t FLIF_ENCODER::encode_memory(void** buffer, size_t* buffer_size_bytes) {
 
     if(!flif_encode(io, copies, transDesc,
         interlaced != 0 ? flifEncoding::interlaced : flifEncoding::nonInterlaced,
-        learn_repeats, acb, frame_delay, palette_size, lookback,
+        learn_repeats, acb, palette_size, lookback,
         divisor, min_size, split_threshold))
         return 0;
 
@@ -405,14 +405,6 @@ FLIF_DLLEXPORT void FLIF_API flif_encoder_set_auto_color_buckets(FLIF_ENCODER* e
     try
     {
         encoder->acb = acb;
-    }
-    catch(...) {}
-}
-
-FLIF_DLLEXPORT void FLIF_API flif_encoder_set_frame_delay(FLIF_ENCODER* encoder, uint32_t frame_delay) {
-    try
-    {
-        encoder->frame_delay = frame_delay;
     }
     catch(...) {}
 }
