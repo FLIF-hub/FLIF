@@ -61,6 +61,7 @@ public:
     void invData(Images& images) const {
         for (Image& image : images) {
           image.undo_make_constant_plane(0);
+          image.undo_make_constant_plane(1); // only needed when there is only one palette color, so plane 1 is also constant
           image.undo_make_constant_plane(2);
           for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {

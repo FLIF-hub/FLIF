@@ -63,6 +63,7 @@ public:
     void invData(Images& images) const {
         for (Image& image : images) {
           image.undo_make_constant_plane(0);
+          image.undo_make_constant_plane(1);
           image.undo_make_constant_plane(2);
           image.undo_make_constant_plane(3);
           for (uint32_t r=0; r<image.rows(); r++) {
