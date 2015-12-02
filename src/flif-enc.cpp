@@ -109,15 +109,14 @@ void flif_encode_FLIF2_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const
       std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i);
       int p = pzl.first;
       int z = pzl.second;
+      if (endZL == 0) v_printf(2,"\r%i%% done [%i/%i] ENC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
       if (ranges->min(p) >= ranges->max(p)) continue;
-      if (endZL==0) {
-          v_printf(2,"\r%i%% done [%i/%i] ENC[%i,%ux%u]  ",(int) (100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
-      }
-      pixels_done += (images[0].cols(z)/(z%2==0?1:2))*(images[0].rows(z)/(z%2==0?2:1));
       Properties properties((nump>3?NB_PROPERTIESA[p]:NB_PROPERTIES[p]));
       if (z % 2 == 0) {
         // horizontal: scan the odd rows, output pixel values
           for (uint32_t r = 1; r < images[0].rows(z); r += 2) {
+            pixels_done += images[0].cols(z);
+            if (endZL == 0 && (r & 65)==65) v_printf(3,"\r%i%% done [%i/%i] ENC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
             for (int fr=0; fr<(int)images.size(); fr++) {
               const Image& image = images[fr];
               if (image.seen_before >= 0) { continue; }
@@ -137,6 +136,8 @@ void flif_encode_FLIF2_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const
       } else {
         // vertical: scan the odd columns
           for (uint32_t r = 0; r < images[0].rows(z); r++) {
+            pixels_done += images[0].cols(z)/2;
+            if (endZL == 0 && (r&129)==129) v_printf(3,"\r%i%% done [%i/%i] ENC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
             for (int fr=0; fr<(int)images.size(); fr++) {
               const Image& image = images[fr];
               if (image.seen_before >= 0) { continue; }
@@ -175,14 +176,12 @@ void flif_encode_FLIF2_pass(IO& io, Rac &rac, const Images &images, const ColorR
         coders.emplace_back(rac, propRanges, forest[p], split_threshold, cutoff, alpha);
     }
 
-    for (const Image& image : images)
-    if (beginZL == image.zooms()) {
+    if (beginZL == images[0].zooms()) {
       // special case: very left top pixel must be written first to get it all started
       SimpleSymbolCoder<FLIFBitChanceMeta, Rac, 24> metaCoder(rac);
-      for (int p = 0; p < image.numPlanes(); p++) {
-        ColorVal curr = image(p,0,0);
+      for (int p = 0; p < images[0].numPlanes(); p++) {
         if (ranges->min(p) < ranges->max(p)) {
-            metaCoder.write_int(ranges->min(p), ranges->max(p), curr);
+            for (const Image& image : images) metaCoder.write_int(ranges->min(p), ranges->max(p), image(p,0,0));
             pixels_done++;
         }
       }

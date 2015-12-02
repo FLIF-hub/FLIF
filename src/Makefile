@@ -54,6 +54,7 @@ install: all
 	install -s -m 755 libflif.so $(PREFIX)/lib
 	install -m 644 ../doc/flif.1 $(PREFIX)/share/man/man1
 	install -m 755 ../tools/gif2flif $(PREFIX)/bin
+	install -m 755 ../tools/apng2flif $(PREFIX)/bin
 	if ! grep -q FLIF /etc/magic; then cat ../doc/flif.magic >> /etc/magic; fi
 
 remove:

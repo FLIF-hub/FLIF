@@ -24,7 +24,7 @@ template<typename RAC> std::string static read_name(RAC& rac, uint8_t &transform
     return transforms[nb];
 }
 
-template<typename IO, typename Rac, typename Coder> void flif_decode_scanlines_inner(IO &io, Rac &rac, std::vector<Coder> &coders, Images &images, const ColorRanges *ranges, std::vector<Transform<IO>*> &transforms, uint32_t (*callback)(int,int), Images &partial_images) {
+template<typename IO, typename Rac, typename Coder> bool flif_decode_scanlines_inner(IO &io, Rac &rac, std::vector<Coder> &coders, Images &images, const ColorRanges *ranges, std::vector<Transform<IO>*> &transforms, uint32_t (*callback)(int,int), Images &partial_images) {
     ColorVal min,max;
     const int nump = images[0].numPlanes();
     const bool alphazero = images[0].alpha_zero_special;
@@ -86,13 +86,14 @@ template<typename IO, typename Rac, typename Coder> void flif_decode_scanlines_i
             for (unsigned int n=0; n < images.size(); n++) partial_images[n] = images[n].clone(); // make a copy to work with
             for (int i=transforms.size()-1; i>=0; i--) if (transforms[i]->undo_redo_during_decode()) transforms[i]->invData(partial_images);
             progressive_qual_target = callback(qual,io.ftell());
-            if (qual >= progressive_qual_target) break;
+            if (qual >= progressive_qual_target) return false;
           }
         }
     }
+    return true;
 }
 
-template<typename IO, typename Rac, typename Coder> void flif_decode_scanlines_pass(IO& io, Rac &rac, Images &images, const ColorRanges *ranges, std::vector<Tree> &forest, std::vector<Transform<IO>*> &transforms, uint32_t (*callback)(int,int), Images &partial_images, int cutoff = 2, int alpha = 0xFFFFFFFF / 19) {
+template<typename IO, typename Rac, typename Coder> bool flif_decode_scanlines_pass(IO& io, Rac &rac, Images &images, const ColorRanges *ranges, std::vector<Tree> &forest, std::vector<Transform<IO>*> &transforms, uint32_t (*callback)(int,int), Images &partial_images, int cutoff = 2, int alpha = 0xFFFFFFFF / 19) {
     std::vector<Coder> coders;
     coders.reserve(images[0].numPlanes());
     for (int p = 0; p < images[0].numPlanes(); p++) {
@@ -100,7 +101,7 @@ template<typename IO, typename Rac, typename Coder> void flif_decode_scanlines_p
         initPropRanges_scanlines(propRanges, *ranges, p);
         coders.emplace_back(rac, propRanges, forest[p], 0, cutoff, alpha);
     }
-    flif_decode_scanlines_inner<IO,Rac,Coder>(io, rac, coders, images, ranges, transforms, callback, partial_images);
+    return flif_decode_scanlines_inner<IO,Rac,Coder>(io, rac, coders, images, ranges, transforms, callback, partial_images);
 }
 
 // interpolate rest of the image
@@ -155,7 +156,7 @@ void flif_decode_FLIF2_inner_interpol(Images &images, const ColorRanges *ranges,
 }
 
 
-template<typename IO, typename Rac, typename Coder> void flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Images &images, const ColorRanges *ranges, const int beginZL, const int endZL, int quality, int scale, std::vector<Transform<IO>*> &transforms, uint32_t (*callback)(int,int), Images &partial_images) {
+template<typename IO, typename Rac, typename Coder> bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Images &images, const ColorRanges *ranges, const int beginZL, const int endZL, int quality, int scale, std::vector<Transform<IO>*> &transforms, uint32_t (*callback)(int,int), Images &partial_images) {
     ColorVal min,max;
     const int nump = images[0].numPlanes();
     const bool alphazero = images[0].alpha_zero_special;
@@ -167,20 +168,22 @@ template<typename IO, typename Rac, typename Coder> void flif_decode_FLIF2_inner
       int z = pzl.second;
       if ((100*pixels_done > quality*pixels_todo) ||  1<<(z/2) < scale) {
               flif_decode_FLIF2_inner_interpol(images, ranges, i, beginZL, endZL, (z%2 == 0 ?1:0), scale);
-              return;
+              printf("%llu > %llu\n",100*pixels_done,quality*pixels_todo);
+              return false;
       }
       if (ranges->min(p) < ranges->max(p)) {
       if (endZL == 0) v_printf(2,"\r%i%% done [%i/%i] DEC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
-      pixels_done += (images[0].cols(z)/(z%2==0?1:2))*(images[0].rows(z)/(z%2==0?2:1));
       ColorVal curr;
       Properties properties((nump>3?NB_PROPERTIESA[p]:NB_PROPERTIES[p]));
       if (z % 2 == 0) {
           for (uint32_t r = 1; r < images[0].rows(z); r += 2) {
+            pixels_done += images[0].cols(z);
+            if (endZL == 0 && (r & 65)==65) v_printf(3,"\r%i%% done [%i/%i] DEC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
 #ifdef CHECK_FOR_BROKENFILES
             if (io.isEOF()) {
               v_printf(1,"Row %i: Unexpected file end. Interpolation from now on.\n",r);
               flif_decode_FLIF2_inner_interpol(images, ranges, i, beginZL, endZL, (r>1?r-2:r), scale);
-              return;
+              return false;
             }
 #endif
             for (int fr=0; fr<(int)images.size(); fr++) {
@@ -209,11 +212,13 @@ template<typename IO, typename Rac, typename Coder> void flif_decode_FLIF2_inner
         }
       } else {
           for (uint32_t r = 0; r < images[0].rows(z); r++) {
+            pixels_done += images[0].cols(z)/2;
+            if (endZL == 0 && (r&129)==129) v_printf(3,"\r%i%% done [%i/%i] DEC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
 #ifdef CHECK_FOR_BROKENFILES
             if (io.isEOF()) {
               v_printf(1,"Row %i: Unexpected file end. Interpolation from now on.\n", r);
               flif_decode_FLIF2_inner_interpol(images, ranges, i, beginZL, endZL, (r>0?r-1:r), scale);
-              return;
+              return false;
             }
 #endif
             for (int fr=0; fr<(int)images.size(); fr++) {
@@ -257,13 +262,14 @@ template<typename IO, typename Rac, typename Coder> void flif_decode_FLIF2_inner
         pixels_done = pixels_really_done;
         for (int i=transforms.size()-1; i>=0; i--) if (transforms[i]->undo_redo_during_decode()) transforms[i]->invData(partial_images);
         progressive_qual_target = callback(qual,io.ftell());
-        if (qual >= progressive_qual_target) break;
+        if (qual >= progressive_qual_target) return false;
       }
       }
     }
+    return true;
 }
 
-template<typename IO, typename Rac, typename Coder> void flif_decode_FLIF2_pass(IO &io, Rac &rac, Images &images, const ColorRanges *ranges, std::vector<Tree> &forest, const int beginZL, const int endZL, int quality, int scale, std::vector<Transform<IO>*> &transforms, uint32_t (*callback)(int,int), Images &partial_images, int cutoff = 2, int alpha = 0xFFFFFFFF / 19) {
+template<typename IO, typename Rac, typename Coder> bool flif_decode_FLIF2_pass(IO &io, Rac &rac, Images &images, const ColorRanges *ranges, std::vector<Tree> &forest, const int beginZL, const int endZL, int quality, int scale, std::vector<Transform<IO>*> &transforms, uint32_t (*callback)(int,int), Images &partial_images, int cutoff = 2, int alpha = 0xFFFFFFFF / 19) {
     std::vector<Coder> coders;
     coders.reserve(images[0].numPlanes());
     for (int p = 0; p < images[0].numPlanes(); p++) {
@@ -272,18 +278,17 @@ template<typename IO, typename Rac, typename Coder> void flif_decode_FLIF2_pass(
         coders.emplace_back(rac, propRanges, forest[p], 0, cutoff, alpha);
     }
 
-    for (Image& image : images)
-    if (beginZL == image.zooms()) {
+    if (beginZL == images[0].zooms()) {
       // special case: very left top pixel must be read first to get it all started
       SimpleSymbolCoder<FLIFBitChanceMeta, Rac, 24> metaCoder(rac);
-      for (int p = 0; p < image.numPlanes(); p++) {
+      for (int p = 0; p < images[0].numPlanes(); p++) {
         if (ranges->min(p) < ranges->max(p)) {
-          image.set(p,0,0, metaCoder.read_int(ranges->min(p), ranges->max(p)));
+          for (Image& image : images) image.set(p,0,0, metaCoder.read_int(ranges->min(p), ranges->max(p)));
           pixels_done++;
         }
       }
     }
-    flif_decode_FLIF2_inner<IO,Rac,Coder>(io, rac, coders, images, ranges, beginZL, endZL, quality, scale, transforms, callback, partial_images);
+    return flif_decode_FLIF2_inner<IO,Rac,Coder>(io, rac, coders, images, ranges, beginZL, endZL, quality, scale, transforms, callback, partial_images);
 }
 
 
@@ -329,13 +334,13 @@ bool flif_decode_main(RacIn<IO>& rac, IO& io, Images &images, const ColorRanges 
 
     switch(encoding) {
         case 1: v_printf(3,"Decoding data (scanlines)\n");
-                flif_decode_scanlines_pass<IO, RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, bits> >(io, rac, images, ranges, forest, transforms, callback, partial_images, cutoff, alpha);
+                return flif_decode_scanlines_pass<IO, RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, bits> >(io, rac, images, ranges, forest, transforms, callback, partial_images, cutoff, alpha);
                 break;
         case 2: v_printf(3,"Decoding data (interlaced)\n");
-                flif_decode_FLIF2_pass<IO, RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, bits> >(io, rac, images, ranges, forest, roughZL, 0, quality, scale, transforms, callback, partial_images, cutoff, alpha);
+                return flif_decode_FLIF2_pass<IO, RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, bits> >(io, rac, images, ranges, forest, roughZL, 0, quality, scale, transforms, callback, partial_images, cutoff, alpha);
                 break;
     }
-    return true;
+    return false;
 }
 
 template <typename IO>
@@ -531,17 +536,21 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
 #else
     if (mbits > bits) { e_printf("This FLIF cannot decode >8 bit per channel. Please compile with SUPPORT_HDR.\n"); return false;}
 #endif
-
+    bool fully_decoded;
     if (bits == 10) {
-       if (!flif_decode_main<10>(rac, io, images, ranges, transforms, quality, scale, callback, partial_images, encoding, cutoff, alpha)) return false;
+       fully_decoded = flif_decode_main<10>(rac, io, images, ranges, transforms, quality, scale, callback, partial_images, encoding, cutoff, alpha);
 #ifdef SUPPORT_HDR
     } else {
-       if (!flif_decode_main<18>(rac, io, images, ranges, transforms, quality, scale, callback, partial_images, encoding, cutoff, alpha)) return false;
+       fully_decoded = flif_decode_main<18>(rac, io, images, ranges, transforms, quality, scale, callback, partial_images, encoding, cutoff, alpha);
 #endif
     }
 
+   if (numFrames==1)
+      v_printf(2,"\rDecoding done, %li bytes for %ux%u pixels (%.4fbpp)   \n",io.ftell(), images[0].cols()/scale, images[0].rows()/scale, 8.0*io.ftell()/images[0].rows()/images[0].cols()/scale/scale);
+    else
+      v_printf(2,"\rDecoding done, %li bytes for %i frames of %ux%u pixels (%.4fbpp)   \n",io.ftell(), numFrames, images[0].cols()/scale, images[0].rows()/scale, 8.0*io.ftell()/numFrames/images[0].rows()/images[0].cols()/scale/scale);
 
-    if (quality==100 && scale==1) {
+    if (quality==100 && scale==1 && fully_decoded) {
       const uint32_t checksum = images[0].checksum();
       v_printf(8,"Computed checksum: %X\n", checksum);
       uint32_t checksum2 = metaCoder.read_int(0, 0xFFFF);
@@ -553,22 +562,17 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
       } else {
         v_printf(2,"Image decoded, checksum verified.\n");
       }
-    } else {
+    } else if (quality < 100 || scale > 1) {
       v_printf(2,"Not checking checksum, lossy partial decoding was chosen.\n");
+    } else {
+      v_printf(2,"File ended prematurely or decoding was interrupted.\n");
     }
-
-   if (numFrames==1)
-      v_printf(2,"\rDecoding done, %li bytes for %ux%u pixels (%.4fbpp)   \n",io.ftell(), images[0].cols()/scale, images[0].rows()/scale, 8.0*io.ftell()/images[0].rows()/images[0].cols()/scale/scale);
-    else
-      v_printf(2,"\rDecoding done, %li bytes for %i frames of %ux%u pixels (%.4fbpp)   \n",io.ftell(), numFrames, images[0].cols()/scale, images[0].rows()/scale, 8.0*io.ftell()/numFrames/images[0].rows()/images[0].cols()/scale/scale);
-
 
     for (int i=(int)transforms.size()-1; i>=0; i--) {
         transforms[i]->invData(images);
         delete transforms[i];
     }
     transforms.clear();
-
 
     for (unsigned int i=0; i<rangesList.size(); i++) {
         delete rangesList[i];
