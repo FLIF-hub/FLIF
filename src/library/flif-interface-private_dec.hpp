@@ -18,34 +18,24 @@
 
 #pragma once
 
-void e_printf(const char *format, ...);
-void v_printf(const int v, const char *format, ...);
+#include "flif-interface-private_common.hpp"
+#include "../flif-dec.hpp"
 
-void increase_verbosity();
-int get_verbosity();
-
-template<class IO>
-bool ioget_int_8bit (IO& io, int* result)
+struct FLIF_DECODER
 {
-    int c = io.getc();
-    if (c == io.EOS) {
-        e_printf ("Unexpected EOS");
-        return false;
-    }
+    FLIF_DECODER();
 
-    *result = c;
-    return true;
-}
+    int32_t decode_file(const char* filename);
+    int32_t decode_memory(const void* buffer, size_t buffer_size_bytes);
+    size_t num_images();
+    FLIF_IMAGE* get_image(size_t index);
 
-template<class IO>
-bool ioget_int_16bit_bigendian (IO& io, int* result)
-{
-    int c1;
-    int c2;
-    if (!(ioget_int_8bit (io, &c1) &&
-          ioget_int_8bit (io, &c2)))
-        return false;
+    int32_t quality;
+    uint32_t scale;
+    void* callback;
 
-    *result = (c1 << 8) + c2;
-    return true;
-}
+private:
+    Images internal_images;
+    Images images;
+    std::vector<std::unique_ptr<FLIF_IMAGE>> requested_images;
+};

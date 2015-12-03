@@ -18,34 +18,27 @@
 
 #pragma once
 
-void e_printf(const char *format, ...);
-void v_printf(const int v, const char *format, ...);
+#include "flif_common.h"
 
-void increase_verbosity();
-int get_verbosity();
+#include "../image/image.hpp"
+#include "../fileio.hpp"
 
-template<class IO>
-bool ioget_int_8bit (IO& io, int* result)
+#ifdef _MSC_VER
+ #ifdef FLIF_BUILD_DLL
+  #define FLIF_DLLEXPORT __declspec(dllexport)
+ #else
+  #define FLIF_DLLEXPORT
+ #endif
+#else
+#define FLIF_DLLEXPORT __attribute__ ((visibility ("default")))
+#endif
+
+struct FLIF_IMAGE
 {
-    int c = io.getc();
-    if (c == io.EOS) {
-        e_printf ("Unexpected EOS");
-        return false;
-    }
+    FLIF_IMAGE();
 
-    *result = c;
-    return true;
-}
+    void write_row_RGBA8(uint32_t row, const void* buffer, size_t buffer_size_bytes);
+    void read_row_RGBA8(uint32_t row, void* buffer, size_t buffer_size_bytes);
 
-template<class IO>
-bool ioget_int_16bit_bigendian (IO& io, int* result)
-{
-    int c1;
-    int c2;
-    if (!(ioget_int_8bit (io, &c1) &&
-          ioget_int_8bit (io, &c2)))
-        return false;
-
-    *result = (c1 << 8) + c2;
-    return true;
-}
+    Image image;
+};

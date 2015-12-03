@@ -14,6 +14,16 @@ For more information on FLIF, visit http://flif.info
 
 * * *
 
+###License
+
+FLIF is copylefted free/libre software: you can redistribute it and/or modify it, provided that you share back.
+
+The reference implementation of FLIF is released under the terms of the GNU General Public License version 3 or later (GPLv3+).
+
+The decoder library `libflif_dec` is released under the terms of the GNU **Lesser** General Public License (LGPLv3+).
+
+* * *
+
 ###Build Instructions
 
 **GNU/Linux**
@@ -22,9 +32,10 @@ For more information on FLIF, visit http://flif.info
   * for the encoder/decoder: `sudo apt-get install libpng-dev`
   * for the viewer: `sudo apt-get install libsdl2-dev`
 * Navigate to the FLIF/src directory and run `make` to compile everything, or
-  * `make flif` to build just the `flif` tool
-  * `make libflif.so` to build the shared library
-  * `make viewflif` to build the example viewer (it depends on the library)
+  * `make flif` to build just the `flif` command line tool
+  * `make libflif.so` to build the GPL'ed shared library
+  * `make libflif_dec.so` to build the LGPL'ed decode-only shared library
+  * `make viewflif` to build the example viewer (it depends on the decode library)
 * `sudo make install` if you want to install it globally
 
 **Windows**
@@ -57,3 +68,4 @@ These will be available on the Release page
 
 * **[Poly FLIF](https://github.com/UprootLabs/poly-flif)** - A javascript polyfill that allows you to use FLIF files in the browser. ([Demo](https://uprootlabs.github.io/poly-flif))
 * **[UGUI: FLIF](https://github.com/FLIF-hub/UGUI_FLIF/releases)** - A GUI that allows you to convert and view FLIF files.
+* **[flifcrush](https://github.com/FLIF-hub/flifcrush)** - A brute-force FLIF optimizer.

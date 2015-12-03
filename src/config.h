@@ -7,8 +7,10 @@
 // define this flag if you want support for > 8 bit per channel
 #define SUPPORT_HDR 1
 
-// include encoder related functionality in build. Diable when only interested in decoder
+// include encoder related functionality in build. Disable when only interested in decoder
+#ifndef DECODER_ONLY
 #define HAS_ENCODER  1
+#endif
 
 // during decode, check for unexpected file end and interpolate from there
 #define CHECK_FOR_BROKENFILES 1
