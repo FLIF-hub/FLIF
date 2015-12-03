@@ -44,11 +44,11 @@ libflif.so: $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/*.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -o libflif.so
 
 libflif.dbg.so: $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/*.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) -Og -ggdb3 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -o libflif.dbg.so
+	$(CXX) -std=gnu++11 $(CXXFLAGS) -O1 -ggdb3 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -o libflif.dbg.so
 
 # Example application: simple FLIF viewer - LGPL
 viewflif: libflif_dec.so viewflif.c
-	$(CC) -std=gnu11 -O2 -ggdb3 $(shell sdl2-config --cflags) -Wall -Ilibrary/ viewflif.c -L. -lflif_dec $(shell sdl2-config --libs) -o viewflif
+	$(CC) -std=gnu11 -O3 -ggdb3 $(shell sdl2-config --cflags) -Wall -Ilibrary/ viewflif.c -L. -lflif_dec $(shell sdl2-config --libs) -o viewflif
 
 
 install: all

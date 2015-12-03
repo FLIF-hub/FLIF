@@ -186,7 +186,6 @@ template<typename IO, typename Rac, typename Coder> bool flif_decode_FLIF2_inner
       int z = pzl.second;
       if ((100*pixels_done > quality*pixels_todo) ||  1<<(z/2) < scale) {
               flif_decode_FLIF2_inner_interpol(images, ranges, i, beginZL, endZL, (z%2 == 0 ?1:0), scale);
-              printf("%llu > %llu\n",100*pixels_done,quality*pixels_todo);
               return false;
       }
       if (ranges->min(p) < ranges->max(p)) {
