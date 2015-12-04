@@ -71,8 +71,8 @@ ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRang
     ranges->snap(p,properties,min,max,guess);
     assert(min >= ranges->min(p));
     assert(max <= ranges->max(p));
-    assert(guess >= ranges->min(p));
-    assert(guess <= ranges->max(p));
+    assert(guess >= min);
+    assert(guess <= max);
     if (guess == gradientTL) which = 0;
     else if (guess == left) which = 1;
     else if (guess == top) which = 2;
