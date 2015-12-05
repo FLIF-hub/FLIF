@@ -33,18 +33,18 @@ dflif: $(FILES_H) $(FILES_CPP) flif.cpp
 
 # Decoder-only library - LGPL
 libflif_dec.so.0: $(FILES_H) $(FILES_CPP) library/flif_dec.h library/flif-interface-private_dec.hpp library/flif-interface_dec.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -DDECODER_ONLY -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface_dec.cpp $(LDFLAGS) -h libflif_dec.so.0 -o libflif_dec.so.0
+	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -DDECODER_ONLY -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface_dec.cpp $(LDFLAGS) -Wl,-soname,libflif_dec.so.0 -o libflif_dec.so.0
 
 # Encoder-only library - GPL - probably not that useful (not built by default)
 libflif_enc.so.0: $(FILES_H) $(FILES_CPP) library/flif_enc.h library/flif-interface-private_enc.hpp library/flif-interface_enc.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface_enc.cpp $(LDFLAGS) -h libflif_enc.so.0 -o libflif_enc.so.0
+	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface_enc.cpp $(LDFLAGS) -Wl,-soname,libflif_enc.so.0 -o libflif_enc.so.0
 
 # Decoder + encoder library - GPL
 libflif.so.0: $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/*.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -h libflif.so.0 -o libflif.so.0
+	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -Wl,-soname,libflif.so.0 -o libflif.so.0
 
 libflif.dbg.so.0: $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/*.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) -O1 -ggdb3 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -h libflif.so.0 -o libflif.dbg.so.0
+	$(CXX) -std=gnu++11 $(CXXFLAGS) -O1 -ggdb3 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -Wl,-soname,libflif.so.0 -o libflif.dbg.so.0
 
 # Example application: simple FLIF viewer - LGPL
 viewflif: libflif_dec.so.0 viewflif.c
