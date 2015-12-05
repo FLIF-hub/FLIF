@@ -48,7 +48,7 @@ libflif.dbg.so.0: $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/*.cp
 
 # Example application: simple FLIF viewer - LGPL
 viewflif: libflif_dec.so.0 viewflif.c
-	$(CC) -std=gnu11 -O3 -ggdb3 $(shell sdl2-config --cflags) -Wall -Ilibrary/ viewflif.c -L. -lflif_dec $(shell sdl2-config --libs) -o viewflif
+	$(CC) -std=gnu11 -O3 -ggdb3 $(shell sdl2-config --cflags) -Wall -Ilibrary/ viewflif.c -L. -lflif_dec.so.0 $(shell sdl2-config --libs) -o viewflif
 
 
 install: all
@@ -66,8 +66,8 @@ remove:
 	rm -f $(PREFIX)/bin/viewflif
 	rm -f $(PREFIX)/bin/gif2flif
 	rm -f $(PREFIX)/bin/apng2flif
-	rm -f $(PREFIX)/lib/libflif.so
-	rm -f $(PREFIX)/lib/libflif_dec.so
+	rm -f $(PREFIX)/lib/libflif.so.0
+	rm -f $(PREFIX)/lib/libflif_dec.so.0
 	rm -f $(PREFIX)/share/man/man1/flif.1
 
 clean:
@@ -77,7 +77,7 @@ clean:
 # The targets below are only meant for developers
 
 test-interface: libflif.dbg.so ../tools/test.c
-	$(CC) -O0 -ggdb3 -Wall -Ilibrary/ ../tools/test.c -L. -lflif.dbg  -o test-interface
+	$(CC) -O0 -ggdb3 -Wall -Ilibrary/ ../tools/test.c -L. -lflif.dbg.so.0  -o test-interface
 
 test: flif test-interface
 	mkdir -p ../tmp-test
