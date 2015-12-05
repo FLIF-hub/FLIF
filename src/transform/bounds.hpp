@@ -78,7 +78,7 @@ protected:
     }
 
     bool load(const ColorRanges *srcRanges, RacIn<IO> &rac) {
-        SimpleSymbolCoder<SimpleBitChance, RacIn<IO>, 24> coder(rac);
+        SimpleSymbolCoder<SimpleBitChance, RacIn<IO>, 18> coder(rac);
         bounds.clear();
         for (int p=0; p<srcRanges->numPlanes(); p++) {
 //            ColorVal min = coder.read_int(0, srcRanges->max(p) - srcRanges->min(p)) + srcRanges->min(p);
@@ -96,7 +96,7 @@ protected:
 
 #ifdef HAS_ENCODER
     void save(const ColorRanges *srcRanges, RacOut<IO> &rac) const {
-        SimpleSymbolCoder<SimpleBitChance, RacOut<IO>, 24> coder(rac);
+        SimpleSymbolCoder<SimpleBitChance, RacOut<IO>, 18> coder(rac);
         for (int p=0; p<srcRanges->numPlanes(); p++) {
             ColorVal min = bounds[p].first;
             ColorVal max = bounds[p].second;

@@ -377,7 +377,7 @@ protected:
         }
     }
 
-    const ColorBucket load_bucket(SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> &coder, const ColorRanges *srcRanges, const int plane, const prevPlanes &pixelL, const prevPlanes &pixelU) const {
+    const ColorBucket load_bucket(SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> &coder, const ColorRanges *srcRanges, const int plane, const prevPlanes &pixelL, const prevPlanes &pixelU) const {
         ColorBucket b;
         if (plane<3)
         for (int p=0; p<plane; p++) {
@@ -411,7 +411,7 @@ protected:
         return b;
     }
     bool load(const ColorRanges *srcRanges, RacIn<IO> &rac) {
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> coder(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> coder(rac);
         prevPlanes pixelL, pixelU;
         cb->bucket0 = load_bucket(coder, srcRanges, 0, pixelL, pixelU);
         pixelL.push_back(cb->min0);
@@ -435,7 +435,7 @@ protected:
     }
 
 #ifdef HAS_ENCODER
-    void save_bucket(const ColorBucket &b, SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> &coder, const ColorRanges *srcRanges, const int plane, const prevPlanes &pixelL, const prevPlanes &pixelU) const {
+    void save_bucket(const ColorBucket &b, SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18> &coder, const ColorRanges *srcRanges, const int plane, const prevPlanes &pixelL, const prevPlanes &pixelU) const {
         if (plane<3)
         for (int p=0; p<plane; p++) {
                 if (!cb->exists(p,pixelL,pixelU)) {
@@ -470,7 +470,7 @@ protected:
         }
     }
     void save(const ColorRanges *srcRanges, RacOut<IO> &rac) const {
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> coder(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18> coder(rac);
 //        printf("Saving Y Color Bucket: ");
         prevPlanes pixelL, pixelU;
         save_bucket(cb->bucket0, coder, srcRanges, 0, pixelL, pixelU);

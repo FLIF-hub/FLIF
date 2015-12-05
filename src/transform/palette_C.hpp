@@ -130,7 +130,7 @@ public:
         }
     }
     void save(const ColorRanges *srcRanges, RacOut<IO> &rac) const {
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> coder(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18> coder(rac);
         for (int p=0; p<srcRanges->numPlanes(); p++) {
           coder.write_int(0, srcRanges->max(p)-srcRanges->min(p), CPalette_vector[p].size()-1);
           ColorVal min=srcRanges->min(p);
@@ -144,7 +144,7 @@ public:
     }
 #endif
     bool load(const ColorRanges *srcRanges, RacIn<IO> &rac) {
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> coder(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> coder(rac);
         for (int p=0; p<srcRanges->numPlanes(); p++) {
           unsigned int nb = coder.read_int(0, srcRanges->max(p)-srcRanges->min(p)) + 1;
           ColorVal min=srcRanges->min(p);

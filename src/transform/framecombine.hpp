@@ -65,7 +65,7 @@ protected:
     }
 
     bool load(const ColorRanges *, RacIn<IO> &rac) {
-        SimpleSymbolCoder<SimpleBitChance, RacIn<IO>, 24> coder(rac);
+        SimpleSymbolCoder<SimpleBitChance, RacIn<IO>, 18> coder(rac);
         max_lookback = coder.read_int(1, 256);
         v_printf(5,"[%i]",max_lookback);
         return true;
@@ -73,7 +73,7 @@ protected:
 
 #ifdef HAS_ENCODER
     void save(const ColorRanges *, RacOut<IO> &rac) const {
-        SimpleSymbolCoder<SimpleBitChance, RacOut<IO>, 24> coder(rac);
+        SimpleSymbolCoder<SimpleBitChance, RacOut<IO>, 18> coder(rac);
         coder.write_int(1,256,max_lookback);
     }
 

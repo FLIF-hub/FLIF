@@ -126,10 +126,10 @@ public:
         }
     }
     void save(const ColorRanges *srcRanges, RacOut<IO> &rac) const {
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> coder(rac);
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> coderY(rac);
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> coderI(rac);
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> coderQ(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18> coder(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18> coderY(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18> coderI(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18> coderQ(rac);
         coder.write_int(1, MAX_PALETTE_SIZE, Palette_vector.size());
 //        printf("Saving %lu colors: ", Palette_vector.size());
         prevPlanes pp(2);
@@ -169,10 +169,10 @@ public:
     }
 #endif
     bool load(const ColorRanges *srcRanges, RacIn<IO> &rac) {
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> coder(rac);
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> coderY(rac);
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> coderI(rac);
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> coderQ(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> coder(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> coderY(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> coderI(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> coderQ(rac);
         long unsigned size = coder.read_int(1, MAX_PALETTE_SIZE);
 //        printf("Loading %lu colors: ", size);
         prevPlanes pp(2);

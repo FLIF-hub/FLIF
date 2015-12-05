@@ -53,7 +53,7 @@ protected:
     void configure(const int setting) { if (nb==0) nb=setting; else cols=setting; } // ok this is dirty
 
     bool load(const ColorRanges *, RacIn<IO> &rac) {
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> coder(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> coder(rac);
         for (unsigned int i=0; i<nb; i+=1) {b.push_back(coder.read_int(0,cols));}
         for (unsigned int i=0; i<nb; i+=1) {
             e.push_back(cols-coder.read_int(0,cols-b[i]));
@@ -67,7 +67,7 @@ protected:
 
 #if HAS_ENCODER
     void save(const ColorRanges *, RacOut<IO> &rac) const {
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> coder(rac);
+        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18> coder(rac);
         assert(nb == b.size());
         assert(nb == e.size());
         for (unsigned int i=0; i<nb; i+=1) { coder.write_int(0,cols,b[i]); }
