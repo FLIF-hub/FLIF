@@ -8,8 +8,8 @@ export LD_LIBRARY_PATH=$(shell pwd):$LD_LIBRARY_PATH
 FILES_H := maniac/*.hpp maniac/*.cpp image/*.hpp transform/*.hpp flif-enc.hpp flif-dec.hpp common.hpp flif_config.h fileio.hpp io.hpp io.cpp config.h
 FILES_CPP := maniac/chance.cpp maniac/symbol.cpp image/crc32k.cpp image/image.cpp image/image-png.cpp image/image-pnm.cpp image/image-pam.cpp image/image-rggb.cpp image/color_range.cpp transform/factory.cpp common.cpp flif-enc.cpp flif-dec.cpp io.cpp
 
-all: flif libflif_dec.so.0 libflif.so.0 viewflif
-lgpl: libflif_dec.so.0 viewflif dflif
+all: flif libflif_dec.so libflif.so viewflif
+lgpl: libflif_dec.so viewflif dflif
 
 # options to consider: -fvect-cost-model=unlimited -funroll-all-loops
 OPTIMIZATIONS := -DNDEBUG -O3 -ftree-vectorize
@@ -32,23 +32,27 @@ dflif: $(FILES_H) $(FILES_CPP) flif.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) $(OPTIMIZATIONS) -DDECODER_ONLY -g0 -Wall $(FILES_CPP) flif.cpp $(LDFLAGS) -o dflif
 
 # Decoder-only library - LGPL
-libflif_dec.so.0: $(FILES_H) $(FILES_CPP) library/flif_dec.h library/flif-interface-private_dec.hpp library/flif-interface_dec.cpp
+libflif_dec.so: $(FILES_H) $(FILES_CPP) library/flif_dec.h library/flif-interface-private_dec.hpp library/flif-interface_dec.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -DDECODER_ONLY -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface_dec.cpp $(LDFLAGS) -Wl,-soname,libflif_dec.so.0 -o libflif_dec.so.0
+	ln -s libflif_dec.so.0 libflif_dec.so
 
 # Encoder-only library - GPL - probably not that useful (not built by default)
-libflif_enc.so.0: $(FILES_H) $(FILES_CPP) library/flif_enc.h library/flif-interface-private_enc.hpp library/flif-interface_enc.cpp
+libflif_enc.so: $(FILES_H) $(FILES_CPP) library/flif_enc.h library/flif-interface-private_enc.hpp library/flif-interface_enc.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface_enc.cpp $(LDFLAGS) -Wl,-soname,libflif_enc.so.0 -o libflif_enc.so.0
+	ln -s libflif_enc.so.0 libflif_enc.so
 
 # Decoder + encoder library - GPL
-libflif.so.0: $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/*.cpp
+libflif.so: $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/*.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -Wl,-soname,libflif.so.0 -o libflif.so.0
+	ln -s libflif.so.0 libflif.so
 
-libflif.dbg.so.0: $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/*.cpp
+libflif.dbg.so: $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/*.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) -O1 -ggdb3 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -Wl,-soname,libflif.so.0 -o libflif.dbg.so.0
+	ln -s libflif.dbg.so.0 libflif.dbg.so
 
 # Example application: simple FLIF viewer - LGPL
-viewflif: libflif_dec.so.0 viewflif.c
-	$(CC) -std=gnu11 -O3 -ggdb3 $(shell sdl2-config --cflags) -Wall -Ilibrary/ viewflif.c -L. -lflif_dec.so.0 $(shell sdl2-config --libs) -o viewflif
+viewflif: libflif_dec.so viewflif.c
+	$(CC) -std=gnu11 -O3 -ggdb3 $(shell sdl2-config --cflags) -Wall -Ilibrary/ viewflif.c -L. -lflif_dec $(shell sdl2-config --libs) -o viewflif
 
 
 install: all
@@ -66,6 +70,8 @@ remove:
 	rm -f $(PREFIX)/bin/viewflif
 	rm -f $(PREFIX)/bin/gif2flif
 	rm -f $(PREFIX)/bin/apng2flif
+	rm -f $(PREFIX)/lib/libflif.so
+	rm -f $(PREFIX)/lib/libflif_dec.so
 	rm -f $(PREFIX)/lib/libflif.so.0
 	rm -f $(PREFIX)/lib/libflif_dec.so.0
 	rm -f $(PREFIX)/share/man/man1/flif.1
@@ -77,7 +83,7 @@ clean:
 # The targets below are only meant for developers
 
 test-interface: libflif.dbg.so ../tools/test.c
-	$(CC) -O0 -ggdb3 -Wall -Ilibrary/ ../tools/test.c -L. -lflif.dbg.so.0  -o test-interface
+	$(CC) -O0 -ggdb3 -Wall -Ilibrary/ ../tools/test.c -L. -lflif.dbg  -o test-interface
 
 test: flif test-interface
 	mkdir -p ../tmp-test
