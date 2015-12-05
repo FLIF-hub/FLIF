@@ -61,17 +61,19 @@ typedef enum {
 
 //static const char *SymbolChanceBitName[] = {"zero", "sign", "expo", "mant"};
 
-static const uint16_t EXP_CHANCES[] = {3200, 2800, 2600, 2400, 2000, 1500, 800, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300};
-static const uint16_t MANT_CHANCES[] = {1800, 1800, 1800, 1700, 1600, 1200, 1000, 800, 800, 800, 800, 800, 800, 800, 800, 800, 800, 800, 800, 800, 800, 800, 800, 800, 800, 800, 800, 800, 800, 800, 800, 800, 800, 800, 800, 800, 800, 800, 800};
-static const uint16_t ZERO_CHANCE = 1500;
+static const uint16_t EXP_CHANCES[] = {1200, 1600, 1800, 1900, 2050, 2300, 2500, 2300, 2048,
+                                       2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048};
+static const uint16_t MANT_CHANCES[] = {1750, 1730, 1710, 1670, 1650, 1700, 1800, 1800, 2048,
+                                        2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048};
+static const uint16_t ZERO_CHANCE = 1600;
 static const uint16_t SIGN_CHANCE = 2048;
 
 #ifdef STATS
 struct SymbolChanceStats {
     BitChanceStats stats_zero;
     BitChanceStats stats_sign;
-    BitChanceStats stats_exp[31];
-    BitChanceStats stats_mant[32];
+    BitChanceStats stats_exp[17];
+    BitChanceStats stats_mant[18];
 
     std::string format() const;
     ~SymbolChanceStats();
@@ -140,10 +142,10 @@ public:
     ~SymbolChance() {
         global_symbol_stats.stats_zero += bit_zero.stats();
         global_symbol_stats.stats_sign += bit_sign.stats();
-        for (int i = 0; i < bits - 1 && i < 31; i++) {
+        for (int i = 0; i < bits - 1 && i < 17; i++) {
             global_symbol_stats.stats_exp[i] += bit_exp[i].stats();
         }
-        for (int i = 0; i < bits && i < 32; i++) {
+        for (int i = 0; i < bits && i < 18; i++) {
             global_symbol_stats.stats_mant[i] += bit_mant[i].stats();
         }
     }

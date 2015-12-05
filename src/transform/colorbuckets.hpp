@@ -346,7 +346,8 @@ protected:
             srcRanges->min(1) == srcRanges->max(1) &&
             srcRanges->min(2) == srcRanges->max(2)) return false; // only alpha plane contains information
 //        if (srcRanges->max(0) > 255) return false; // do not attempt this on high bit depth images (TODO: generalize color bucket quantization!)
-        if (srcRanges->max(0) > 4096) return false; // do not attempt this on high bit depth images (TODO: generalize color bucket quantization!)
+        if (srcRanges->max(0)-srcRanges->min(0) > 4096) return false; // do not attempt this on high bit depth images (TODO: generalize color bucket quantization!)
+        if (srcRanges->max(1)-srcRanges->min(1) > 4096) return false;
         cb = new ColorBuckets(srcRanges);
         return true;
     }
@@ -531,6 +532,7 @@ protected:
             int64_t total_pixels = (int64_t) images.size() * images[0].rows() * images[0].cols();
             v_printf(7,", [D=%i,C=%i,P=%i]",totaldiscretecolors,totalcontinuousbuckets,(int) (total_pixels/100));
             if (totaldiscretecolors < total_pixels/200 && totalcontinuousbuckets < total_pixels/50) return true;
+            if (totaldiscretecolors < total_pixels/100 && totalcontinuousbuckets < total_pixels/200) return true;
             if (totaldiscretecolors < total_pixels/40 && totalcontinuousbuckets < total_pixels/500) return true;
 
             // simplify buckets

@@ -198,7 +198,7 @@ public:
 
 template <typename BitChance, typename RAC> class MetaPropertySymbolCoder {
 public:
-    typedef SimpleSymbolCoder<BitChance, RAC, 24> Coder;
+    typedef SimpleSymbolCoder<BitChance, RAC, 18> Coder;
 private:
     Coder coder;
     const Ranges range;

@@ -196,7 +196,8 @@ void flif_encode_FLIF2_pass(IO& io, Rac &rac, const Images &images, const ColorR
 
     if (beginZL == images[0].zooms()) {
       // special case: very left top pixel must be written first to get it all started
-      SimpleSymbolCoder<FLIFBitChanceMeta, Rac, 24> metaCoder(rac);
+//      SimpleSymbolCoder<FLIFBitChanceMeta, Rac, 18> metaCoder(rac);
+      UniformSymbolCoder<Rac> metaCoder(rac);
       for (int p = 0; p < images[0].numPlanes(); p++) {
         if (ranges->min(p) < ranges->max(p)) {
             for (const Image& image : images) metaCoder.write_int(ranges->min(p), ranges->max(p), image(p,0,0));
@@ -390,7 +391,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     io.fputc(image.rows() & 0xFF);
 
     RacOut<IO> rac(io);
-    SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 24> metaCoder(rac);
+    SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18> metaCoder(rac);
 
     v_printf(3,"Input: %ux%u, channels:", images[0].cols(), images[0].rows());
     for (int p = 0; p < numPlanes; p++) {
@@ -419,8 +420,14 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     }
 //    v_printf(2,"Header: %li bytes.\n", ftell(f));
 
-    metaCoder.write_int(1,128,cutoff);
-    metaCoder.write_int(4,128,alpha);
+    if (cutoff==2 && alpha==19) {
+      metaCoder.write_int(0,1,0); // using default constants for cutoff/alpha
+    } else {
+      metaCoder.write_int(0,1,1); // not using default constants
+      metaCoder.write_int(1,128,cutoff);
+      metaCoder.write_int(4,128,alpha);
+      metaCoder.write_int(0,1,0); // using default initial bitchances (non-default values has not been implemented yet!)
+    }
     alpha = 0xFFFFFFFF/alpha;
 
     std::vector<const ColorRanges*> rangesList;
@@ -500,8 +507,13 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     }
 
     //v_printf(2,"Writing checksum: %X\n", checksum);
-    metaCoder.write_int(0, 0xFFFF, checksum / 0x10000);
-    metaCoder.write_int(0, 0xFFFF, checksum & 0xFFFF);
+    if (io.ftell() > 100) {
+      metaCoder.write_int(0,1,1);
+      metaCoder.write_int(16, (checksum >> 16) & 0xFFFF);
+      metaCoder.write_int(16, checksum & 0xFFFF);
+    } else {
+      metaCoder.write_int(0,1,0); // don't write checksum for tiny images
+    }
     rac.flush();
     io.flush();
 

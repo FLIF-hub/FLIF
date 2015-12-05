@@ -28,11 +28,13 @@ struct FLIF_DECODER
     int32_t decode_file(const char* filename);
     int32_t decode_memory(const void* buffer, size_t buffer_size_bytes);
     size_t num_images();
+    int32_t num_loops();
     FLIF_IMAGE* get_image(size_t index);
 
     int32_t quality;
     uint32_t scale;
     void* callback;
+    int32_t first_quality;
 
 private:
     Images internal_images;

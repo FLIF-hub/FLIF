@@ -76,7 +76,7 @@ struct BitChanceStats
 
     std::string format() const {
         std::stringstream ss;
-        ss << sum << '/' << weight;
+        ss << sum << ',' << weight;
         return ss.str();
     }
 };
@@ -180,25 +180,6 @@ public:
 #ifdef STATS
         stats_.add(bit, table.subTable[best].alpha);
 #endif
-/*        if (bit == 0)  {
-          for (int i=0; i<N; i++) {
-            uint64_t sbits = 0;
-            chances[i].estim(0, sbits);
-            uint64_t oqual=quality[i];
-            quality[i] = (oqual*255 + sbits*4097 + 128)>>8;
-            chances[i].put(0, table.subTable[i]);
-          }
-        } else {
-          for (int i=0; i<N; i++) {
-            uint64_t sbits = 0;
-            chances[i].estim(1, sbits);
-            uint64_t oqual=quality[i];
-            quality[i] = (oqual*255 + sbits*4097 + 128)>>8;
-            chances[i].put(1, table.subTable[i]);
-          }
-        }
-*/
-        
         for (int i=0; i<N; i++) { // for each scale
             uint64_t sbits = 0;
             chances[i].estim(bit, sbits); // number of bits if this scale was used

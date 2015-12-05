@@ -323,8 +323,8 @@ public:
     void ensure_frame_lookbacks() {
         switch(num) {
             case 1:
-              num=3;
               make_constant_plane(1,((1<<depth)-1));
+            case 2:
               make_constant_plane(2,((1<<depth)-1));
             case 3:
               make_constant_plane(3,255);

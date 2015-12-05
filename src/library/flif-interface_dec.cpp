@@ -23,6 +23,7 @@ FLIF_DECODER::FLIF_DECODER()
 : quality(100)
 , scale(1)
 , callback(NULL)
+, first_quality(0)
 { }
 
 int32_t FLIF_DECODER::decode_file(const char* filename) {
@@ -34,7 +35,7 @@ int32_t FLIF_DECODER::decode_file(const char* filename) {
         return 0;
     FileIO fio(file, filename);
 
-    if(!flif_decode(fio, internal_images, quality, scale, reinterpret_cast<uint32_t (*)(int,int)>(callback), images))
+    if(!flif_decode(fio, internal_images, quality, scale, reinterpret_cast<uint32_t (*)(int32_t,int64_t)>(callback), first_quality, images))
         return 0;
 
     images.clear();
@@ -49,7 +50,7 @@ int32_t FLIF_DECODER::decode_memory(const void* buffer, size_t buffer_size_bytes
 
     BlobReader reader(reinterpret_cast<const uint8_t*>(buffer), buffer_size_bytes);
 
-    if(!flif_decode(reader, internal_images, quality, scale, reinterpret_cast<uint32_t (*)(int,int)>(callback), images))
+    if(!flif_decode(reader, internal_images, quality, scale, reinterpret_cast<uint32_t (*)(int32_t,int64_t)>(callback), first_quality, images))
         return 0;
 
     images.clear();
@@ -59,6 +60,10 @@ int32_t FLIF_DECODER::decode_memory(const void* buffer, size_t buffer_size_bytes
 
 size_t FLIF_DECODER::num_images() {
     return images.size();
+}
+
+int32_t FLIF_DECODER::num_loops() {
+    return 0; // TODO: return actual loop count of the animation
 }
 
 FLIF_IMAGE* FLIF_DECODER::get_image(size_t index) {
@@ -121,13 +126,22 @@ FLIF_DLLEXPORT void FLIF_API flif_decoder_set_scale(FLIF_DECODER* decoder, uint3
     catch(...) {}
 }
 
-FLIF_DLLEXPORT void FLIF_API flif_decoder_set_callback(FLIF_DECODER* decoder, uint32_t (*callback)(int quality,int bytes_read)) {
+FLIF_DLLEXPORT void FLIF_API flif_decoder_set_callback(FLIF_DECODER* decoder, uint32_t (*callback)(int32_t quality, int64_t bytes_read)) {
     try
     {
         decoder->callback = (void*) callback;
     }
     catch(...) {}
 }
+
+FLIF_DLLEXPORT void FLIF_API flif_decoder_set_first_callback_quality(FLIF_DECODER* decoder, int32_t quality) {
+    try
+    {
+        decoder->first_quality = quality;
+    }
+    catch(...) {}
+}
+
 
 /*!
 * \return non-zero if the function succeeded
@@ -157,6 +171,15 @@ FLIF_DLLEXPORT size_t FLIF_API flif_decoder_num_images(FLIF_DECODER* decoder) {
     try
     {
         return decoder->num_images();
+    }
+    catch(...) {}
+    return 0;
+}
+
+FLIF_DLLEXPORT int32_t FLIF_API flif_decoder_num_loops(FLIF_DECODER* decoder) {
+    try
+    {
+        return decoder->num_loops();
     }
     catch(...) {}
     return 0;

@@ -42,12 +42,11 @@ template<typename RAC> std::string static read_name(RAC& rac, uint8_t &transform
     return transforms[nb];
 }
 
-template<typename IO, typename Rac, typename Coder> bool flif_decode_scanlines_inner(IO &io, Rac &rac, std::vector<Coder> &coders, Images &images, const ColorRanges *ranges, std::vector<Transform<IO>*> &transforms, uint32_t (*callback)(int,int), Images &partial_images) {
+template<typename IO, typename Rac, typename Coder> bool flif_decode_scanlines_inner(IO &io, Rac &rac, std::vector<Coder> &coders, Images &images, const ColorRanges *ranges, std::vector<Transform<IO>*> &transforms, uint32_t (*callback)(int32_t,int64_t), Images &partial_images) {
     ColorVal min,max;
     const int nump = images[0].numPlanes();
     const bool alphazero = images[0].alpha_zero_special;
     const bool FRA = (nump == 5);
-    int progressive_qual_target = 0;
     if (callback) {
          // initialize planes to grey
          for (int p=0; p<nump; p++) {
@@ -111,7 +110,7 @@ template<typename IO, typename Rac, typename Coder> bool flif_decode_scanlines_i
     return true;
 }
 
-template<typename IO, typename Rac, typename Coder> bool flif_decode_scanlines_pass(IO& io, Rac &rac, Images &images, const ColorRanges *ranges, std::vector<Tree> &forest, std::vector<Transform<IO>*> &transforms, uint32_t (*callback)(int,int), Images &partial_images, int cutoff = 2, int alpha = 0xFFFFFFFF / 19) {
+template<typename IO, typename Rac, typename Coder> bool flif_decode_scanlines_pass(IO& io, Rac &rac, Images &images, const ColorRanges *ranges, std::vector<Tree> &forest, std::vector<Transform<IO>*> &transforms, uint32_t (*callback)(int32_t,int64_t), Images &partial_images, int cutoff = 2, int alpha = 0xFFFFFFFF / 19) {
     std::vector<Coder> coders;
     coders.reserve(images[0].numPlanes());
     for (int p = 0; p < images[0].numPlanes(); p++) {
@@ -174,7 +173,7 @@ void flif_decode_FLIF2_inner_interpol(Images &images, const ColorRanges *ranges,
 }
 
 
-template<typename IO, typename Rac, typename Coder> bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Images &images, const ColorRanges *ranges, const int beginZL, const int endZL, int quality, int scale, std::vector<Transform<IO>*> &transforms, uint32_t (*callback)(int,int), Images &partial_images) {
+template<typename IO, typename Rac, typename Coder> bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Images &images, const ColorRanges *ranges, const int beginZL, const int endZL, int quality, int scale, std::vector<Transform<IO>*> &transforms, uint32_t (*callback)(int32_t,int64_t), Images &partial_images) {
     ColorVal min,max;
     const int nump = images[0].numPlanes();
     const bool alphazero = images[0].alpha_zero_special;
@@ -286,7 +285,7 @@ template<typename IO, typename Rac, typename Coder> bool flif_decode_FLIF2_inner
     return true;
 }
 
-template<typename IO, typename Rac, typename Coder> bool flif_decode_FLIF2_pass(IO &io, Rac &rac, Images &images, const ColorRanges *ranges, std::vector<Tree> &forest, const int beginZL, const int endZL, int quality, int scale, std::vector<Transform<IO>*> &transforms, uint32_t (*callback)(int,int), Images &partial_images, int cutoff = 2, int alpha = 0xFFFFFFFF / 19) {
+template<typename IO, typename Rac, typename Coder> bool flif_decode_FLIF2_pass(IO &io, Rac &rac, Images &images, const ColorRanges *ranges, std::vector<Tree> &forest, const int beginZL, const int endZL, int quality, int scale, std::vector<Transform<IO>*> &transforms, uint32_t (*callback)(int32_t,int64_t), Images &partial_images, int cutoff = 2, int alpha = 0xFFFFFFFF / 19) {
     std::vector<Coder> coders;
     coders.reserve(images[0].numPlanes());
     for (int p = 0; p < images[0].numPlanes(); p++) {
@@ -297,7 +296,8 @@ template<typename IO, typename Rac, typename Coder> bool flif_decode_FLIF2_pass(
 
     if (beginZL == images[0].zooms()) {
       // special case: very left top pixel must be read first to get it all started
-      SimpleSymbolCoder<FLIFBitChanceMeta, Rac, 24> metaCoder(rac);
+      // SimpleSymbolCoder<FLIFBitChanceMeta, Rac, 24> metaCoder(rac);
+      UniformSymbolCoder<Rac> metaCoder(rac);
       for (int p = 0; p < images[0].numPlanes(); p++) {
         if (ranges->min(p) < ranges->max(p)) {
           for (Image& image : images) image.set(p,0,0, metaCoder.read_int(ranges->min(p), ranges->max(p)));
@@ -331,7 +331,7 @@ template<typename IO, typename BitChance, typename Rac> bool flif_decode_tree(IO
 
 template <int bits, typename IO>
 bool flif_decode_main(RacIn<IO>& rac, IO& io, Images &images, const ColorRanges *ranges,
-        std::vector<Transform<IO>*> &transforms, int quality, int scale, uint32_t (*callback)(int,int), Images &partial_images, int encoding, int cutoff = 2, int alpha = 0xFFFFFFFF / 19) {
+        std::vector<Transform<IO>*> &transforms, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), Images &partial_images, int encoding, int cutoff = 2, int alpha = 0xFFFFFFFF / 19) {
 
     std::vector<Tree> forest(ranges->numPlanes(), Tree());
     int roughZL = 0;
@@ -361,7 +361,7 @@ bool flif_decode_main(RacIn<IO>& rac, IO& io, Images &images, const ColorRanges 
 }
 
 template <typename IO>
-bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*callback)(int,int), Images &partial_images) {
+bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int first_callback_quality, Images &partial_images) {
     bool just_identify = false;
     if (scale == -1) just_identify=true;
     else if (scale != 1 && scale != 2 && scale != 4 && scale != 8 && scale != 16 && scale != 32 && scale != 64 && scale != 128) {
@@ -405,6 +405,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
         if (numFrames == 0xff) {
           if (!ioget_int_16bit_bigendian (io, &numFrames))
             return false;
+          if (numFrames < 2) return false;
         }
     }
     const int encoding=c/16;
@@ -412,7 +413,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     if (scale != 1 && encoding==1 && !just_identify) { v_printf(1,"Cannot decode non-interlaced FLIF file at lower scale! Ignoring scale...\n");}
     if (quality < 100 && encoding==1) { v_printf(1,"Cannot decode non-interlaced FLIF file at lower quality! Ignoring quality...\n");}
     int numPlanes=c%16;
-    if (numPlanes < 1 || numPlanes > 4) {e_printf("Invalid FLIF header (unsupported color channels)\n"); return false;}
+    if (numPlanes < 1 || numPlanes > 4 || numPlanes == 2) {e_printf("Invalid FLIF header (unsupported color channels)\n"); return false;}
     if (!ioget_int_8bit (io, &c))
         return false;
     if (c < '0' || c > '2')  {e_printf("Invalid FLIF header (unsupported color depth)\n"); return false;}
@@ -428,7 +429,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     // TODO: implement downscaled decoding without allocating a fullscale image buffer!
 
     RacIn<IO> rac(io);
-    SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 24> metaCoder(rac);
+    SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> metaCoder(rac);
 
 //    image.init(width, height, 0, 0, 0);
     v_printf(3,"Decoding %ux%u image, channels:",width,height);
@@ -482,8 +483,16 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
       //if (numFrames>1) partial_images[i].frame_delay = images[i].frame_delay;
     }
 
-    int cutoff = metaCoder.read_int(1,128);
-    int alpha = 0xFFFFFFFF / metaCoder.read_int(4,128);
+    int cutoff = 2;
+    int alpha = 0xFFFFFFFF / 19;
+    if (metaCoder.read_int(0,1)) {
+      cutoff = metaCoder.read_int(1,128);
+      alpha = 0xFFFFFFFF / metaCoder.read_int(4,128);
+      if (metaCoder.read_int(0,1)) {
+        e_printf("Not yet implemented: non-default bitchance initialization\n");
+        return false;
+      }
+    }
     std::vector<const ColorRanges*> rangesList;
     std::vector<Transform<IO>*> transforms;
     rangesList.push_back(getRanges(images[0]));
@@ -525,7 +534,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
 
     pixels_todo = (int64_t)width*height*ranges->numPlanes()/scale/scale;
     pixels_done = 0;
-    progressive_qual_target = 0;
+    progressive_qual_target = first_callback_quality;
 
     for (int p = 0; p < ranges->numPlanes(); p++) {
       v_printf(7,"Plane %i: %i..%i\n",p,ranges->min(p),ranges->max(p));
@@ -568,16 +577,21 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
       v_printf(2,"\rDecoding done, %li bytes for %i frames of %ux%u pixels (%.4fbpp)   \n",io.ftell(), numFrames, images[0].cols()/scale, images[0].rows()/scale, 8.0*io.ftell()/numFrames/images[0].rows()/images[0].cols()/scale/scale);
 
     if (quality==100 && scale==1 && fully_decoded) {
-      const uint32_t checksum = images[0].checksum();
-      v_printf(8,"Computed checksum: %X\n", checksum);
-      uint32_t checksum2 = metaCoder.read_int(0, 0xFFFF);
-      checksum2 *= 0x10000;
-      checksum2 += metaCoder.read_int(0, 0xFFFF);
-      v_printf(8,"Read checksum: %X\n", checksum2);
-      if (checksum != checksum2) {
-        v_printf(1,"\nCORRUPTION DETECTED: checksums don't match (computed: %x v/s read: %x)! (partial file?)\n\n", checksum, checksum2);
+      bool contains_checksum = metaCoder.read_int(0,1);
+      if (contains_checksum) {
+        const uint32_t checksum = images[0].checksum();
+        v_printf(8,"Computed checksum: %X\n", checksum);
+        uint32_t checksum2 = metaCoder.read_int(16);
+        checksum2 *= 0x10000;
+        checksum2 += metaCoder.read_int(16);
+        v_printf(8,"Read checksum: %X\n", checksum2);
+        if (checksum != checksum2) {
+          v_printf(1,"\nCORRUPTION DETECTED: checksums don't match (computed: %x v/s read: %x)! (partial file?)\n\n", checksum, checksum2);
+        } else {
+          v_printf(2,"Image decoded, checksum verified.\n");
+        }
       } else {
-        v_printf(2,"Image decoded, checksum verified.\n");
+        v_printf(2,"Image decoded, does not contain a checksum.\n");
       }
     } else if (quality < 100 || scale > 1) {
       v_printf(2,"Not checking checksum, lossy partial decoding was chosen.\n");
@@ -600,5 +614,5 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
 }
 
 
-template bool flif_decode(FileIO& io, Images &images, int quality, int scale, uint32_t (*callback)(int,int), Images &partial_images);
-template bool flif_decode(BlobReader& io, Images &images, int quality, int scale, uint32_t (*callback)(int,int), Images &partial_images);
+template bool flif_decode(FileIO& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int, Images &partial_images);
+template bool flif_decode(BlobReader& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int, Images &partial_images);

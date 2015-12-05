@@ -46,7 +46,7 @@ public:
     bool isEOF() {
       return feof(file);
     }
-    int ftell() {
+    long ftell() {
       return ::ftell(file);
     }
     int getc() {
@@ -91,7 +91,7 @@ public:
     bool isEOF() const {
         return seek_pos >= data_array_size;
     }
-    int ftell() const {
+    long ftell() const {
         return seek_pos;
     }
     int getc() {

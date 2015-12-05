@@ -101,7 +101,7 @@ public:
 
 #ifdef STATS
     ~RacInput() {
-        fprintf(stderr, "Total samples read from range coder: %llu\n", (unsigned long long)samples);
+        fprintf(stdout, "Total samples read from range coder: %llu\n", (unsigned long long)samples);
     }
 #endif
 

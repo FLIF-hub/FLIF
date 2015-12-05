@@ -51,8 +51,8 @@ void draw_image() {
     SDL_UpdateWindowSurface(window);
 }
 
-uint32_t progressive_render(int quality, int bytes_read) {
-    printf("%i bytes read, rendering at quality=%.2f%%\n",bytes_read, 0.01*quality);
+uint32_t progressive_render(int32_t quality, int64_t bytes_read) {
+    printf("%lli bytes read, rendering at quality=%.2f%%\n",bytes_read, 0.01*quality);
     FLIF_IMAGE* image = flif_decoder_get_image(d, 0);
     if (!image) { printf("Error: No decoded image found\n"); return 1; }
     uint32_t w = flif_image_get_width(image);
@@ -60,7 +60,7 @@ uint32_t progressive_render(int quality, int bytes_read) {
     if (!window) window = SDL_CreateWindow("FLIF Viewer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, w, h, 0);
     if (!window) { printf("Error: Could not create window\n"); return 2; }
     char title[100];
-    sprintf(title,"%ix%i FLIF image [read %i bytes, quality=%.2f%%]",w,h,bytes_read, 0.01*quality);
+    sprintf(title,"%ix%i FLIF image [read %lli bytes, quality=%.2f%%]",w,h,bytes_read, 0.01*quality);
     SDL_SetWindowTitle(window,title);
     for (int f = 0; f< flif_decoder_num_images(d); f++) {
         FLIF_IMAGE* image = flif_decoder_get_image(d, f);
@@ -92,7 +92,7 @@ uint32_t progressive_render(int quality, int bytes_read) {
     draw_image();
 //    SDL_Delay(1000);
     if (quit) return 0; // stop decoding
-    return quality + 1000; // call me back when you have at least 10% better quality
+    return quality + 1000; // call me back when you have at least 10.00% better quality
 }
 
 static int decodeThread(void * arg) {
@@ -115,9 +115,10 @@ int main(int argc, char **argv) {
 
     SDL_Init(SDL_INIT_VIDEO);
 
-    flif_decoder_set_quality(d, 100);
-    flif_decoder_set_scale(d, 1);
+    flif_decoder_set_quality(d, 100);   // this is the default
+    flif_decoder_set_scale(d, 1);       // this is the default
     flif_decoder_set_callback(d, &(progressive_render));
+    flif_decoder_set_first_callback_quality(d, 500);   // do the first callback when at least 5.00% quality has been decoded
     printf("Decoding...\n");
     SDL_Thread *decode_thread = SDL_CreateThread(decodeThread,"Decode_FLIF",argv);
     if (!decode_thread) {
