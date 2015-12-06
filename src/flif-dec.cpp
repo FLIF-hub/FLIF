@@ -516,6 +516,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
         v_printf(4,"%s", desc.c_str());
         if (desc == "FRA") {
                 if (images.size()<2) return false;
+                trans->configure(images.size());
         }
         if (desc == "FRS") {
                 if (images.size()<2) return false;

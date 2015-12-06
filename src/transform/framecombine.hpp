@@ -48,11 +48,13 @@ protected:
     bool was_grayscale;
     int max_lookback;
     int user_max_lookback;
+    int nb_frames;
 
     bool undo_redo_during_decode() { return true; }
 
     const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) {
-        if (max_lookback >= (int)images.size()) { e_printf("Bad value for FRA lookback\n"); exit(4);}
+//        if (max_lookback >= (int)images.size()) { e_printf("Bad value for FRA lookback\n"); exit(4);}
+        assert(max_lookback < (int)images.size());
         was_grayscale = srcRanges->numPlanes() < 2;
         was_flat = srcRanges->numPlanes() < 4;
         for (unsigned int fr=0; fr<images.size(); fr++) {
@@ -66,7 +68,7 @@ protected:
 
     bool load(const ColorRanges *, RacIn<IO> &rac) {
         SimpleSymbolCoder<SimpleBitChance, RacIn<IO>, 18> coder(rac);
-        max_lookback = coder.read_int(1, 256);
+        max_lookback = coder.read_int(1, nb_frames-1);
         v_printf(5,"[%i]",max_lookback);
         return true;
     }
@@ -74,13 +76,14 @@ protected:
 #ifdef HAS_ENCODER
     void save(const ColorRanges *, RacOut<IO> &rac) const {
         SimpleSymbolCoder<SimpleBitChance, RacOut<IO>, 18> coder(rac);
-        coder.write_int(1,256,max_lookback);
+        coder.write_int(1,nb_frames-1,max_lookback);
     }
 
 // a heuristic to figure out if this is going to help (it won't help if we introduce more entropy than what is eliminated)
     bool process(const ColorRanges *srcRanges, const Images &images) {
         if (images.size() < 2) return false;
         int nump=images[0].numPlanes();
+        nb_frames = images.size();
         int64_t pixel_cost = 1;
         for (int p=0; p<nump; p++) pixel_cost *= (1 + srcRanges->max(p) - srcRanges->min(p));
         // pixel_cost is roughly the cost per pixel (number of different values a pixel can take)
@@ -144,7 +147,7 @@ protected:
     }
 #endif
 
-    void configure(int setting) { user_max_lookback=setting; }
+    void configure(int setting) { user_max_lookback=nb_frames=setting; }
     void invData(Images &images) const {
         // most work has to be done on the fly in the decoder, this is just some cleaning up
         for (Image& image : images) image.drop_frame_lookbacks();
