@@ -26,7 +26,7 @@ set(TRANSFORM_SOURCES
 
 if(FLIF_SHARED)
     set(INTERFACE_SOURCES
-        flif-interface.cpp
+        library/flif-interface.cpp
     )
 else()
     set(EXE_SOURCES

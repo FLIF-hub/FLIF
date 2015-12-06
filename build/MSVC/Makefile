@@ -36,13 +36,18 @@ flif.exe: $(OBJDIR) $(LibDir)\zlib.lib $(LibDir)\libpng.lib $(FLIFOBJS)
 	copy "$(LibDir)\$@" $@
 
 libflif.dll: $(OBJDIR) $(LIBOBJS)
-	cl $(CFLAGS) $(SrcDir)\flif-interface.cpp /DFLIF_BUILD_DLL /Fd$O /Fo$O -c
+	cl $(CFLAGS) $(SrcDir)\library\flif-interface.cpp /DFLIF_BUILD_DLL /Fd$O /Fo$O -c
 	link /dll /out:"$(LibDir)\$@" $Oflif-interface.obj $(LIBOBJS) $(LDFLAGS)
 	copy "$(LibDir)\$@" $@
 
-viewflif.exe: libflif.dll
+libflif_dec.dll: $(OBJDIR) $(LIBOBJS)
+	cl $(CFLAGS) $(SrcDir)\library\flif-interface_dec.cpp /DFLIF_BUILD_DLL /Fd$O /Fo$O -c
+	link /dll /out:"$(LibDir)\$@" $Oflif-interface_dec.obj $(LIBOBJS) $(LDFLAGS)
+	copy "$(LibDir)\$@" $@
+
+viewflif.exe: libflif_dec.dll
 	cl $(CFLAGS) /I$(SrcDir)\ /I$(sdl2dir)\include /Tp $(SrcDir)\viewflif.c /FI..\build\MSVC\$(Incdir)\sdl2v140.h /DFLIF_USE_DLL /Fd$O /Fo$O -c
-	link /out:$(LibDir)\$@ $Oviewer.obj libflif.lib SDL2.lib SDL2main.lib $(LDFLAGS) /SUBSYSTEM:CONSOLE /LIBPATH:$(LibDir) /LIBPATH:$(sdl2dir)\lib\$(PLATFORM)\ 
+	link /out:$(LibDir)\$@ $Oviewer.obj libflif_dec.lib SDL2.lib SDL2main.lib $(LDFLAGS) /SUBSYSTEM:CONSOLE /LIBPATH:$(LibDir) /LIBPATH:$(sdl2dir)\lib\$(PLATFORM)\ 
 	copy "$(LibDir)\$@" $@
 	copy $(sdl2dir)\lib\$(PLATFORM)\SDL2.dll SDL2.dll
 
