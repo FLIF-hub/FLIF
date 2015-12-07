@@ -44,6 +44,7 @@ enum class flifEncoding : uint8_t {
 extern int64_t pixels_todo;
 extern int64_t pixels_done;
 extern int progressive_qual_target;
+extern int progressive_qual_shown;
 
 
 #define MAX_TRANSFORM 9

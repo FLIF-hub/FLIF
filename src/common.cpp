@@ -24,6 +24,7 @@ uint8_t transform_l = 0;
 int64_t pixels_todo = 0;
 int64_t pixels_done = 0;
 int progressive_qual_target = 0;
+int progressive_qual_shown = -1;
 
 
 const int PLANE_ORDERING[] = {4,3,0,1,2}; // FRA, A, Y, I, Q

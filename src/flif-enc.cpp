@@ -291,6 +291,7 @@ void flif_encode_main(RacOut<IO>& rac, IO& io, Images &images, flifEncoding enco
     for (int i=0; i<ranges->numPlanes(); i++) if (ranges->min(i)<ranges->max(i)) realnumplanes++;
     pixels_todo = (int64_t)image.rows()*image.cols()*realnumplanes*(learn_repeats+1);
     pixels_done = 0;
+    if (pixels_todo == 0) pixels_todo = pixels_done = 1;
 
     // two passes
     std::vector<Tree> forest(ranges->numPlanes(), Tree());

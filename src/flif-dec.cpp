@@ -102,6 +102,7 @@ template<typename IO, typename Rac, typename Coder> bool flif_decode_scanlines_i
           if (callback && p != 4 && qual >= progressive_qual_target) {
             for (unsigned int n=0; n < images.size(); n++) partial_images[n] = images[n].clone(); // make a copy to work with
             for (int i=transforms.size()-1; i>=0; i--) if (transforms[i]->undo_redo_during_decode()) transforms[i]->invData(partial_images);
+            progressive_qual_shown = progressive_qual_target;
             progressive_qual_target = callback(qual,io.ftell());
             if (qual >= progressive_qual_target) return false;
           }
@@ -277,6 +278,7 @@ template<typename IO, typename Rac, typename Coder> bool flif_decode_FLIF2_inner
         if (endZL>0) flif_decode_FLIF2_inner_interpol(partial_images, ranges, 0, endZL-1, 0, -1, scale);
         pixels_done = pixels_really_done;
         for (int i=transforms.size()-1; i>=0; i--) if (transforms[i]->undo_redo_during_decode()) transforms[i]->invData(partial_images);
+        progressive_qual_shown = progressive_qual_target;
         progressive_qual_target = callback(qual,io.ftell());
         if (qual >= progressive_qual_target) return false;
       }
@@ -537,7 +539,9 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     for (int i=0; i<ranges->numPlanes(); i++) if (ranges->min(i)<ranges->max(i)) realnumplanes++;
     pixels_todo = (int64_t)width*height*realnumplanes/scale/scale;
     pixels_done = 0;
+    if (pixels_todo == 0) pixels_todo = pixels_done = 1;
     progressive_qual_target = first_callback_quality;
+    progressive_qual_shown = -1;
 
     for (int p = 0; p < ranges->numPlanes(); p++) {
       v_printf(7,"Plane %i: %i..%i\n",p,ranges->min(p),ranges->max(p));
@@ -612,6 +616,11 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
         delete rangesList[i];
     }
     rangesList.clear();
+    // ensure that the callback gets called even if
+    if (callback && progressive_qual_target > progressive_qual_shown) {
+        for (unsigned int n=0; n < images.size(); n++) partial_images[n] = images[n].clone(); // make a copy to work with
+        callback(10000*pixels_done/pixels_todo,io.ftell());
+    }
 
     return true;
 }
