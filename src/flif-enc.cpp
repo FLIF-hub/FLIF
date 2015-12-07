@@ -496,8 +496,6 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
                 images[fr].make_constant_plane(p,ranges->min(p));
         }
     }
-    // not computing checksum until after transformations and potential zero-alpha changes
-    const uint32_t checksum = image.checksum();
 
 
     if (bits ==10) {
@@ -508,8 +506,10 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
 #endif
     }
 
-    //v_printf(2,"Writing checksum: %X\n", checksum);
     if (io.ftell() > 100) {
+      // not computing checksum until after transformations and potential zero-alpha changes
+      const uint32_t checksum = image.checksum();
+      //v_printf(2,"Writing checksum: %X\n", checksum);
       metaCoder.write_int(0,1,1);
       metaCoder.write_int(16, (checksum >> 16) & 0xFFFF);
       metaCoder.write_int(16, checksum & 0xFFFF);

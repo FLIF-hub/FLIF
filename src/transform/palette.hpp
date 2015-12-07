@@ -67,8 +67,8 @@ public:
         if (srcRanges->max(0) == 0 && srcRanges->max(2) == 0 &&
             srcRanges->numPlanes() > 3 && srcRanges->min(3) == 1 && srcRanges->max(3) == 1) return false; // already did PLA!
 //        if (srcRanges->min(0) < 0 || srcRanges->min(1) < 0 || srcRanges->min(2) < 0) return false;
-        if (srcRanges->min(1) == srcRanges->max(1)) return false; // probably grayscale/monochrome, better not use palette then
-        if (srcRanges->min(2) == srcRanges->max(2)) return false;
+        if (srcRanges->min(1) == srcRanges->max(1)
+         && srcRanges->min(2) == srcRanges->max(2)) return false;  // probably grayscale/monochrome, better not use palette then
         return true;
     }
 

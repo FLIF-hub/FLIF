@@ -39,6 +39,7 @@ int quit = 0;
 int frame = 0;
 int frame_delay[256] = {};
 int animation = 0;
+int drawing = 0;
 
 int do_event(SDL_Event e) {
        if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE) {printf("Closed\n"); quit=1; return 0;}
@@ -47,14 +48,19 @@ int do_event(SDL_Event e) {
 }
 
 void draw_image() {
+    if (drawing) return;
+    drawing=1;
     if (!window) return;
     SDL_Surface *canvas = SDL_GetWindowSurface(window);
     if (!canvas) { printf("Error: Could not get canvas\n"); return; }
     SDL_BlitSurface(surf[frame],NULL,canvas,NULL);
     SDL_UpdateWindowSurface(window);
+    drawing=0;
 }
 
 uint32_t progressive_render(int32_t quality, int64_t bytes_read) {
+    while (drawing) {SDL_Delay(50);}
+    drawing = 1;
     printf("%lli bytes read, rendering at quality=%.2f%%\n",bytes_read, 0.01*quality);
     animation = (flif_decoder_num_images(d) > 1);
     FLIF_IMAGE* image = flif_decoder_get_image(d, 0);
@@ -93,6 +99,7 @@ uint32_t progressive_render(int32_t quality, int64_t bytes_read) {
         }
         SDL_BlitSurface(tmpsurf,NULL,surf[f],NULL);
     }
+    drawing = 0;
     draw_image();
 //    SDL_Delay(1000);
     if (quit) return 0; // stop decoding

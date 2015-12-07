@@ -306,16 +306,18 @@ protected:
     bool undo_redo_during_decode() { return false; }
 
     const ColorRanges* meta(Images&, const ColorRanges *srcRanges) {
-//        cb->print();
+        cb->print();
+        really_used = true;
+
         // in the I buckets, some discrete buckets may have become continuous to keep the colorbucket info small
         // this means some Q buckets are empty, which means that some values from the I buckets can be eliminated
-        really_used = true;
-        prevPlanes pixelL,pixelU;
-        pixelL.push_back(cb->min0);
-        pixelU.push_back(cb->min0+CB0b-1);
-        pixelL.push_back(cb->min1);
-        pixelU.push_back(cb->min1+CB1-1);
-        for (auto bv : cb->bucket2) {
+        if (srcRanges->min(2) < srcRanges->max(2)) {  // only do this if the Q buckets are actually in use
+          prevPlanes pixelL,pixelU;
+          pixelL.push_back(cb->min0);
+          pixelU.push_back(cb->min0+CB0b-1);
+          pixelL.push_back(cb->min1);
+          pixelU.push_back(cb->min1+CB1-1);
+          for (auto bv : cb->bucket2) {
                 pixelL[1] = cb->min1;
                 pixelU[1] = cb->min1+CB1-1;
                 for (auto b : bv) {
@@ -328,6 +330,7 @@ protected:
                         pixelL[1] += CB1; pixelU[1] += CB1;
                 }
                 pixelL[0] += CB0b; pixelU[0] += CB0b;
+          }
         }
         cb->bucket0.prepare_snapvalues();
         cb->bucket3.prepare_snapvalues();
@@ -348,6 +351,8 @@ protected:
 //        if (srcRanges->max(0) > 255) return false; // do not attempt this on high bit depth images (TODO: generalize color bucket quantization!)
         if (srcRanges->max(0)-srcRanges->min(0) > 4096) return false; // do not attempt this on high bit depth images (TODO: generalize color bucket quantization!)
         if (srcRanges->max(1)-srcRanges->min(1) > 4096) return false;
+        if (srcRanges->min(1) == srcRanges->max(1)) return false; // middle channel not used, buckets are not going to help
+//        if (srcRanges->min(2) == srcRanges->max(2)) return false;
         cb = new ColorBuckets(srcRanges);
         return true;
     }
@@ -388,12 +393,12 @@ protected:
 
         ColorVal smin,smax;
         minmax(srcRanges,plane,pixelL,pixelU,smin,smax);
-        if (smin == smax) {b.min = b.max = smin; b.discrete=false; return b;}
 
         int exists = coder.read_int(0, 1);
         if (exists == 0) {
            return b; // empty bucket
         }
+        if (smin == smax) {b.min = b.max = smin; b.discrete=false; return b;}
         b.min = coder.read_int(smin, smax);
         b.max = coder.read_int(b.min, smax);
         if (b.min == b.max) { b.discrete=false; return b; }
@@ -418,11 +423,12 @@ protected:
         pixelL.push_back(cb->min0);
         pixelU.push_back(cb->min0+CB0a-1);
         for (ColorBucket& b : cb->bucket1) {b=load_bucket(coder, srcRanges, 1, pixelL, pixelU); pixelL[0] += CB0a; pixelU[0] += CB0a; }
-        pixelL[0] = cb->min0;
-        pixelU[0] = cb->min0+CB0b-1;
-        pixelL.push_back(cb->min1);
-        pixelU.push_back(cb->min1+CB1-1);
-        for (auto& bv : cb->bucket2) {
+        if (srcRanges->min(2) < srcRanges->max(2)) {
+          pixelL[0] = cb->min0;
+          pixelU[0] = cb->min0+CB0b-1;
+          pixelL.push_back(cb->min1);
+          pixelU.push_back(cb->min1+CB1-1);
+          for (auto& bv : cb->bucket2) {
                 pixelL[1] = cb->min1;
                 pixelU[1] = cb->min1+CB1-1;
                 for (ColorBucket& b : bv) {
@@ -430,6 +436,7 @@ protected:
                         pixelL[1] += CB1; pixelU[1] += CB1;
                 }
                 pixelL[0] += CB0b; pixelU[0] += CB0b;
+          }
         }
         if (srcRanges->numPlanes() > 3) cb->bucket3 = load_bucket(coder, srcRanges, 3, pixelL, pixelU);
         return true;
@@ -446,12 +453,12 @@ protected:
         }
         ColorVal smin,smax;
         minmax(srcRanges,plane,pixelL,pixelU,smin,smax);
-        if (smin==smax) { return;}
 
         if (b.min > b.max) {
                 coder.write_int(0, 1, 0);  // empty bucket
                 return;
         } else coder.write_int(0, 1, 1);  // non-empty bucket
+        if (smin==smax) { return;}
 
 
         coder.write_int(smin, smax, b.min);
@@ -480,18 +487,20 @@ protected:
         pixelU.push_back(cb->min0+CB0a-1);
         for (auto& b : cb->bucket1) { save_bucket(b, coder, srcRanges, 1, pixelL, pixelU); pixelL[0] += CB0a; pixelU[0] += CB0a; }
 //        printf("\nSaving Q Color Buckets\n  ");
-        pixelL[0] = cb->min0;
-        pixelU[0] = cb->min0+CB0b-1;
-        pixelL.push_back(cb->min1);
-        pixelU.push_back(cb->min1+CB1-1);
-        for (auto& bv : cb->bucket2) {
+        if (srcRanges->min(2) < srcRanges->max(2)) {
+          pixelL[0] = cb->min0;
+          pixelU[0] = cb->min0+CB0b-1;
+          pixelL.push_back(cb->min1);
+          pixelU.push_back(cb->min1+CB1-1);
+          for (auto& bv : cb->bucket2) {
                 pixelL[1] = cb->min1;
                 pixelU[1] = cb->min1+CB1-1;
-                for (auto b : bv) {
+                for (auto& b : bv) {
                         save_bucket(b, coder, srcRanges, 2, pixelL, pixelU);
                         pixelL[1] += CB1; pixelU[1] += CB1;
                 }
                 pixelL[0] += CB0b; pixelU[0] += CB0b;
+          }
         }
 //        printf("\n");
         if (srcRanges->numPlanes() > 3) {
