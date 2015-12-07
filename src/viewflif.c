@@ -137,7 +137,8 @@ int main(int argc, char **argv) {
               frame %= flif_decoder_num_images(d);
             } else animation = 0;
         }
-        while (SDL_PollEvent(&e)) {
+        if (!animation) { SDL_WaitEvent(&e); if (!do_event(e)) break; }
+        else while (SDL_PollEvent(&e)) {
             if (!do_event(e)) break;
         }
     }
