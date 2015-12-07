@@ -1,4 +1,4 @@
-lpngdir = lpng1618
+lpngdir = libpng-libpng-1.6.20-master-signed
 zlibdir = zlib-1.2.8
 sdl2dir = SDL2-2.0.3
 
@@ -46,24 +46,24 @@ libflif_dec.dll: $(OBJDIR) $(LIBOBJS)
 	copy "$(LibDir)\$@" $@
 
 viewflif.exe: libflif_dec.dll
-	cl $(CFLAGS) /I$(SrcDir)\ /I$(sdl2dir)\include /Tp $(SrcDir)\viewflif.c /FI..\build\MSVC\$(Incdir)\sdl2v140.h /DFLIF_USE_DLL /Fd$O /Fo$O -c
-	link /out:$(LibDir)\$@ $Oviewer.obj libflif_dec.lib SDL2.lib SDL2main.lib $(LDFLAGS) /SUBSYSTEM:CONSOLE /LIBPATH:$(LibDir) /LIBPATH:$(sdl2dir)\lib\$(PLATFORM)\ 
+	cl $(CFLAGS) /I$(SrcDir)\ /I$(SrcDir)\library\ /I$(sdl2dir)\include /Tp $(SrcDir)\viewflif.c /FI..\build\MSVC\$(Incdir)\sdl2v140.h /DFLIF_USE_DLL /Fd$O /Fo$O -c
+	link /out:$(LibDir)\$@ $Oviewflif.obj libflif_dec.lib SDL2.lib SDL2main.lib $(LDFLAGS) /SUBSYSTEM:CONSOLE /LIBPATH:$(LibDir) /LIBPATH:$(sdl2dir)\lib\$(PLATFORM)\ 
 	copy "$(LibDir)\$@" $@
 	copy $(sdl2dir)\lib\$(PLATFORM)\SDL2.dll SDL2.dll
 
-test: test-interface.exe
+test: flif.exe test-interface.exe
 	if exist output.flif del output.flif
 	@echo ./flif.exe ../../tools/kodim01.png output.flif
 	@powershell "Measure-Command{ ./flif.exe ../../tools/kodim01.png output.flif}"
 	if exist output.png  del output.png
 	flif output.flif output.png
 	@if exist "viewflif.exe" viewflif.exe output.flif
-	@if not exist "testFiles/" mkdir testFiles
+	@if not exist "..\tmp-test\" mkdir ..\tmp-test
 	if exist "test-interface.exe" test-interface.exe
 	start output.png
 
 test-interface.exe: libflif.dll
-	cl $(CFLAGS) /I$(Incdir) /I$(SrcDir)\ ..\..\tools\test.c /DFLIF_USE_DLL /Fd$O /Fo$O -c
+	cl $(CFLAGS) /I$(Incdir) /I$(SrcDir)\ /I$(SrcDir)\library\ ..\..\tools\test.c /DFLIF_USE_DLL /Fd$O /Fo$O -c
 	link /out:$(LibDir)\$@ $Otest.obj libflif.lib $(LDFLAGS) /LIBPATH:$(LibDir) 
 	copy "$(LibDir)\$@" $@
 
@@ -100,7 +100,7 @@ $(LibDir)\libpng.lib: $(LibDir)\zlib.lib
 {$(SrcDir)\transform\}.cpp{$(O)}.obj:
 	cl $(CFLAGS) /Fd$O /Fo$O -c $<
 
-all: flif.exe viewflif.exe test-interface.exe
+all: flif.exe libflif_dec.dll viewflif.exe test-interface.exe
 
 clean:
 	-del flif.exe
@@ -108,7 +108,8 @@ clean:
 	-del viewflif.exe
 	-del SDL2.dll
 	-del libflif.dll
+	-del libflif_dec.dll
 	-del output.png
 	-del output.flif
-	-rd /s /q testFiles
+	-rd /s /q ..\tmp-test
 	-rd /s /q $(LibDir)

@@ -1,8 +1,8 @@
 @echo off
 
-set lpngurl=http://sourceforge.net/projects/libpng/files/libpng16/1.6.18/lpng1618.zip/download
-set lpngzip=lpng1618.zip
-set lpngdir=lpng1618
+set lpngurl=https://github.com/glennrp/libpng/archive/libpng-1.6.20-master-signed.zip
+set lpngzip=libpng-1.6.20-master-signed.zip
+set lpngdir=libpng-libpng-1.6.20-master-signed
 
 set zliburl=http://sourceforge.net/projects/libpng/files/zlib/1.2.8/zlib128.zip/download
 set zlibzip=zlib128.zip
