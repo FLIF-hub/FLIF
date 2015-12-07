@@ -80,10 +80,14 @@ public:
     void inline flush() {
         low += (Config::MIN_RANGE - 1);
         // is this the correct way to reliably flush?
-        while (delayed_count || delayed_byte) {
           range = Config::MIN_RANGE - 1;
           output();
-        }
+          range = Config::MIN_RANGE - 1;
+          output();
+          range = Config::MIN_RANGE - 1;
+          output();
+          range = Config::MIN_RANGE - 1;
+          output();
         io.flush();
     }
 };

@@ -599,7 +599,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     } else if (quality < 100 || scale > 1) {
       v_printf(2,"Not checking checksum, lossy partial decoding was chosen.\n");
     } else {
-      v_printf(2,"File ended prematurely or decoding was interrupted.\n");
+      v_printf(1,"File ended prematurely or decoding was interrupted.\n");
     }
 
     for (int i=(int)transforms.size()-1; i>=0; i--) {
