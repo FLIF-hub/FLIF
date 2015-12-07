@@ -306,7 +306,7 @@ protected:
     bool undo_redo_during_decode() { return false; }
 
     const ColorRanges* meta(Images&, const ColorRanges *srcRanges) {
-        cb->print();
+//        cb->print();
         really_used = true;
 
         // in the I buckets, some discrete buckets may have become continuous to keep the colorbucket info small
