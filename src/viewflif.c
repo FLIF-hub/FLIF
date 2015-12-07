@@ -57,8 +57,8 @@ uint32_t progressive_render(int32_t quality, int64_t bytes_read) {
     if (!image) { printf("Error: No decoded image found\n"); return 1; }
     uint32_t w = flif_image_get_width(image);
     uint32_t h = flif_image_get_height(image);
-    if (!window) window = SDL_CreateWindow("FLIF Viewer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, w, h, 0);
     if (!window) { printf("Error: Could not create window\n"); return 2; }
+    SDL_SetWindowSize(window,w,h);
     char title[100];
     sprintf(title,"%ix%i FLIF image [read %lli bytes, quality=%.2f%%]",w,h,bytes_read, 0.01*quality);
     SDL_SetWindowTitle(window,title);
@@ -96,7 +96,7 @@ uint32_t progressive_render(int32_t quality, int64_t bytes_read) {
 }
 
 static int decodeThread(void * arg) {
-    char ** argv = arg;
+    char ** argv = (char **)arg;
     if (flif_decoder_decode_file(d, argv[1]) == 0) {
         printf("Error: decoding failed\n");
         quit = 1;
@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
     if (!d) return 1;
 
     SDL_Init(SDL_INIT_VIDEO);
-
+    window = SDL_CreateWindow("FLIF Viewer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 100, 100, 0);
     flif_decoder_set_quality(d, 100);   // this is the default
     flif_decoder_set_scale(d, 1);       // this is the default
     flif_decoder_set_callback(d, &(progressive_render));
