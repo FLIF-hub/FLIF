@@ -74,6 +74,7 @@ template<typename IO, typename Rac, typename Coder> bool flif_decode_scanlines_i
           v_printf(4,"\n");
           pixels_done += images[0].cols()*images[0].rows();
           for (uint32_t r = 0; r < images[0].rows(); r++) {
+            if (images[0].cols() == 0) return false; // decode aborted
             for (int fr=0; fr< (int)images.size(); fr++) {
               Image& image = images[fr];
               uint32_t begin=image.col_begin[r], end=image.col_end[r];
@@ -102,7 +103,7 @@ template<typename IO, typename Rac, typename Coder> bool flif_decode_scanlines_i
           if (callback && p != 4 && qual >= progressive_qual_target) {
             for (unsigned int n=0; n < images.size(); n++) partial_images[n] = images[n].clone(); // make a copy to work with
             for (int i=transforms.size()-1; i>=0; i--) if (transforms[i]->undo_redo_during_decode()) transforms[i]->invData(partial_images);
-            progressive_qual_shown = progressive_qual_target;
+            progressive_qual_shown = qual;
             progressive_qual_target = callback(qual,io.ftell());
             if (qual >= progressive_qual_target) return false;
           }
@@ -194,6 +195,7 @@ template<typename IO, typename Rac, typename Coder> bool flif_decode_FLIF2_inner
       Properties properties((nump>3?NB_PROPERTIESA[p]:NB_PROPERTIES[p]));
       if (z % 2 == 0) {
           for (uint32_t r = 1; r < images[0].rows(z); r += 2) {
+            if (images[0].cols() == 0) return false; // decode aborted
             pixels_done += images[0].cols(z);
             if (endZL == 0 && (r & 65)==65) v_printf(3,"\r%i%% done [%i/%i] DEC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
 #ifdef CHECK_FOR_BROKENFILES
@@ -229,6 +231,7 @@ template<typename IO, typename Rac, typename Coder> bool flif_decode_FLIF2_inner
         }
       } else {
           for (uint32_t r = 0; r < images[0].rows(z); r++) {
+            if (images[0].cols() == 0) return false; // decode aborted
             pixels_done += images[0].cols(z)/2;
             if (endZL == 0 && (r&129)==129) v_printf(3,"\r%i%% done [%i/%i] DEC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
 #ifdef CHECK_FOR_BROKENFILES
@@ -278,7 +281,7 @@ template<typename IO, typename Rac, typename Coder> bool flif_decode_FLIF2_inner
         if (endZL>0) flif_decode_FLIF2_inner_interpol(partial_images, ranges, 0, endZL-1, 0, -1, scale);
         pixels_done = pixels_really_done;
         for (int i=transforms.size()-1; i>=0; i--) if (transforms[i]->undo_redo_during_decode()) transforms[i]->invData(partial_images);
-        progressive_qual_shown = progressive_qual_target;
+        progressive_qual_shown = qual;
         progressive_qual_target = callback(qual,io.ftell());
         if (qual >= progressive_qual_target) return false;
       }
@@ -616,7 +619,8 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
         delete rangesList[i];
     }
     rangesList.clear();
-    // ensure that the callback gets called even if
+    // ensure that the callback gets called even if the image is completely constant
+    if (progressive_qual_target > 10000) progressive_qual_target = 10000;
     if (callback && progressive_qual_target > progressive_qual_shown) {
         for (unsigned int n=0; n < images.size(); n++) partial_images[n] = images[n].clone(); // make a copy to work with
         callback(10000*pixels_done/pixels_todo,io.ftell());

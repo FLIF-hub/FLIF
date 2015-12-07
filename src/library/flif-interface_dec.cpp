@@ -24,7 +24,9 @@ FLIF_DECODER::FLIF_DECODER()
 , scale(1)
 , callback(NULL)
 , first_quality(0)
+, working(false)
 { }
+
 
 int32_t FLIF_DECODER::decode_file(const char* filename) {
     internal_images.clear();
@@ -35,8 +37,10 @@ int32_t FLIF_DECODER::decode_file(const char* filename) {
         return 0;
     FileIO fio(file, filename);
 
+    working = true;
     if(!flif_decode(fio, internal_images, quality, scale, reinterpret_cast<uint32_t (*)(int32_t,int64_t)>(callback), first_quality, images))
-        return 0;
+        { working = false; return 0; }
+    working = false;
 
     images.clear();
     for (Image& image : internal_images) images.emplace_back(std::move(image));
@@ -50,12 +54,21 @@ int32_t FLIF_DECODER::decode_memory(const void* buffer, size_t buffer_size_bytes
 
     BlobReader reader(reinterpret_cast<const uint8_t*>(buffer), buffer_size_bytes);
 
+    working = true;
     if(!flif_decode(reader, internal_images, quality, scale, reinterpret_cast<uint32_t (*)(int32_t,int64_t)>(callback), first_quality, images))
-        return 0;
+        { working = false; return 0; }
+    working = false;
 
     images.clear();
     for (Image& image : internal_images) images.emplace_back(std::move(image));
     return 1;
+}
+
+int32_t FLIF_DECODER::abort() {
+      if (working) {
+        if (images.size() > 0) images[0].abort_decoding();
+        return 1;
+      } else return 0;
 }
 
 size_t FLIF_DECODER::num_images() {
@@ -105,6 +118,12 @@ FLIF_DLLEXPORT FLIF_DECODER* FLIF_API flif_create_decoder() {
     return 0;
 }
 
+FLIF_DLLEXPORT int32_t FLIF_API flif_abort_decoder(FLIF_DECODER* decoder) {
+    try {
+      return decoder->abort();
+    } catch(...) {}
+    return 0;
+}
 FLIF_DLLEXPORT void FLIF_API flif_destroy_decoder(FLIF_DECODER* decoder) {
     // delete should never let exceptions out
     delete decoder;

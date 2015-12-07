@@ -408,6 +408,9 @@ public:
 //          printf("Computed checksum: %X\n", (~crc & 0xFFFFFFFF));
           return (~crc & 0xFFFFFFFF);
     }
+    void abort_decoding() {
+        width = 0; // this is used to signal the decoder to stop
+    }
 
 };
 

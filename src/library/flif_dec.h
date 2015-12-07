@@ -29,6 +29,7 @@ extern "C" {
     typedef struct FLIF_DECODER FLIF_DECODER;
 
     FLIF_DLLIMPORT FLIF_DECODER* FLIF_API flif_create_decoder();
+    FLIF_DLLIMPORT int32_t FLIF_API flif_abort_decoder(FLIF_DECODER* decoder);
     FLIF_DLLIMPORT void FLIF_API flif_destroy_decoder(FLIF_DECODER* decoder);
 
     FLIF_DLLIMPORT void FLIF_API flif_decoder_set_quality(FLIF_DECODER* decoder, int32_t quality); // valid quality: 0-100

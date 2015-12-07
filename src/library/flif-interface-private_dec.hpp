@@ -27,6 +27,7 @@ struct FLIF_DECODER
 
     int32_t decode_file(const char* filename);
     int32_t decode_memory(const void* buffer, size_t buffer_size_bytes);
+    int32_t abort();
     size_t num_images();
     int32_t num_loops();
     FLIF_IMAGE* get_image(size_t index);
@@ -40,4 +41,5 @@ private:
     Images internal_images;
     Images images;
     std::vector<std::unique_ptr<FLIF_IMAGE>> requested_images;
+    bool working;
 };

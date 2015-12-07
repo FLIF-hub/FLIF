@@ -21,6 +21,8 @@
 #include <stdio.h>
 #include <SDL.h>
 
+#define PROGRESSIVE_DECODING
+
 #pragma pack(push,1)
 typedef struct RGBA
 {
@@ -36,6 +38,7 @@ SDL_Surface* tmpsurf = NULL;
 int quit = 0;
 int frame = 0;
 int frame_delay[256] = {};
+int animation = 0;
 
 int do_event(SDL_Event e) {
        if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE) {printf("Closed\n"); quit=1; return 0;}
@@ -53,6 +56,7 @@ void draw_image() {
 
 uint32_t progressive_render(int32_t quality, int64_t bytes_read) {
     printf("%lli bytes read, rendering at quality=%.2f%%\n",bytes_read, 0.01*quality);
+    animation = (flif_decoder_num_images(d) > 1);
     FLIF_IMAGE* image = flif_decoder_get_image(d, 0);
     if (!image) { printf("Error: No decoded image found\n"); return 1; }
     uint32_t w = flif_image_get_width(image);
@@ -78,17 +82,17 @@ uint32_t progressive_render(int32_t quality, int64_t bytes_read) {
             pp += tmpsurf->pitch;
         }
         if (flif_image_get_nb_channels(image) > 3) {
-          if (!bgsurf) bgsurf = SDL_CreateRGBSurface(0,w,h,32,0x000000FF,0x0000FF00,0x00FF0000,0xFF000000);
-          // SDL_FillRect(canvas,NULL,0);
-          // Draw checkerboard background for image with alpha channel
-          SDL_Rect sq; sq.w=20; sq.h=20;
-          for (sq.y=0; sq.y<h; sq.y+=sq.h) for (sq.x=0; sq.x<w; sq.x+=sq.w)
+          if (!bgsurf) {
+            bgsurf = SDL_CreateRGBSurface(0,w,h,32,0x000000FF,0x0000FF00,0x00FF0000,0xFF000000);
+            // Draw checkerboard background for image with alpha channel
+            SDL_Rect sq; sq.w=20; sq.h=20;
+            for (sq.y=0; sq.y<h; sq.y+=sq.h) for (sq.x=0; sq.x<w; sq.x+=sq.w)
               SDL_FillRect(bgsurf,&sq,((sq.y/sq.h + sq.x/sq.w)&1 ? 0xFF606060 : 0xFFA0A0A0));
+          }
           SDL_BlitSurface(bgsurf,NULL,surf[f],NULL);
         }
         SDL_BlitSurface(tmpsurf,NULL,surf[f],NULL);
     }
-
     draw_image();
 //    SDL_Delay(1000);
     if (quit) return 0; // stop decoding
@@ -114,35 +118,38 @@ int main(int argc, char **argv) {
     if (!d) return 1;
 
     SDL_Init(SDL_INIT_VIDEO);
-    window = SDL_CreateWindow("FLIF Viewer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 100, 100, 0);
+    window = SDL_CreateWindow("FLIF Viewer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 200, 200, 0);
     flif_decoder_set_quality(d, 100);   // this is the default
     flif_decoder_set_scale(d, 1);       // this is the default
+#ifdef PROGRESSIVE_DECODING
     flif_decoder_set_callback(d, &(progressive_render));
     flif_decoder_set_first_callback_quality(d, 500);   // do the first callback when at least 5.00% quality has been decoded
-    printf("Decoding...\n");
+    printf("Decoding progressively...\n");
     SDL_Thread *decode_thread = SDL_CreateThread(decodeThread,"Decode_FLIF",argv);
     if (!decode_thread) {
         printf("Error: failed to create decode thread\n");
         return 1;
     }
+#else
+    printf("Decoding entire image...\n");
+    decodeThread(argv);
+    progressive_render(10000,-1);
+#endif
     SDL_Event e;
-    int animation = 1;
     int result = 0;
     while (!quit) {
-        if (window && animation) {
-            draw_image();
-            if (flif_decoder_num_images(d) > 1) {
-              SDL_Delay(frame_delay[frame]);
-              frame++;
-              frame %= flif_decoder_num_images(d);
-            } else animation = 0;
-        }
-        if (!animation) { SDL_WaitEvent(&e); if (!do_event(e)) break; }
-        else while (SDL_PollEvent(&e)) {
-            if (!do_event(e)) break;
-        }
+        draw_image();
+        if (animation) {
+            SDL_Delay(frame_delay[frame]);
+            frame++;
+            frame %= flif_decoder_num_images(d);
+        } else { SDL_WaitEvent(&e); if (!do_event(e)) break; SDL_Delay(100); }
+        while (SDL_PollEvent(&e)) if (!do_event(e)) break;
     }
+#ifdef PROGRESSIVE_DECODING
+    while(flif_abort_decoder(d)) SDL_Delay(100);
     SDL_WaitThread(decode_thread, &result);
+#endif
     flif_destroy_decoder(d);
     SDL_DestroyWindow(window);
     SDL_Quit();
