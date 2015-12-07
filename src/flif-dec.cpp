@@ -533,7 +533,9 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     if (tcount==0) v_printf(4,"none\n"); else v_printf(4,"\n");
     const ColorRanges* ranges = rangesList.back();
 
-    pixels_todo = (int64_t)width*height*ranges->numPlanes()/scale/scale;
+    int realnumplanes = 0;
+    for (int i=0; i<ranges->numPlanes(); i++) if (ranges->min(i)<ranges->max(i)) realnumplanes++;
+    pixels_todo = (int64_t)width*height*realnumplanes/scale/scale;
     pixels_done = 0;
     progressive_qual_target = first_callback_quality;
 
@@ -544,7 +546,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     for (int p = 0; p < ranges->numPlanes(); p++) {
         if (ranges->min(p) >= ranges->max(p)) {
             v_printf(5,"Constant plane %i at color value %i\n",p,ranges->min(p));
-            pixels_todo -= (int64_t)width*height/scale/scale;
+//            pixels_todo -= (int64_t)width*height/scale/scale;
             for (int fr = 0; fr < numFrames; fr++)
                 images[fr].make_constant_plane(p,ranges->min(p));
         }

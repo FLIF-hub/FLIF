@@ -287,8 +287,9 @@ void flif_encode_main(RacOut<IO>& rac, IO& io, Images &images, flifEncoding enco
                  int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int cutoff = 2, int alpha = 0xFFFFFFFF / 19) {
 
     Image& image=images[0];
-
-    pixels_todo = (int64_t)image.rows()*image.cols()*ranges->numPlanes()*(learn_repeats+1);
+    int realnumplanes = 0;
+    for (int i=0; i<ranges->numPlanes(); i++) if (ranges->min(i)<ranges->max(i)) realnumplanes++;
+    pixels_todo = (int64_t)image.rows()*image.cols()*realnumplanes*(learn_repeats+1);
     pixels_done = 0;
 
     // two passes
@@ -489,7 +490,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     for (int p = 0; p < ranges->numPlanes(); p++) {
         if (ranges->min(p) >= ranges->max(p)) {
             v_printf(4,"Constant plane %i at color value %i\n",p,ranges->min(p));
-            pixels_todo -= (int64_t)image.rows()*image.cols()*(learn_repeats+1);
+            //pixels_todo -= (int64_t)image.rows()*image.cols()*(learn_repeats+1);
             for (int fr = 0; fr < numFrames; fr++)
                 images[fr].make_constant_plane(p,ranges->min(p));
         }

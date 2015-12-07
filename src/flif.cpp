@@ -131,21 +131,13 @@ bool file_is_flif(const char * filename){
 
 
 void show_banner() {
-      v_printf(3,"  ____ _(_)____");
-    v_printf(3,"\n (___ | | | ___)   ");v_printf(2,"FLIF 0.2.0rc2 [6 December 2015]");
-    v_printf(3,"\n  (__ | |_| __)    Free Lossless Image Format");
-    v_printf(3,"\n    (_|___|_)    ");v_printf(2,"  (c) 2010-2015 J.Sneyers & P.Wuille, GNU GPL v3+\n");
-
-    v_printf(5,"\n This program is free software: you can redistribute it and/or modify");
-    v_printf(5,"\n it under the terms of the GNU General Public License as published by");
-    v_printf(5,"\n the Free Software Foundation, either version 3 of the License, or");
-    v_printf(5,"\n (at your option) any later version.");
-    v_printf(5,"\n");
-    v_printf(5,"\n This program is distributed in the hope that it will be useful,");
-    v_printf(5,"\n but WITHOUT ANY WARRANTY; without even the implied warranty of");
-    v_printf(5,"\n MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the");
-    v_printf(5,"\n GNU General Public License for more details.\n");
+    v_printf(3,"  ____ _(_)____\n");
+    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc2 [7 December 2015]\n");
+    v_printf(3,"  (__ | |_| __)    ");v_printf(2,"Copyright (C) 2015 Jon Sneyers and Pieter Wuille\n");
+    v_printf(3,"    (_|___|_)      ");v_printf(2,"License GPLv3+: GNU GPL version 3 or later\n");
     v_printf(3,"\n");
+    v_printf(2,"This is free software: you are free to change and redistribute it.\n");
+    v_printf(2,"There is NO WARRANTY, to the extent permitted by law.\n");
 #ifndef HAS_ENCODER
     v_printf(2,"Non-default compile-option: DECODER ONLY\n");
 #endif
@@ -155,7 +147,6 @@ void show_banner() {
 #ifndef FAST_BUT_WORSE_COMPRESSION
     v_printf(2,"Non-default compile-option: SLOWER, BETTER COMPRESSION (CANNOT ENCODE/DECODE NORMAL FLIF FILES!)\n");
 #endif
-
 }
 
 bool check_compatible_extension (char *ext) {
