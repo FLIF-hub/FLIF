@@ -63,7 +63,12 @@ private:
         return c;
     }
     void inline input() {
-        while (range <= Config::MIN_RANGE) {
+        if (range <= Config::MIN_RANGE) {
+            low <<= 8;
+            range <<= 8;
+            low |= read_catch_eof();
+        }
+        if (range <= Config::MIN_RANGE) {
             low <<= 8;
             range <<= 8;
             low |= read_catch_eof();
@@ -105,7 +110,7 @@ public:
     }
 #endif
 
-    bool inline read_12bit_chance(uint16_t b12) {
+    bool inline read_12bit_chance(uint16_t b12) __attribute__ ((hot)) {
         return get(Config::chance_12bit_chance(b12, range));
     }
 

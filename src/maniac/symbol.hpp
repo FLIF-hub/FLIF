@@ -61,13 +61,20 @@ typedef enum {
 
 //static const char *SymbolChanceBitName[] = {"zero", "sign", "expo", "mant"};
 
+static const uint16_t EXP_CHANCES[] = {1000, 1200, 1500, 1750, 2000, 2300, 2800, 2400, 2300,
+                                       2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048};
+static const uint16_t MANT_CHANCES[] = {1900, 1850, 1800, 1750, 1650, 1600, 1600, 2048, 2048,
+                                        2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048};
+static const uint16_t ZERO_CHANCE = 1000;
+static const uint16_t SIGN_CHANCE = 2048;
+/*
 static const uint16_t EXP_CHANCES[] = {1200, 1600, 1800, 1900, 2050, 2300, 2500, 2300, 2048,
                                        2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048};
 static const uint16_t MANT_CHANCES[] = {1750, 1730, 1710, 1670, 1650, 1700, 1800, 1800, 2048,
                                         2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048};
 static const uint16_t ZERO_CHANCE = 1600;
 static const uint16_t SIGN_CHANCE = 2048;
-
+*/
 #ifdef STATS
 struct SymbolChanceStats {
     BitChanceStats stats_zero;
@@ -163,6 +170,8 @@ template <typename SymbolCoder> int reader(SymbolCoder& coder, int bits) {
   return value;
 }
 
+template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min, int max) __attribute__ ((hot));
+
 template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min, int max) {
     assert(min<=max);
     if (min == max) return min;
@@ -176,28 +185,23 @@ template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min
                 if (sign) min = 1; else max = -1;
         } else {sign = false; max=-1;}
       } else {sign = true; min=1;}
-//      if (min == max) return min; // nodig?
     } else {
         if (min<0) sign = false;
         else sign = true;
     }
 
+    const int amin = (sign? min : -max);
+    const int amax = (sign? max : -min);
 
-//    if (sign && min <= 0) min = 1;
-//    if (!sign && max >= 0) max = -1;
+    const int emax = maniac::util::ilog2(amax);
+    int e = maniac::util::ilog2(amin);
 
-    int amin = (sign? min : -max);
-    int amax = (sign? max : -min);
-
-    int emax = maniac::util::ilog2(amax);
-    int i = maniac::util::ilog2(amin);
-
-    for (; i < emax; i++) {
-        // if exponent >i is impossible, we are done
-        if ((1 << (i+1)) > amax) break;
-        if (coder.read(BIT_EXP,i)) break;
+    for (; e < emax; e++) {
+        // if exponent >e is impossible, we are done
+        if ((1 << (e+1)) > amax) break;
+        if (coder.read(BIT_EXP,e)) break;
     }
-    int e = i;
+
     int have = (1 << e);
     int left = have-1;
     for (int pos = e; pos>0;) {

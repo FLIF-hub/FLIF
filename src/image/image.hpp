@@ -64,7 +64,7 @@ public:
     void set(const uint32_t r, const uint32_t c, const ColorVal x) {
         data[r*width + c] = x;
     }
-    ColorVal get(const uint32_t r, const uint32_t c) const {
+    ColorVal get(const uint32_t r, const uint32_t c) const __attribute__ ((hot)) {
 //        if (r >= height || r < 0 || c >= width || c < 0) {printf("OUT OF RANGE!\n"); return 0;}
         return data[r*width + c];
     }
@@ -344,7 +344,7 @@ public:
     bool save(const char *name, const int scale) const;
 
     // access pixel by coordinate
-    ColorVal operator()(const int p, const uint32_t r, const uint32_t c) const {
+    ColorVal operator()(const int p, const uint32_t r, const uint32_t c) const __attribute__ ((hot)) {
       assert(p>=0);
       assert(p<num);
       return planes[p]->get(r,c);
@@ -380,7 +380,7 @@ public:
         while (zoom_rowpixelsize(z) < rows() || zoom_colpixelsize(z) < cols()) z++;
         return z;
     }
-    ColorVal operator()(int p, int z, uint32_t rz, uint32_t cz) const {
+    ColorVal operator()(int p, int z, uint32_t rz, uint32_t cz) const __attribute__ ((hot)) {
         uint32_t r = rz*zoom_rowpixelsize(z);
         uint32_t c = cz*zoom_colpixelsize(z);
         return operator()(p,r,c);
