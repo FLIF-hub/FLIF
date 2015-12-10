@@ -22,6 +22,7 @@
 #include <assert.h>
 #include "util.hpp"
 #include "chance.hpp"
+#include "../compiler-specific.hpp"
 
 template <typename RAC> class UniformSymbolCoder {
 private:
