@@ -433,7 +433,7 @@ int main(int argc, char **argv)
                   if (divisor <= 0 || divisor > 0xFFFFFFF) {e_printf("Not a sensible number for option -D\n"); return 1; }
                   break;
         case 'M': min_size=atoi(optarg);
-                  if (min_size < 0 || min_size > CONTEXT_TREE_MAX_COUNT) {e_printf("Not a sensible number for option -M\n"); return 1; }
+                  if (min_size < 0) {e_printf("Not a sensible number for option -M\n"); return 1; }
                   break;
         case 'S': split_threshold=atoi(optarg);
                   if (split_threshold <= 0 || split_threshold > 100000) {e_printf("Not a sensible number for option -S\n"); return 1; }
