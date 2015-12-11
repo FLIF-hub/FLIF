@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include <assert.h>
 #include "../config.h"
+#include "../compiler-specific.hpp"
 
 /* RAC configuration for 24-bit RAC */
 class RacConfig24 {
@@ -110,7 +111,7 @@ public:
     }
 #endif
 
-    bool inline read_12bit_chance(uint16_t b12) __attribute__ ((hot)) {
+    bool inline read_12bit_chance(uint16_t b12) ATTRIBUTE_HOT {
         return get(Config::chance_12bit_chance(b12, range));
     }
 

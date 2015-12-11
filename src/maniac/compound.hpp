@@ -128,7 +128,7 @@ private:
     std::vector<FinalCompoundSymbolChances<BitChance,bits> > leaf_node;
     Tree &inner_node;
 
-    FinalCompoundSymbolChances<BitChance,bits> inline &find_leaf(const Properties &properties) __attribute__ ((hot)) {
+    FinalCompoundSymbolChances<BitChance,bits> inline &find_leaf(const Properties &properties) ATTRIBUTE_HOT {
         Tree::size_type pos = 0;
         while(inner_node[pos].property != -1) {
             if (inner_node[pos].count < 0) {
@@ -172,7 +172,7 @@ public:
         inner_node[0].leafID = 0;
     }
 
-    int read_int(const Properties &properties, int min, int max) __attribute__ ((hot)) {
+    int read_int(const Properties &properties, int min, int max) ATTRIBUTE_HOT {
         if (min == max) { return min; }
         assert(properties.size() == nb_properties);
         FinalCompoundSymbolChances<BitChance,bits> &chances = find_leaf(properties);

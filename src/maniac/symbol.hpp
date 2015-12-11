@@ -22,6 +22,7 @@
 #include <assert.h>
 #include "util.hpp"
 #include "chance.hpp"
+#include "../compiler-specific.hpp"
 
 template <typename RAC> class UniformSymbolCoder {
 private:
@@ -170,7 +171,7 @@ template <typename SymbolCoder> int reader(SymbolCoder& coder, int bits) {
   return value;
 }
 
-template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min, int max) __attribute__ ((hot));
+template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min, int max) ATTRIBUTE_HOT;
 
 template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min, int max) {
     assert(min<=max);
