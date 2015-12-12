@@ -22,7 +22,9 @@
 #include "../image/color_range.hpp"
 #include "transform.hpp"
 #include <tuple>
+#ifdef HAS_ENCODER
 #include <set>
+#endif
 
 #define MAX_PALETTE_SIZE 30000
 
@@ -56,12 +58,15 @@ template <typename IO>
 class TransformPalette : public Transform<IO> {
 protected:
     typedef std::tuple<ColorVal,ColorVal,ColorVal> Color;
-    std::set<Color> Palette;
     std::vector<Color> Palette_vector;
     unsigned int max_palette_size;
+    bool ordered_palette;
 
 public:
-    void configure(const int setting) { max_palette_size = setting;}
+    void configure(const int setting) {
+        if (setting>0) { ordered_palette=true; max_palette_size = setting;}
+        else {ordered_palette=false; max_palette_size = -setting;}
+    }
     bool init(const ColorRanges *srcRanges) {
         if (srcRanges->numPlanes() < 3) return false;
         if (srcRanges->max(0) == 0 && srcRanges->max(2) == 0 &&
@@ -95,16 +100,34 @@ public:
 
 #ifdef HAS_ENCODER
     bool process(const ColorRanges *, const Images &images) {
-        for (const Image& image : images)
-        for (uint32_t r=0; r<image.rows(); r++) {
+        if (ordered_palette) {
+          std::set<Color> Palette;
+          for (const Image& image : images)
+          for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
                 int Y=image(0,r,c), I=image(1,r,c), Q=image(2,r,c);
                 if (image.alpha_zero_special && image.numPlanes()>3 && image(3,r,c)==0) continue;
                 Palette.insert(Color(Y,I,Q));
                 if (Palette.size() > max_palette_size) return false;
             }
+          }
+          for (Color c : Palette) Palette_vector.push_back(c);
+        } else {
+          for (const Image& image : images)
+          for (uint32_t r=0; r<image.rows(); r++) {
+            for (uint32_t c=0; c<image.cols(); c++) {
+                int Y=image(0,r,c), I=image(1,r,c), Q=image(2,r,c);
+                if (image.alpha_zero_special && image.numPlanes()>3 && image(3,r,c)==0) continue;
+                Color C(Y,I,Q);
+                bool found=false;
+                for (Color c : Palette_vector) if (c==C) {found=true; break;}
+                if (!found) {
+                    Palette_vector.push_back(C);
+                    if (Palette_vector.size() > max_palette_size) return false;
+                }
+            }
+          }
         }
-        for (Color c : Palette) Palette_vector.push_back(c);
 //        printf("Palette size: %lu\n",Palette.size());
         return true;
     }
@@ -133,7 +156,7 @@ public:
         coder.write_int(1, MAX_PALETTE_SIZE, Palette_vector.size());
 //        printf("Saving %lu colors: ", Palette_vector.size());
         prevPlanes pp(2);
-        int sorted=1;
+        int sorted=(ordered_palette? 1 : 0);
         coder.write_int(0, 1, sorted);
         if (sorted) {
             Color min(srcRanges->min(0), srcRanges->min(1), srcRanges->min(2));
@@ -166,6 +189,7 @@ public:
         }
 //        printf("\nSaved palette of size: %lu\n",Palette_vector.size());
         v_printf(5,"[%lu]",Palette_vector.size());
+        if (!ordered_palette) v_printf(5,"Unsorted");
     }
 #endif
     bool load(const ColorRanges *srcRanges, RacIn<IO> &rac) {

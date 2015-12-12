@@ -58,15 +58,18 @@ template <typename IO>
 class TransformPaletteA : public Transform<IO> {
 protected:
     typedef std::tuple<ColorVal,ColorVal,ColorVal,ColorVal> Color;
-    std::set<Color> Palette;
     std::vector<Color> Palette_vector;
     unsigned int max_palette_size;
     bool alpha_zero_special;
+    bool ordered_palette;
 
 public:
     // dirty hack: max_palette_size is ignored at decode time, alpha_zero_special will be set at encode time
-    void configure(const int setting) { max_palette_size = setting; alpha_zero_special = setting;}
-
+    void configure(const int setting) {
+        alpha_zero_special = setting;
+        if (setting>0) { ordered_palette=true; max_palette_size = setting;}
+        else {ordered_palette=false; max_palette_size = -setting;}
+    }
     bool init(const ColorRanges *srcRanges) {
         if (srcRanges->numPlanes() < 4) return false;
         if (srcRanges->min(3) == srcRanges->max(3)) return false; // don't try this if the alpha plane is not actually used
@@ -100,19 +103,37 @@ public:
 #if HAS_ENCODER
     bool process(const ColorRanges *srcRanges, const Images &images) {
         if (images[0].alpha_zero_special) alpha_zero_special = true; else alpha_zero_special = false;
-        for (const Image& image : images)
-        for (uint32_t r=0; r<image.rows(); r++) {
+        if (ordered_palette) {
+          std::set<Color> Palette;
+          for (const Image& image : images)
+          for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
                 int Y=image(0,r,c), I=image(1,r,c), Q=image(2,r,c), A=image(3,r,c);
                 if (alpha_zero_special && A==0) { Y=I=Q=0; }
                 Palette.insert(Color(A,Y,I,Q));  // alpha first so sorting makes more sense (?)
                 if (Palette.size() > max_palette_size) return false;
             }
+          }
+          for (Color c : Palette) Palette_vector.push_back(c);
+        } else {
+          for (const Image& image : images)
+          for (uint32_t r=0; r<image.rows(); r++) {
+            for (uint32_t c=0; c<image.cols(); c++) {
+                int Y=image(0,r,c), I=image(1,r,c), Q=image(2,r,c), A=image(3,r,c);
+                if (alpha_zero_special && A==0) { Y=I=Q=0; }
+                Color C(A,Y,I,Q);
+                bool found=false;
+                for (Color c : Palette_vector) if (c==C) {found=true; break;}
+                if (!found) {
+                    Palette_vector.push_back(C);
+                    if (Palette_vector.size() > max_palette_size) return false;
+                }
+            }
+          }
         }
         uint64_t max_nb_colors = 1;
         for (int p=0; p<4; p++) max_nb_colors *= 1+srcRanges->max(p)-srcRanges->min(p);
-        if (Palette.size() == max_nb_colors) return false; // don't make a trivial palette
-        for (Color c : Palette) Palette_vector.push_back(c);
+        if (Palette_vector.size() == max_nb_colors) return false; // don't make a trivial palette
 //        printf("Palette size: %lu\n",Palette.size());
         return true;
     }
