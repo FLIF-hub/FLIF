@@ -221,16 +221,16 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
       }
       desc.push_back("BND");  // get the bounds of the color spaces
     }
-    if (palette_size < 0) {
+    if (palette_size == -1) {
         palette_size = 1024;
         if (nb_pixels * images.size() / 2 < 1024) {
           palette_size = nb_pixels * images.size() / 2;
         }
     }
-    if (palette_size > 0) {
+    if (palette_size != 0) {
         desc.push_back("PLA");  // try palette (including alpha)
     }
-    if (palette_size > 0) {
+    if (palette_size != 0) {
         desc.push_back("PLT");  // try palette (without alpha)
     }
 
@@ -410,8 +410,8 @@ int main(int argc, char **argv)
         case 'a': acb=1; break;
         case 'b': acb=0; break;
         case 'p': palette_size=atoi(optarg);
-                  if (palette_size < 0 || palette_size > 30000) {e_printf("Not a sensible number for option -p\n"); return 1; }
-                  if (palette_size == 0) {v_printf(2,"Palette disabled\n"); }
+                  if (palette_size < -30000 || palette_size > 30000) {e_printf("Not a sensible number for option -p\n"); return 1; }
+                  if (palette_size == 0) {v_printf(5,"Palette disabled\n"); }
                   break;
         case 'r': learn_repeats=atoi(optarg);
                   if (learn_repeats < 0 || learn_repeats > 20) {e_printf("Not a sensible number for option -r\n"); return 1; }

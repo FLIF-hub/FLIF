@@ -194,7 +194,7 @@ void flif_encode_FLIF2_pass(IO& io, Rac &rac, const Images &images, const ColorR
         coders.emplace_back(rac, propRanges, forest[p], split_threshold, cutoff, alpha);
     }
 
-    if (beginZL == images[0].zooms()) {
+    if (beginZL == images[0].zooms() && endZL>0) {
       // special case: very left top pixel must be written first to get it all started
 //      SimpleSymbolCoder<FLIFBitChanceMeta, Rac, 18> metaCoder(rac);
       UniformSymbolCoder<Rac> metaCoder(rac);

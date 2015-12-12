@@ -28,14 +28,14 @@ shift
 
 if [ $# -lt 1 ]
 then
-OUT="$(dirname $IN)/$(basename $IN .png).flif"
+OUT="$(dirname "$IN")/$(basename "$IN" .png).flif"
 else
 OUT="$1"
 shift
 fi
 
 echo "Decoding $IN ..."
-$APNGDIS $IN $TMP_PREFIX >/dev/null
+$APNGDIS "$IN" $TMP_PREFIX >/dev/null
 FRAME_DELAY=""
 for d in $TMP_PREFIX*.txt
 do
@@ -43,6 +43,6 @@ do
     FRAME_DELAY="$FRAME_DELAY$((1000 * $delay)),"
 done
 echo "Encoding $OUT ..."
-$FLIF -f$FRAME_DELAY $@ $TMP_PREFIX*.$TMP_FORMAT $OUT
+$FLIF -f$FRAME_DELAY $@ $TMP_PREFIX*.$TMP_FORMAT "$OUT"
 rm $TMP_PREFIX*.$TMP_FORMAT
 rm $TMP_PREFIX*.txt

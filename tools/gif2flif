@@ -28,14 +28,14 @@ shift
 
 if [ $# -lt 1 ]
 then
-OUT="$(dirname $IN)/$(basename $IN .gif).flif"
+OUT="$(dirname "$IN")/$(basename "$IN" .gif).flif"
 else
 OUT="$1"
 shift
 fi
 
 echo "Decoding $IN ..."
-FRAME_DELAY="$($CONVERT -identify -format "%T0," -coalesce $IN $TMP_PREFIX%04d.$TMP_FORMAT)"
+FRAME_DELAY="$($CONVERT -identify -format "%T0," -coalesce "$IN" $TMP_PREFIX%04d.$TMP_FORMAT)"
 echo "Encoding $OUT ..."
-$FLIF -f$FRAME_DELAY $@ $TMP_PREFIX*.$TMP_FORMAT $OUT
+$FLIF -f$FRAME_DELAY $@ $TMP_PREFIX*.$TMP_FORMAT "$OUT"
 rm $TMP_PREFIX*.$TMP_FORMAT

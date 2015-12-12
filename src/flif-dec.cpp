@@ -186,6 +186,7 @@ template<typename IO, typename Rac, typename Coder> bool flif_decode_FLIF2_inner
       int p = pzl.first;
       int z = pzl.second;
       if ((100*pixels_done > quality*pixels_todo) ||  1<<(z/2) < scale) {
+              v_printf(5,"\n%lu pixels done, %lu pixels todo, quality target %i%% reached (%i%%)\n",(long unsigned)pixels_done,(long unsigned)pixels_todo,(int)quality,(int)(100*pixels_done/pixels_todo));
               flif_decode_FLIF2_inner_interpol(images, ranges, i, beginZL, endZL, (z%2 == 0 ?1:0), scale);
               return false;
       }
@@ -290,7 +291,10 @@ template<typename IO, typename Rac, typename Coder> bool flif_decode_FLIF2_inner
     return true;
 }
 
-template<typename IO, typename Rac, typename Coder> bool flif_decode_FLIF2_pass(IO &io, Rac &rac, Images &images, const ColorRanges *ranges, std::vector<Tree> &forest, const int beginZL, const int endZL, int quality, int scale, std::vector<Transform<IO>*> &transforms, uint32_t (*callback)(int32_t,int64_t), Images &partial_images, int cutoff = 2, int alpha = 0xFFFFFFFF / 19) {
+template<typename IO, typename Rac, typename Coder>
+bool flif_decode_FLIF2_pass(IO &io, Rac &rac, Images &images, const ColorRanges *ranges, std::vector<Tree> &forest,
+                            const int beginZL, const int endZL, int quality, int scale, std::vector<Transform<IO>*> &transforms,
+                            uint32_t (*callback)(int32_t,int64_t), Images &partial_images, int cutoff = 2, int alpha = 0xFFFFFFFF / 19) {
     std::vector<Coder> coders;
     coders.reserve(images[0].numPlanes());
     for (int p = 0; p < images[0].numPlanes(); p++) {
@@ -299,13 +303,14 @@ template<typename IO, typename Rac, typename Coder> bool flif_decode_FLIF2_pass(
         coders.emplace_back(rac, propRanges, forest[p], 0, cutoff, alpha);
     }
 
-    if (beginZL == images[0].zooms()) {
+    if (beginZL == images[0].zooms() && endZL > 0) {
       // special case: very left top pixel must be read first to get it all started
       // SimpleSymbolCoder<FLIFBitChanceMeta, Rac, 24> metaCoder(rac);
       UniformSymbolCoder<Rac> metaCoder(rac);
       for (int p = 0; p < images[0].numPlanes(); p++) {
         if (ranges->min(p) < ranges->max(p)) {
           for (Image& image : images) image.set(p,0,0, metaCoder.read_int(ranges->min(p), ranges->max(p)));
+          printf("initial pixel done in plane %i\n",p);
           pixels_done++;
         }
       }
@@ -345,6 +350,7 @@ bool flif_decode_main(RacIn<IO>& rac, IO& io, Images &images, const ColorRanges 
       if (roughZL < 0) roughZL = 0;
 //      v_printf(2,"Decoding rough data\n");
       flif_decode_FLIF2_pass<IO, RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, bits> >(io, rac, images, ranges, forest, images[0].zooms(), roughZL+1, 100, scale, transforms, callback, partial_images, cutoff, alpha);
+
     }
     if (encoding == 2 && quality <= 0) {
       v_printf(3,"Not decoding MANIAC tree\n");
@@ -545,6 +551,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     if (pixels_todo == 0) pixels_todo = pixels_done = 1;
     progressive_qual_target = first_callback_quality;
     progressive_qual_shown = -1;
+    v_printf(8,"%lu pixels done, %lu pixels todo, quality target %i%%\n",(long unsigned)pixels_done,(long unsigned)pixels_todo,(int)quality);
 
     for (int p = 0; p < ranges->numPlanes(); p++) {
       v_printf(7,"Plane %i: %i..%i\n",p,ranges->min(p),ranges->max(p));
