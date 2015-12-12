@@ -61,7 +61,7 @@ void draw_image() {
 uint32_t progressive_render(int32_t quality, int64_t bytes_read) {
     while (drawing) {SDL_Delay(50);}
     drawing = 1;
-    printf("%lli bytes read, rendering at quality=%.2f%%\n",bytes_read, 0.01*quality);
+    printf("%lli bytes read, rendering at quality=%.2f%%\n",(unsigned long long int) bytes_read, 0.01*quality);
     animation = (flif_decoder_num_images(d) > 1);
     FLIF_IMAGE* image = flif_decoder_get_image(d, 0);
     if (!image) { printf("Error: No decoded image found\n"); return 1; }
@@ -70,7 +70,7 @@ uint32_t progressive_render(int32_t quality, int64_t bytes_read) {
     if (!window) { printf("Error: Could not create window\n"); return 2; }
     SDL_SetWindowSize(window,w,h);
     char title[100];
-    sprintf(title,"%ix%i FLIF image [read %lli bytes, quality=%.2f%%]",w,h,bytes_read, 0.01*quality);
+    sprintf(title,"%ix%i FLIF image [read %lli bytes, quality=%.2f%%]",w,h,(unsigned long long int) bytes_read, 0.01*quality);
     SDL_SetWindowTitle(window,title);
     for (int f = 0; f< flif_decoder_num_images(d); f++) {
         FLIF_IMAGE* image = flif_decoder_get_image(d, f);
