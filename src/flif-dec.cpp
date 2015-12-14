@@ -185,16 +185,21 @@ template<typename IO, typename Rac, typename Coder> bool flif_decode_FLIF2_inner
       std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i);
       int p = pzl.first;
       int z = pzl.second;
-      if ((100*pixels_done > quality*pixels_todo) ||  1<<(z/2) < scale) {
-              v_printf(5,"\n%lu pixels done, %lu pixels todo, quality target %i%% reached (%i%%)\n",(long unsigned)pixels_done,(long unsigned)pixels_todo,(int)quality,(int)(100*pixels_done/pixels_todo));
+      if ((100*pixels_done > quality*pixels_todo)) {
+              v_printf(5,"%lu pixels done, %lu pixels todo, quality target %i%% reached (%i%%)\n",(long unsigned)pixels_done,(long unsigned)pixels_todo,(int)quality,(int)(100*pixels_done/pixels_todo));
               flif_decode_FLIF2_inner_interpol(images, ranges, i, beginZL, endZL, (z%2 == 0 ?1:0), scale);
               return false;
       }
       if (ranges->min(p) < ranges->max(p)) {
-      if (endZL == 0) v_printf(2,"\r%i%% done [%i/%i] DEC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
-      ColorVal curr;
-      Properties properties((nump>3?NB_PROPERTIESA[p]:NB_PROPERTIES[p]));
-      if (z % 2 == 0) {
+        if (1<<(z/2) < scale) {
+              v_printf(5,"%lu pixels done (out of %lu pixels at this scale), scale target 1:%i reached\n",(long unsigned)pixels_done,(long unsigned)pixels_todo,(int)scale);
+              flif_decode_FLIF2_inner_interpol(images, ranges, i, beginZL, endZL, (z%2 == 0 ?1:0), scale);
+              return false;
+        }
+        if (endZL == 0) v_printf(2,"\r%i%% done [%i/%i] DEC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
+        ColorVal curr;
+        Properties properties((nump>3?NB_PROPERTIESA[p]:NB_PROPERTIES[p]));
+        if (z % 2 == 0) {
           for (uint32_t r = 1; r < images[0].rows(z); r += 2) {
             if (images[0].cols() == 0) return false; // decode aborted
             pixels_done += images[0].cols(z);
@@ -229,8 +234,8 @@ template<typename IO, typename Rac, typename Coder> bool flif_decode_FLIF2_inner
                      image.set(p,z,r,c, curr);
               }
             }
-        }
-      } else {
+          }
+        } else {
           for (uint32_t r = 0; r < images[0].rows(z); r++) {
             if (images[0].cols() == 0) return false; // decode aborted
             pixels_done += images[0].cols(z)/2;
@@ -268,24 +273,24 @@ template<typename IO, typename Rac, typename Coder> bool flif_decode_FLIF2_inner
                      image.set(p,z,r,c, curr);
               }
             }
+          }
         }
-      }
-      if (endZL==0) {
+        if (endZL==0) {
           v_printf(3,"    read %li bytes   ", io.ftell());
           v_printf(5,"\n");
-      }
-      int qual = 10000*pixels_done/pixels_todo;
-      if (callback && p<4 && (endZL==0 || i+1 == plane_zoomlevels(images[0], beginZL, endZL)) && qual >= progressive_qual_target) {
-        for (unsigned int n=0; n < images.size(); n++) partial_images[n] = images[n].clone(); // make a copy to work with
-        int64_t pixels_really_done = pixels_done;
-        flif_decode_FLIF2_inner_interpol(partial_images, ranges, i+1, beginZL, endZL, -1, scale);
-        if (endZL>0) flif_decode_FLIF2_inner_interpol(partial_images, ranges, 0, endZL-1, 0, -1, scale);
-        pixels_done = pixels_really_done;
-        for (int i=transforms.size()-1; i>=0; i--) if (transforms[i]->undo_redo_during_decode()) transforms[i]->invData(partial_images);
-        progressive_qual_shown = qual;
-        progressive_qual_target = callback(qual,io.ftell());
-        if (qual >= progressive_qual_target) return false;
-      }
+        }
+        int qual = 10000*pixels_done/pixels_todo;
+        if (callback && p<4 && (endZL==0 || i+1 == plane_zoomlevels(images[0], beginZL, endZL)) && qual >= progressive_qual_target) {
+          for (unsigned int n=0; n < images.size(); n++) partial_images[n] = images[n].clone(); // make a copy to work with
+          int64_t pixels_really_done = pixels_done;
+          flif_decode_FLIF2_inner_interpol(partial_images, ranges, i+1, beginZL, endZL, -1, scale);
+          if (endZL>0) flif_decode_FLIF2_inner_interpol(partial_images, ranges, 0, endZL-1, 0, -1, scale);
+          pixels_done = pixels_really_done;
+          for (int i=transforms.size()-1; i>=0; i--) if (transforms[i]->undo_redo_during_decode()) transforms[i]->invData(partial_images);
+          progressive_qual_shown = qual;
+          progressive_qual_target = callback(qual,io.ftell());
+          if (qual >= progressive_qual_target) return false;
+        }
       }
     }
     return true;
@@ -310,7 +315,6 @@ bool flif_decode_FLIF2_pass(IO &io, Rac &rac, Images &images, const ColorRanges 
       for (int p = 0; p < images[0].numPlanes(); p++) {
         if (ranges->min(p) < ranges->max(p)) {
           for (Image& image : images) image.set(p,0,0, metaCoder.read_int(ranges->min(p), ranges->max(p)));
-          printf("initial pixel done in plane %i\n",p);
           pixels_done++;
         }
       }
@@ -349,8 +353,7 @@ bool flif_decode_main(RacIn<IO>& rac, IO& io, Images &images, const ColorRanges 
       roughZL = images[0].zooms() - NB_NOLEARN_ZOOMS-1;
       if (roughZL < 0) roughZL = 0;
 //      v_printf(2,"Decoding rough data\n");
-      flif_decode_FLIF2_pass<IO, RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, bits> >(io, rac, images, ranges, forest, images[0].zooms(), roughZL+1, 100, scale, transforms, callback, partial_images, cutoff, alpha);
-
+      if (!flif_decode_FLIF2_pass<IO, RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, bits> >(io, rac, images, ranges, forest, images[0].zooms(), roughZL+1, 100, scale, transforms, callback, partial_images, cutoff, alpha)) return false;
     }
     if (encoding == 2 && quality <= 0) {
       v_printf(3,"Not decoding MANIAC tree\n");
@@ -485,12 +488,14 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
         metaCoder.read_int(0, 100); // repeats (0=infinite)
     }
 
+    int scale_shift = ilog2(scale);
+    if (scale_shift>0) v_printf(3,"Decoding downscaled image at scale 1:%i (shift=%i)\n", scale, scale_shift);
     for (int i=0; i<numFrames; i++) {
-      images.push_back(Image());
+      images.push_back(Image(scale_shift));
       if (!images[i].init(width,height,0,maxmax,numPlanes)) return false;
       images[i].alpha_zero_special = alphazero;
       if (numFrames>1) images[i].frame_delay = metaCoder.read_int(0, 60000); // time in ms between frames
-      if (callback) partial_images.push_back(Image());
+      if (callback) partial_images.push_back(Image(scale_shift));
       //if (numFrames>1) partial_images[i].frame_delay = images[i].frame_delay;
     }
 
@@ -615,6 +620,8 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     } else {
       v_printf(1,"File ended prematurely or decoding was interrupted.\n");
     }
+
+    for (Image& i : images) i.normalize_scale();
 
     for (int i=(int)transforms.size()-1; i>=0; i--) {
         transforms[i]->invData(images);

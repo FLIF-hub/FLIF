@@ -304,10 +304,10 @@ int handle_decode(int argc, char **argv, Images &images, int quality, int scale)
         e_printf("Error: could not decode FLIF file\n"); return 3;
     }
     if (!strcmp(argv[1],"null:")) return 0;
-    if (scale>1)
-        v_printf(3,"Downscaling output: %ux%u -> %ux%u\n",images[0].cols(),images[0].rows(),images[0].cols()/scale,images[0].rows()/scale);
+//    if (scale>1)
+//        v_printf(3,"Downscaling output: %ux%u -> %ux%u\n",images[0].cols(),images[0].rows(),images[0].cols()/scale,images[0].rows()/scale);
     if (images.size() == 1) {
-        if (!images[0].save(argv[1],scale)) return 2;
+        if (!images[0].save(argv[1])) return 2;
     } else {
         int counter=0;
         std::vector<char> vfilename(strlen(argv[1])+6);
@@ -316,7 +316,7 @@ int handle_decode(int argc, char **argv, Images &images, int quality, int scale)
         char *a_ext = strrchr(filename,'.');
         for (Image& image : images) {
             sprintf(a_ext,"-%03d%s",counter++,ext);
-            if (!image.save(filename,scale)) return 2;
+            if (!image.save(filename)) return 2;
             v_printf(2,"    (%i/%i)         \r",counter,(int)images.size()); v_printf(4,"\n");
         }
     }
@@ -513,7 +513,7 @@ int main(int argc, char **argv)
         return handle_decode(argc, argv, images, quality, scale);
 #ifdef HAS_ENCODER
     } else if (mode == 2) {
-        if (scale > 1) {e_printf("Not yet supported: transcoding downscaled image; use decode + encode!\n");}
+//        if (scale > 1) {e_printf("Not yet supported: transcoding downscaled image; use decode + encode!\n");}
         if (!decode_flif(argv, images, quality, scale)) return 2;
         argc--; argv++;
         if (!encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, divisor, min_size, split_threshold, yiq, plc, frs, cutoff, alpha)) return 2;
