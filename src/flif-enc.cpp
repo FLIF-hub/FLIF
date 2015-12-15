@@ -441,11 +441,11 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
 
     for (unsigned int i=0; i<transDesc.size(); i++) {
         Transform<IO> *trans = create_transform<IO>(transDesc[i]);
-        if (transDesc[i] == "PLT" || transDesc[i] == "PLA") trans->configure(palette_size);
-        if (transDesc[i] == "FRA") trans->configure(lookback);
-        if (!trans->init(rangesList.back()) || 
+        if (transDesc[i] == "Palette" || transDesc[i] == "Palette_Alpha") trans->configure(palette_size);
+        if (transDesc[i] == "Frame_Lookback") trans->configure(lookback);
+        if (!trans->init(rangesList.back()) ||
             (!trans->process(rangesList.back(), images)
-              && !(acb==1 && transDesc[i] == "ACB" && (v_printf(4,", forced_"), (tcount=0), true) ))) {
+              && !(acb==1 && transDesc[i] == "Color_Buckets" && (v_printf(4,", forced "), (tcount=0), true) ))) {
             //e_printf( "Transform '%s' failed\n", transDesc[i].c_str());
         } else {
             if (tcount++ > 0) v_printf(4,", ");
@@ -482,7 +482,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     if (mbits > bits) { e_printf("OOPS: this FLIF only supports 8-bit RGBA (not compiled with SUPPORT_HDR)\n"); return false;}
 
     if (alphazero && ranges->numPlanes() > 3 && ranges->min(3) <= 0) {
-      v_printf(4,"Replacing fully transparent pixels with predicted pixel values at the other planes\n");
+      v_printf(4,"Replacing fully transparent RGB subpixels with predicted subpixel values\n");
       switch(encoding) {
         case flifEncoding::nonInterlaced: flif_encode_scanlines_interpol_zero_alpha(images, ranges); break;
         case flifEncoding::interlaced: flif_encode_FLIF2_interpol_zero_alpha(images, ranges, image.zooms(), 0); break;

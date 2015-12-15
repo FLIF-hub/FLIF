@@ -15,23 +15,23 @@
 template <typename IO>
 Transform<IO> *create_transform(std::string desc)
 {
-    if (desc == "YIQ")
+    if (desc == "YCoCg")
         return new TransformYIQ<IO>();
-    if (desc == "BND")
+    if (desc == "Bounds")
         return new TransformBounds<IO>();
-    if (desc == "ACB")
+    if (desc == "Color_Buckets")
         return new TransformCB<IO>();
-    if (desc == "PLT")
+    if (desc == "Palette")
         return new TransformPalette<IO>();
-    if (desc == "PLA")
+    if (desc == "Palette_Alpha")
         return new TransformPaletteA<IO>();
-    if (desc == "PLC")
+    if (desc == "Channel_Compact")
         return new TransformPaletteC<IO>();
-    if (desc == "FRS")
+    if (desc == "Frame_Shape")
         return new TransformFrameShape<IO>();
-    if (desc == "DUP")
+    if (desc == "Duplicate_Frame")
         return new TransformFrameDup<IO>();
-    if (desc == "FRA")
+    if (desc == "Frame_Lookback")
         return new TransformFrameCombine<IO>();
     return NULL;
 }

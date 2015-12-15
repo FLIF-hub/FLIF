@@ -126,8 +126,11 @@ int main(int argc, char **argv) {
 
     SDL_Init(SDL_INIT_VIDEO);
     window = SDL_CreateWindow("FLIF Viewer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 200, 200, 0);
-    flif_decoder_set_quality(d, 100);   // this is the default
-    flif_decoder_set_scale(d, 1);       // this is the default
+    SDL_DisplayMode dm;
+    if (SDL_GetWindowDisplayMode(window,&dm)) { printf("Error: SDL_GetWindowDIsplayMode\n"); return 1; }
+    flif_decoder_set_quality(d, 100);   // this is the default, so can be omitted
+    flif_decoder_set_scale(d, 1);       // this is the default, so can be omitted
+    flif_decoder_set_resize(d, dm.w, dm.h); // resize (subsample) to fit the desktop resolution (comment out to always decode at full resolution)
 #ifdef PROGRESSIVE_DECODING
     flif_decoder_set_callback(d, &(progressive_render));
     flif_decoder_set_first_callback_quality(d, 500);   // do the first callback when at least 5.00% quality has been decoded

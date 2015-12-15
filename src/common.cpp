@@ -18,7 +18,8 @@
 
 #include "common.hpp"
 
-const std::vector<std::string> transforms = {"PLC","YIQ","BND","PLA","PLT","ACB","DUP","FRS","FRA","???"};
+const std::vector<std::string> transforms = {"Channel_Compact","YCoCg","Bounds","Palette_Alpha","Palette","Color_Buckets",
+                                             "Duplicate_Frame","Frame_Shape","Frame_Lookback","Unknown/Reserved"};
 uint8_t transform_l = 0;
 
 int64_t pixels_todo = 0;

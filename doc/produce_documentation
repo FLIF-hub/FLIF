@@ -1,0 +1,6 @@
+#!/bin/sh
+
+for manual in flif
+do
+    man -l -t ./$manual.1 | ps2pdf - $manual.pdf
+done

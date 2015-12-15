@@ -43,6 +43,6 @@ do
     FRAME_DELAY="$FRAME_DELAY$((1000 * $delay)),"
 done
 echo "Encoding $OUT ..."
-$FLIF -f$FRAME_DELAY $@ $TMP_PREFIX*.$TMP_FORMAT "$OUT"
+$FLIF -F$FRAME_DELAY $@ $TMP_PREFIX*.$TMP_FORMAT "$OUT"
 rm $TMP_PREFIX*.$TMP_FORMAT
 rm $TMP_PREFIX*.txt

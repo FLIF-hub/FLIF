@@ -81,34 +81,35 @@ void show_help() {
 #endif
     v_printf(1,"Supported input/output image formats: PNG, PNM (PPM,PGM,PBM), PAM\n");
     v_printf(1,"General Options:\n");
-    v_printf(1,"   -h, --help               show help (use -hvv for advanced options)\n");
-    v_printf(1,"   -v, --verbose            increase verbosity (multiple -v for more output)\n");
+    v_printf(1,"   -h, --help                  show help (use -hvv for advanced options)\n");
+    v_printf(1,"   -v, --verbose               increase verbosity (multiple -v for more output)\n");
 #ifdef HAS_ENCODER
-    v_printf(1,"Encode options:\n");
-    v_printf(1,"   -i, --interlace          interlacing (default, except for tiny images)\n");
-    v_printf(1,"   -n, --no-interlace       force no interlacing\n");
-    v_printf(1,"   -f, --frame-delay=N      delay between animation frames, in ms; default: -f100\n");
-    v_printf(1,"   -A, --keep-alpha-zero    store original RGB values behind A=0\n");
+    v_printf(1,"Encode options: (-e, --encode)\n");
+    v_printf(1,"   -I, --interlace             interlacing (default, except for tiny images)\n");
+    v_printf(1,"   -N, --no-interlace          force no interlacing\n");
+    v_printf(1,"   -K, --keep-invisible-rgb    store original RGB values behind A=0\n");
+    v_printf(1,"   -F, --frame-delay=N[,N,..]  delay between animation frames in ms; default: -F100\n");
 //    v_printf(1,"Multiple input images (for animated FLIF) must have the same dimensions.\n");
     v_printf(2,"Advanced encode options: (mostly useful for flifcrushing)\n");
-    v_printf(2,"   -a, --acb                force auto color buckets (ACB)\n");
-    v_printf(2,"   -b, --no-acb             force no auto color buckets\n");
-    v_printf(2,"   -p, --palette=N          max palette size for PLT and PLA; default: -p1024\n");
-    v_printf(2,"   -C, --no-plc             disable PLC transform (no channel compactification)\n");
-    v_printf(2,"   -R, --rgb                disable YIQ transform (use plain RGB instead)\n");
-    v_printf(2,"   -F, --no-frs             disable FRS transform (no frame shaping)\n");
-    v_printf(2,"   -l, --lookback=N         max lookback between animation frames (for FRA); default: -l1\n");
-    v_printf(2,"   -r, --repeats=N          MANIAC learning iterations; default: -r%i\n",TREE_LEARN_REPEATS);
-    v_printf(3,"   -S, --split-threshold=N  MANIAC tree growth criterion, in bits saved; default: -S%i\n",CONTEXT_TREE_SPLIT_THRESHOLD/5461);
-    v_printf(3,"   -D, --divisor=N          MANIAC inner node count divisor; default: -D%i\n",CONTEXT_TREE_COUNT_DIV);
-    v_printf(3,"   -M, --min-size=N         MANIAC post-pruning threshold; default: -M%i\n",CONTEXT_TREE_MIN_SUBTREE_SIZE);
-    v_printf(3,"   -X, --rac-cutoff=N       RAC minimum chance (N/4096); default: -X2\n");
-    v_printf(3,"   -Y, --rac-alpha=N        RAC decay factor; default: -Y19\n");
+    v_printf(2,"   -P, --max-palette-size=N    max size for Palette(_Alpha); default: -P1024\n");
+    v_printf(2,"   -A, --force-color-buckets   force Color_Buckets transform\n");
+    v_printf(2,"   -B, --no-color-buckets      disable Color_Buckets transform\n");
+    v_printf(2,"   -C, --no-channel-compact    disable Channel_Compact transform\n");
+    v_printf(2,"   -Y, --no-ycocg              disable YCoCg transform (use plain RGB instead)\n");
+    v_printf(2,"   -S, --no-frame-shape        disable Frame_Shape transform\n");
+    v_printf(2,"   -L, --max-frame-lookback=N  max nb of frames for Frame_Lookback; default: -L1\n");
+    v_printf(2,"   -R, --maniac-repeats=N      MANIAC learning iterations; default: -R%i\n",TREE_LEARN_REPEATS);
+    v_printf(3,"   -T, --maniac-threshold=N    MANIAC tree growth split threshold, in bits saved; default: -T%i\n",CONTEXT_TREE_SPLIT_THRESHOLD/5461);
+    v_printf(3,"   -D, --maniac-divisor=N      MANIAC inner node count divisor; default: -D%i\n",CONTEXT_TREE_COUNT_DIV);
+    v_printf(3,"   -M, --maniac-min-size=N     MANIAC post-pruning threshold; default: -M%i\n",CONTEXT_TREE_MIN_SUBTREE_SIZE);
+    v_printf(3,"   -X, --chance-cutoff=N       minimum chance (N/4096); default: -X2\n");
+    v_printf(3,"   -Z, --chance-alpha=N        chance decay factor; default: -Y19\n");
 #endif
-    v_printf(1,"Decode options:\n");
-    v_printf(1,"   -I, --identify           do not decode, just identify the input FLIF file\n");
-    v_printf(1,"   -q, --quality=N          lossy decode quality percentage; default -q100\n");
-    v_printf(1,"   -s, --scale=N            lossy downscaled image at scale 1:N (2,4,8,16,32); default -s1\n");
+    v_printf(1,"Decode options: (-d, --decode)\n");
+    v_printf(1,"   -i, --identify             do not decode, just identify the input FLIF file\n");
+    v_printf(1,"   -q, --quality=N            lossy decode quality percentage; default -q100\n");
+    v_printf(1,"   -s, --scale=N              lossy downscaled image at scale 1:N (2,4,8,16,32); default -s1\n");
+    v_printf(1,"   -r, --resize=WxH           lossy downscaled image to fit WxH\n");
 }
 
 bool file_exists(const char * filename){
@@ -132,7 +133,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  ____ _(_)____\n");
-    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc3 [8 December 2015]\n");
+    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc4 [15 December 2015]\n");
     v_printf(3,"  (__ | |_| __)    ");v_printf(2,"Copyright (C) 2015 Jon Sneyers and Pieter Wuille\n");
     v_printf(3,"    (_|___|_)      ");v_printf(2,"License GPLv3+: GNU GPL version 3 or later\n");
     v_printf(3,"\n");
@@ -214,12 +215,12 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
     std::vector<std::string> desc;
     if (nb_pixels > 2) {         // no point in doing anything for 1- or 2-pixel images
       if (plc) {
-        desc.push_back("PLC");  // compactify channels
+        desc.push_back("Channel_Compact");  // compactify channels
       }
       if (yiq) {
-        desc.push_back("YIQ");  // convert RGB(A) to YIQ(A)
+        desc.push_back("YCoCg");  // convert RGB(A) to YCoCg(A)
       }
-      desc.push_back("BND");  // get the bounds of the color spaces
+      desc.push_back("Bounds");  // get the bounds of the color spaces
     }
     if (palette_size == -1) {
         palette_size = 1024;
@@ -228,19 +229,19 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
         }
     }
     if (palette_size != 0) {
-        desc.push_back("PLA");  // try palette (including alpha)
+        desc.push_back("Palette_Alpha");  // try palette (including alpha)
     }
     if (palette_size != 0) {
-        desc.push_back("PLT");  // try palette (without alpha)
+        desc.push_back("Palette");  // try palette (without alpha)
     }
 
     if (acb == -1) {
       // not specified if ACB should be used
       if (nb_pixels * images.size() > 10000) {
-        desc.push_back("ACB");  // try auto color buckets on large images
+        desc.push_back("Color_Buckets");  // try auto color buckets on large images
       }
     } else if (acb) {
-      desc.push_back("ACB");  // try auto color buckets if forced
+      desc.push_back("Color_Buckets");  // try auto color buckets if forced
     }
     if (method.o == Optional::undefined) {
         // no method specified, pick one heuristically
@@ -248,9 +249,9 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
         else method.encoding=flifEncoding::interlaced; // default method: interlacing
     }
     if (images.size() > 1) {
-        desc.push_back("DUP");  // find duplicate frames
-        if (frs) desc.push_back("FRS");  // get the shapes of the frames
-        if (lookback) desc.push_back("FRA");  // make a "deep" alpha channel (negative values are transparent to some previous frame)
+        desc.push_back("Duplicate_Frame");  // find duplicate frames
+        if (frs) desc.push_back("Frame_Shape");  // get the shapes of the frames
+        if (lookback) desc.push_back("Frame_Lookback");  // make a "deep" alpha channel (negative values are transparent to some previous frame)
     }
     if (learn_repeats < 0) {
         // no number of repeats specified, pick a number heuristically
@@ -279,18 +280,18 @@ bool handle_encode(int argc, char **argv, Images &images, int palette_size, int 
 }
 #endif
 
-bool decode_flif(char **argv, Images &images, int quality, int scale) {
+bool decode_flif(char **argv, Images &images, int quality, int scale, int resize_width, int resize_height) {
     FILE *file = fopen(argv[0],"rb");
     if(!file) return false;
     FileIO fio(file, argv[0]);
-    return flif_decode(fio, images, quality, scale);
+    return flif_decode(fio, images, quality, scale, resize_width, resize_height);
 }
 
-int handle_decode(int argc, char **argv, Images &images, int quality, int scale) {
+int handle_decode(int argc, char **argv, Images &images, int quality, int scale, int resize_width, int resize_height) {
     if (scale < 0) {
         // just identify the file(s), don't actually decode
         while (argc>0) {
-            decode_flif(argv, images, quality, scale);
+            decode_flif(argv, images, quality, scale, resize_width, resize_height);
             argv++; argc--;
         }
         return 0;
@@ -300,7 +301,7 @@ int handle_decode(int argc, char **argv, Images &images, int quality, int scale)
         e_printf("Error: expected \".png\", \".pnm\" or \".pam\" file name extension for output file\n");
         return 1;
     }
-    if (!decode_flif(argv, images, quality, scale)) {
+    if (!decode_flif(argv, images, quality, scale, resize_width, resize_height)) {
         e_printf("Error: could not decode FLIF file\n"); return 3;
     }
     if (!strcmp(argv[1],"null:")) return 0;
@@ -349,6 +350,7 @@ int main(int argc, char **argv)
 #endif
     int quality = 100; // 100 = everything, positive value: partial decode, negative value: only rough data
     int scale = 1;
+    int resize_width = 0, resize_height = 0;
     bool showhelp = false;
     if (strcmp(argv[0],"flif") == 0) mode = 0;
     if (strcmp(argv[0],"dflif") == 0) mode = 1;
@@ -360,36 +362,37 @@ int main(int argc, char **argv)
         {"verbose", 0, NULL, 'v'},
         {"quality", 1, NULL, 'q'},
         {"scale", 1, NULL, 's'},
-        {"identify", 0, NULL, 'I'},
+        {"resize", 1, NULL, 'r'},
+        {"identify", 0, NULL, 'i'},
         {"version", 0, NULL, 'V'},
 #ifdef HAS_ENCODER
         {"encode", 0, NULL, 'e'},
         {"transcode", 0, NULL, 't'},
-        {"interlace", 0, NULL, 'i'},
-        {"no-interlace", 0, NULL, 'n'},
-        {"acb", 0, NULL, 'a'},
-        {"no-acb", 0, NULL, 'b'},
-        {"palette", 1, NULL, 'p'},
-        {"repeats", 1, NULL, 'r'},
-        {"frame-delay", 1, NULL, 'f'},
-        {"lookback", 1, NULL, 'l'},
-        {"divisor", 1, NULL, 'D'},
-        {"min-size", 1, NULL, 'M'},
-        {"split-threshold", 1, NULL, 'S'},
-        {"rgb", 0, NULL, 'R'},
-        {"no-plc", 0, NULL, 'C'},
-        {"no-frs", 0, NULL, 'F'},
-        {"keep-alpha-zero", 0, NULL, 'A'},
-        {"rac-cutoff", 1, NULL, 'X'},
-        {"rac-alpha", 1, NULL, 'Y'},
+        {"interlace", 0, NULL, 'I'},
+        {"no-interlace", 0, NULL, 'N'},
+        {"frame-delay", 1, NULL, 'F'},
+        {"keep-invisible-rgb", 0, NULL, 'K'},
+        {"max-palette-size", 1, NULL, 'P'},
+        {"force-color-buckets", 0, NULL, 'A'},
+        {"no-color-buckets", 0, NULL, 'B'},
+        {"no-ycocg", 0, NULL, 'Y'},
+        {"no-channel-compact", 0, NULL, 'C'},
+        {"max-frame-lookback", 1, NULL, 'L'},
+        {"no-frame-shape", 0, NULL, 'S'},
+        {"maniac-repeats", 1, NULL, 'R'},
+        {"maniac-divisor", 1, NULL, 'D'},
+        {"maniac-min-size", 1, NULL, 'M'},
+        {"maniac-threshold", 1, NULL, 'T'},
+        {"chance-cutoff", 1, NULL, 'X'},
+        {"chance-alpha", 1, NULL, 'Z'},
 #endif
         {0, 0, 0, 0}
     };
     int i,c;
 #ifdef HAS_ENCODER
-    while ((c = getopt_long (argc, argv, "hedtvIVinabq:s:p:r:f:l:D:M:S:RCFAX:Y:", optlist, &i)) != -1) {
+    while ((c = getopt_long (argc, argv, "hdviVq:s:r:etINnF:KP:ABYCL:SR:D:M:T:X:Z:", optlist, &i)) != -1) {
 #else
-    while ((c = getopt_long (argc, argv, "hdvIVq:s:", optlist, &i)) != -1) {
+    while ((c = getopt_long (argc, argv, "hdviVq:s:r:", optlist, &i)) != -1) {
 #endif
         switch (c) {
         case 'd': mode=1; break;
@@ -401,33 +404,37 @@ int main(int argc, char **argv)
         case 's': scale=atoi(optarg);
                   if (scale < 1 || scale > 128) {e_printf("Not a sensible number for option -s\n"); return 1; }
                   break;
-        case 'I': scale = -1; break;
+        case 'r': if (sscanf(optarg,"%ix%i", &resize_width, &resize_height) < 1) {e_printf("Not a sensible value for option -r (expected WxH)\n"); return 1; }
+                  if (!resize_height) resize_height = resize_width;
+                  break;
+        case 'i': scale = -1; break;
 #ifdef HAS_ENCODER
         case 'e': mode=0; break;
         case 't': mode=2; break;
-        case 'i': method.encoding=flifEncoding::interlaced; break;
-        case 'n': method.encoding=flifEncoding::nonInterlaced; break;
-        case 'a': acb=1; break;
-        case 'b': acb=0; break;
-        case 'p': palette_size=atoi(optarg);
-                  if (palette_size < -30000 || palette_size > 30000) {e_printf("Not a sensible number for option -p\n"); return 1; }
+        case 'I': method.encoding=flifEncoding::interlaced; break;
+        case 'n': // undocumented: lower case -n still works
+        case 'N': method.encoding=flifEncoding::nonInterlaced; break;
+        case 'A': acb=1; break;
+        case 'B': acb=0; break;
+        case 'P': palette_size=atoi(optarg);
+                  if (palette_size < -30000 || palette_size > 30000) {e_printf("Not a sensible number for option -P\n"); return 1; }
                   if (palette_size == 0) {v_printf(5,"Palette disabled\n"); }
                   break;
-        case 'r': learn_repeats=atoi(optarg);
-                  if (learn_repeats < 0 || learn_repeats > 20) {e_printf("Not a sensible number for option -r\n"); return 1; }
+        case 'R': learn_repeats=atoi(optarg);
+                  if (learn_repeats < 0 || learn_repeats > 20) {e_printf("Not a sensible number for option -R\n"); return 1; }
                   break;
-        case 'f': frame_delay.clear();
+        case 'F': frame_delay.clear();
                   while(optarg != 0) {
                     int d=strtol(optarg,&optarg,10);
                     if (d==0) break;
                     if (*optarg == ',' || *optarg == '+') optarg++;
                     frame_delay.push_back(d);
-                    if (d < 0 || d > 60000) {e_printf("Not a sensible number for option -f: %i\n",d); return 1; }
+                    if (d < 0 || d > 60000) {e_printf("Not a sensible number for option -F: %i\n",d); return 1; }
                   }
                   if (frame_delay.size() < 1) frame_delay.push_back(100);
                   break;
-        case 'l': lookback=atoi(optarg);
-                  if (lookback < -1 || lookback > 256) {e_printf("Not a sensible number for option -l\n"); return 1; }
+        case 'L': lookback=atoi(optarg);
+                  if (lookback < -1 || lookback > 256) {e_printf("Not a sensible number for option -L\n"); return 1; }
                   break;
         case 'D': divisor=atoi(optarg);
                   if (divisor <= 0 || divisor > 0xFFFFFFF) {e_printf("Not a sensible number for option -D\n"); return 1; }
@@ -435,19 +442,19 @@ int main(int argc, char **argv)
         case 'M': min_size=atoi(optarg);
                   if (min_size < 0) {e_printf("Not a sensible number for option -M\n"); return 1; }
                   break;
-        case 'S': split_threshold=atoi(optarg);
-                  if (split_threshold <= 0 || split_threshold > 100000) {e_printf("Not a sensible number for option -S\n"); return 1; }
+        case 'T': split_threshold=atoi(optarg);
+                  if (split_threshold <= 3 || split_threshold > 100000) {e_printf("Not a sensible number for option -T\n"); return 1; }
                   split_threshold *= 5461;
                   break;
-        case 'R': yiq=0; break;
+        case 'Y': yiq=0; break;
         case 'C': plc=0; break;
-        case 'F': frs=0; break;
-        case 'A': alpha_zero_special=false; break;
+        case 'S': frs=0; break;
+        case 'K': alpha_zero_special=false; break;
         case 'X': cutoff=atoi(optarg);
                   if (cutoff < 1 || cutoff > 128) {e_printf("Not a sensible number for option -X (try something between 1 and 128)\n"); return 1; }
                   break;
-        case 'Y': alpha=atoi(optarg);
-                  if (alpha < 4 || alpha > 128) {e_printf("Not a sensible number for option -Y (try something between 4 and 128)\n"); return 1; }
+        case 'Z': alpha=atoi(optarg);
+                  if (alpha < 4 || alpha > 128) {e_printf("Not a sensible number for option -Z (try something between 4 and 128)\n"); return 1; }
                   break;
 #endif
         case 'h': showhelp=true; break;
@@ -510,11 +517,11 @@ int main(int argc, char **argv)
         if (!handle_encode(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, alpha_zero_special, frs, cutoff, alpha)) return 2;
     } else if (mode == 1) {
 #endif
-        return handle_decode(argc, argv, images, quality, scale);
+        return handle_decode(argc, argv, images, quality, scale, resize_width, resize_height);
 #ifdef HAS_ENCODER
     } else if (mode == 2) {
 //        if (scale > 1) {e_printf("Not yet supported: transcoding downscaled image; use decode + encode!\n");}
-        if (!decode_flif(argv, images, quality, scale)) return 2;
+        if (!decode_flif(argv, images, quality, scale, resize_width, resize_height)) return 2;
         argc--; argv++;
         if (!encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, divisor, min_size, split_threshold, yiq, plc, frs, cutoff, alpha)) return 2;
     }

@@ -36,6 +36,8 @@ struct FLIF_DECODER
     uint32_t scale;
     void* callback;
     int32_t first_quality;
+    uint32_t rw;
+    uint32_t rh;
 
 private:
     Images internal_images;
