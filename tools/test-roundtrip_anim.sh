@@ -38,9 +38,9 @@ runtest() {
 convert -coalesce "${IN}" test-frame%04d.png
 
 # test a few combinations of encode parameters
-runtest -i
-runtest -nl0
-runtest -Fp0
-runtest -l50
+runtest -I
+runtest -NL0
+runtest -SP0
+runtest -L50
 
 rm test-frame*.png

@@ -15,6 +15,6 @@ runtest() {
   test "`compare -metric AE ${IN} ${OUTP} null: 2>&1`" = "0"
 }
 
-runtest -i
+runtest -I
 
-runtest -n
+runtest -N
