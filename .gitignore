@@ -15,6 +15,10 @@ src/viewflif
 *.xcworkspace
 *.xcodeproj
 
+*.so.0
+*.so
+*/*dSYM/*
+
 flif.osx
 
 *.swp
