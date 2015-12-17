@@ -50,8 +50,8 @@ The decoder library `libflif_dec` is released under the terms of the GNU **Lesse
 **OS X**
 
 * Install [homebrew](http://brew.sh)
-* Install kegs named `pkg-config` and `libpng`
-* Run `make` in the FLIF/src directory
+* `brew install pkg-config libpng sdl2`
+* `make` in the FLIF/src directory
 
 
 * * *

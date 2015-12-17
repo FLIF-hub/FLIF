@@ -2,6 +2,12 @@ PREFIX := /usr
 CXXFLAGS := $(shell pkg-config --cflags zlib libpng)
 LDFLAGS := $(shell pkg-config --libs zlib libpng)
 
+OSNAME := $(shell uname -s)
+SONAME = -soname
+ifeq ($(OSNAME),Darwin)
+  SONAME = -install_name
+endif
+
 # for running interface-test
 export LD_LIBRARY_PATH=$(shell pwd):$LD_LIBRARY_PATH
 
@@ -33,21 +39,23 @@ dflif: $(FILES_H) $(FILES_CPP) flif.cpp
 
 # Decoder-only library - LGPL
 libflif_dec.so: $(FILES_H) $(FILES_CPP) library/flif_dec.h library/flif-interface-private_dec.hpp library/flif-interface_dec.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -DDECODER_ONLY -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface_dec.cpp $(LDFLAGS) -Wl,-soname,libflif_dec.so.0 -o libflif_dec.so.0
+	echo $(OS)
+	# $(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -DDECODER_ONLY -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface_dec.cpp $(LDFLAGS) -Wl,-soname,libflif_dec.so.0 -o libflif_dec.so.0
+	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -DDECODER_ONLY -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface_dec.cpp $(LDFLAGS) -Wl,$(SONAME),libflif_dec.so.0 -o libflif_dec.so.0
 	ln -sf libflif_dec.so.0 libflif_dec.so
 
 # Encoder-only library - GPL - probably not that useful (not built by default)
 libflif_enc.so: $(FILES_H) $(FILES_CPP) library/flif_enc.h library/flif-interface-private_enc.hpp library/flif-interface_enc.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface_enc.cpp $(LDFLAGS) -Wl,-soname,libflif_enc.so.0 -o libflif_enc.so.0
+	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface_enc.cpp $(LDFLAGS) -Wl,$(SONAME),libflif_enc.so.0 -o libflif_enc.so.0
 	ln -sf libflif_enc.so.0 libflif_enc.so
 
 # Decoder + encoder library - GPL
 libflif.so: $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/*.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -Wl,-soname,libflif.so.0 -o libflif.so.0
+	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -Wl,$(SONAME),libflif.so.0 -o libflif.so.0
 	ln -sf libflif.so.0 libflif.so
 
 libflif.dbg.so: $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/*.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) -O1 -ggdb3 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -Wl,-soname,libflif.so.0 -o libflif.dbg.so.0
+	$(CXX) -std=gnu++11 $(CXXFLAGS) -O1 -ggdb3 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -Wl,$(SONAME),libflif.so.0 -o libflif.dbg.so.0
 	ln -sf libflif.dbg.so.0 libflif.dbg.so
 
 # Example application: simple FLIF viewer - LGPL
