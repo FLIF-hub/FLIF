@@ -502,7 +502,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
         metaCoder.read_int(0, 100); // repeats (0=infinite)
     }
     if (rw || rh) {
-      if (scale > 1) e_printf("Don't use -s and -r at the same time! Ignoring -s...\n");
+      if (scale > 1) e_printf("Don't use -s and (-r or -f) at the same time! Ignoring -s...\n");
       scale = 1;
       if (rw < 0 || rh < 0) { e_printf("Negative target dimension? Really?\n"); return false; }
       while ( (rw && (((width-1)/scale)+1) > rw)   || (rh && (((height-1)/scale)+1) > rh) ) scale *= 2;
@@ -618,7 +618,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     else
       v_printf(2,"\rDecoding done, %li bytes for %i frames of %ux%u pixels (%.4fbpp)   \n",io.ftell(), numFrames, images[0].cols()/scale, images[0].rows()/scale, 8.0*io.ftell()/numFrames/images[0].rows()*scale*scale/images[0].cols());
 
-    if (quality==100 && scale==1 && fully_decoded) {
+    if (quality>=100 && scale==1 && fully_decoded) {
       bool contains_checksum = metaCoder.read_int(0,1);
       if (contains_checksum) {
         const uint32_t checksum = images[0].checksum();
@@ -653,6 +653,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
         delete rangesList[i];
     }
     rangesList.clear();
+
     // ensure that the callback gets called even if the image is completely constant
     if (progressive_qual_target > 10000) progressive_qual_target = 10000;
     if (callback && progressive_qual_target > progressive_qual_shown) {

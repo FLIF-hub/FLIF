@@ -337,20 +337,32 @@ public:
 #endif
       }
     }
-    void ensure_frame_lookbacks() {
+    void ensure_chroma() {
         switch(num) {
             case 1:
               make_constant_plane(1,((1<<depth)-1));
             case 2:
               make_constant_plane(2,((1<<depth)-1));
+              num=3;
+            default:
+              assert(num>=3);
+        }
+    }
+    void ensure_alpha() {
+        ensure_chroma();
+        switch(num) {
             case 3:
               make_constant_plane(3,255);
-            case 4:
-              planes[4] = make_unique<Plane<ColorVal_intern_8>>(SCALED(width), SCALED(height));
-              num=5;
+              num=4;
             default:
-              assert(num==5);
-              num=5;
+              assert(num>=4);
+        }
+    }
+    void ensure_frame_lookbacks() {
+        if (num < 5) {
+            ensure_alpha();
+            planes[4] = make_unique<Plane<ColorVal_intern_8>>(SCALED(width), SCALED(height));
+            num=5;
         }
     }
 

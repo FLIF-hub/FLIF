@@ -30,8 +30,8 @@ void e_printf(const char *format, ...) {
 }
 
 static int verbosity = 1;
-void increase_verbosity() {
-    verbosity ++;
+void increase_verbosity(int how_much) {
+    verbosity += how_much;
 }
 
 int get_verbosity() {

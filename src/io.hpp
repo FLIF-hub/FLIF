@@ -21,7 +21,7 @@
 void e_printf(const char *format, ...);
 void v_printf(const int v, const char *format, ...);
 
-void increase_verbosity();
+void increase_verbosity(int how_much=1);
 int get_verbosity();
 
 template<class IO>

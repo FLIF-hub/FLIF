@@ -133,12 +133,12 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  ____ _(_)____\n");
-    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc4 [15 December 2015]\n");
+    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc4 [19 Dec 2015]\n");
     v_printf(3,"  (__ | |_| __)    ");v_printf(2,"Copyright (C) 2015 Jon Sneyers and Pieter Wuille\n");
     v_printf(3,"    (_|___|_)      ");v_printf(2,"License GPLv3+: GNU GPL version 3 or later\n");
     v_printf(3,"\n");
-    v_printf(2,"This is free software: you are free to change and redistribute it.\n");
-    v_printf(2,"There is NO WARRANTY, to the extent permitted by law.\n");
+    v_printf(4,"This is free software: you are free to change and redistribute it.\n");
+    v_printf(4,"There is NO WARRANTY, to the extent permitted by law.\n");
 #ifndef HAS_ENCODER
     v_printf(2,"Non-default compile-option: DECODER ONLY\n");
 #endif
@@ -185,12 +185,21 @@ bool encode_load_input_images(int argc, char **argv, Images &images) {
             return false;
         };
         images.push_back(std::move(image));
-        const Image& last_image = images.back();
-        if (last_image.rows() != images[0].rows() || last_image.cols() != images[0].cols() || last_image.numPlanes() != images[0].numPlanes()) {
+        Image& last_image = images.back();
+        if (last_image.rows() != images[0].rows() || last_image.cols() != images[0].cols()) {
             e_printf("Dimensions of all input images should be the same!\n");
-            e_printf("  First image is %ux%u, %i channels.\n",images[0].cols(),images[0].rows(),images[0].numPlanes());
-            e_printf("  This image is %ux%u, %i channels: %s\n",last_image.cols(),last_image.rows(),last_image.numPlanes(),argv[0]);
+            e_printf("  First image is %ux%u\n",images[0].cols(),images[0].rows());
+            e_printf("  This image is %ux%u: %s\n",last_image.cols(),last_image.rows(),argv[0]);
             return false;
+        }
+        if (last_image.numPlanes() < images[0].numPlanes()) {
+            if (images[0].numPlanes() == 3) last_image.ensure_chroma();
+            else if (images[0].numPlanes() == 4) last_image.ensure_alpha();
+            else { e_printf("Problem while loading input images, please report this.\n"); return false; }
+        } else if (last_image.numPlanes() > images[0].numPlanes()) {
+            if (last_image.numPlanes() == 3) { for (Image& i : images) i.ensure_chroma(); }
+            else if (last_image.numPlanes() == 4) { for (Image& i : images) i.ensure_alpha(); }
+            else { e_printf("Problem while loading input images, please report this.\n"); return false; }
         }
         argc--; argv++;
         if (nb_input_images>1) {v_printf(2,"    (%i/%i)         ",(int)images.size(),nb_input_images); v_printf(4,"\n");}
@@ -198,8 +207,12 @@ bool encode_load_input_images(int argc, char **argv, Images &images) {
     v_printf(2,"\n");
     return true;
 }
-bool encode_flif(int argc, char **argv, Images &images, int palette_size, int acb, flifEncodingOptional method, int lookback, int learn_repeats, int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int yiq=1, int plc=1, int frs=1, int cutoff=2, int alpha=19) {
+bool encode_flif(int argc, char **argv, Images &images, int palette_size, int acb, flifEncodingOptional method, int lookback,
+                 int learn_repeats, std::vector<int> &frame_delay, int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE,
+                 int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int yiq=1, int plc=1, int frs=1, int cutoff=2, int alpha=19) {
     bool flat=true;
+    unsigned int framenb=0;
+    for (Image& i : images) { i.frame_delay = frame_delay[framenb]; if (framenb+1 < frame_delay.size()) framenb++; }
     for (Image &image : images) if (image.uses_alpha()) flat=false;
     if (flat && images[0].numPlanes() == 4) {
         v_printf(2,"Alpha channel not actually used, dropping it.\n");
@@ -271,12 +284,10 @@ bool handle_encode(int argc, char **argv, Images &images, int palette_size, int 
                    int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD,
                    int yiq=1, int plc=1, bool alpha_zero_special=true, int frs=1, int cutoff=2, int alpha=19) {
     if (!encode_load_input_images(argc,argv,images)) return false;
-    unsigned int framenb=0;
-    for (Image& i : images) { i.frame_delay = frame_delay[framenb]; if (framenb+1 < frame_delay.size()) framenb++; }
     if (!alpha_zero_special) for (Image& i : images) i.alpha_zero_special = false;
     argv += (argc-1);
     argc = 1;
-    return encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, divisor, min_size, split_threshold, yiq, plc, frs, cutoff, alpha);
+    return encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, frs, cutoff, alpha);
 }
 #endif
 
@@ -397,7 +408,7 @@ int main(int argc, char **argv)
         switch (c) {
         case 'd': mode=1; break;
         case 'v': increase_verbosity(); break;
-        case 'V': increase_verbosity(); break;
+        case 'V': increase_verbosity(3); break;
         case 'q': quality=atoi(optarg);
                   if (quality < 0 || quality > 100) {e_printf("Not a sensible number for option -q\n"); return 1; }
                   break;
@@ -523,7 +534,7 @@ int main(int argc, char **argv)
 //        if (scale > 1) {e_printf("Not yet supported: transcoding downscaled image; use decode + encode!\n");}
         if (!decode_flif(argv, images, quality, scale, resize_width, resize_height)) return 2;
         argc--; argv++;
-        if (!encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, divisor, min_size, split_threshold, yiq, plc, frs, cutoff, alpha)) return 2;
+        if (!encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, frs, cutoff, alpha)) return 2;
     }
 #endif
     return 0;

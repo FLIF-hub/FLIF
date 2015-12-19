@@ -129,6 +129,7 @@ FLIF_DLLEXPORT int32_t FLIF_API flif_abort_decoder(FLIF_DECODER* decoder) {
 FLIF_DLLEXPORT void FLIF_API flif_destroy_decoder(FLIF_DECODER* decoder) {
     // delete should never let exceptions out
     delete decoder;
+    decoder = NULL;
 }
 
 FLIF_DLLEXPORT void FLIF_API flif_decoder_set_quality(FLIF_DECODER* decoder, int32_t quality) {
