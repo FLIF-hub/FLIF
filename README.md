@@ -4,11 +4,14 @@
 [![Join the chat at https://gitter.im/jonsneyers/FLIF](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/jonsneyers/FLIF?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Donate via Gratipay](https://img.shields.io/gratipay/flif.svg)](https://gratipay.com/flif/)
 
-FLIF is a lossless image format based on MANIAC compression. MANIAC (Meta-Adaptive Near-zero Integer Arithmetic Coding) is a variant of CABAC (context-adaptive binary arithmetic coding), where the contexts are nodes of decision trees which are dynamically learned at encode time.
+FLIF is a lossless image format based on MANIAC compression. MANIAC (Meta-Adaptive Near-zero Integer Arithmetic Coding)
+is a variant of CABAC (context-adaptive binary arithmetic coding), where the contexts are nodes of decision trees
+which are dynamically learned at encode time.
 
 FLIF outperforms PNG, FFV1, lossless WebP, lossless BPG and lossless JPEG2000 in terms of compression ratio.
 
-Moreover, FLIF supports a form of progressive interlacing (essentially a generalization/improvement of PNG's Adam7) which means that any prefix (e.g. partial download) of a compressed file can be used as a reasonable lossy encoding of the entire image.
+Moreover, FLIF supports a form of progressive interlacing (essentially a generalization/improvement of PNG's Adam7)
+which means that any prefix (e.g. partial download) of a compressed file can be used as a reasonable lossy encoding of the entire image.
 
 For more information on FLIF, visit http://flif.info
 
@@ -21,6 +24,9 @@ FLIF is copylefted free/libre software: you can redistribute it and/or modify it
 The reference implementation of FLIF is released under the terms of the GNU General Public License version 3 or later (GPLv3+).
 
 The decoder library `libflif_dec` is released under the terms of the GNU **Lesser** General Public License (LGPLv3+).
+
+The example application `viewflif` illustrates how to use the decode library.
+The example code in `viewflif.c` is in the public domain (Creative Commons CC0 1.0 Universal).
 
 * * *
 
