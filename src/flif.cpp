@@ -103,7 +103,7 @@ void show_help() {
     v_printf(3,"   -D, --maniac-divisor=N      MANIAC inner node count divisor; default: -D%i\n",CONTEXT_TREE_COUNT_DIV);
     v_printf(3,"   -M, --maniac-min-size=N     MANIAC post-pruning threshold; default: -M%i\n",CONTEXT_TREE_MIN_SUBTREE_SIZE);
     v_printf(3,"   -X, --chance-cutoff=N       minimum chance (N/4096); default: -X2\n");
-    v_printf(3,"   -Z, --chance-alpha=N        chance decay factor; default: -Y19\n");
+    v_printf(3,"   -Z, --chance-alpha=N        chance decay factor; default: -Z19\n");
 #endif
     v_printf(1,"Decode options: (-d, --decode)\n");
     v_printf(1,"   -i, --identify             do not decode, just identify the input FLIF file\n");
