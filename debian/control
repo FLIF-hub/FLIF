@@ -1,0 +1,28 @@
+Source: flif
+Section: graphics
+Priority: optional
+Maintainer: Jon Sneyers <jon.sneyers@gmail.com>
+Build-Depends: debhelper (>=9), libpng-dev, libsdl2-dev
+Standards-Version: 3.9.6
+Vcs-Git: https://github.com/FLIF-hub/FLIF.git
+Vcs-browser: https://github.com/FLIF-hub/FLIF
+Homepage: http://flif.info
+
+Package: flif
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Recommends: imagemagick, apngdis
+Description: Free Lossless Image Format (FLIF) tools
+ FLIF is a lossless image (and animation) format.
+ It tends to compress better than other image compression formats.
+ This is the reference implementation of the FLIF encoder/decoder.
+ .
+ Included in this package are the following programs:
+  - flif: convert between FLIF and PNG, PNM, PAM
+  - gif2flif: convert (animated) GIF to (animated) FLIF
+  - apng2flif: convert animated PNG (APNG) to FLIF
+  - viewflif: display a FLIF image
+ .
+ as well as the following shared libraries:
+  - libflif_dec: decode FLIF files
+  - libflif: encode or decode FLIF files
