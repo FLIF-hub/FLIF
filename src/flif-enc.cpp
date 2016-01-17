@@ -35,17 +35,15 @@
 
 using namespace maniac::util;
 
-template<typename RAC> void static write_name(RAC& rac, std::string desc, uint8_t &transform_l)
-{
-    int nb = transform_l;
+template<typename RAC> void static write_name(RAC& rac, std::string desc) {
+    int nb = 0;
     while (nb <= MAX_TRANSFORM) {
         if (transforms[nb] == desc) break;
         nb++;
     }
     if (transforms[nb] != desc) { e_printf("ERROR: Invalid transform: '%s'\n",desc.c_str()); return;}
     UniformSymbolCoder<RAC> coder(rac);
-    coder.write_int(0, MAX_TRANSFORM-transform_l, nb-transform_l);
-    transform_l = nb+1;
+    coder.write_int(0, MAX_TRANSFORM, nb);
 }
 
 // alphazero = true: image has alpha plane and A=0 implies RGB(YIQ) is irrelevant
@@ -354,10 +352,15 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     //      1  0  0           = interlaced, still    (FLIFA1,  FLIFC1,  FLIFD1,   FLIFA2,  FLIFC2,  FLIFD2)
     //      1  0  1           = scanlines, animated  (FLIFQx1, FLIFSx1, FLIFTx1,  FLIFQx2, FLIFSx2, FLIFTx2)   x=nb_frames
     //      1  1  0           = interlaced, animated (FLIFax1, FLIFcx1, FLIFdx1,  FLIFax2, FLIFcx2, FLIFdx2)   x=nb_frames
-    //                0 0 1   = grayscale (1 plane)
-    //                0 1 1   = RGB (3 planes)
-    //                1 0 0   = RGBA (4 planes)       (grayscale + alpha is encoded as RGBA to keep the number of cases low)
-    //   0          0         (two spare bits, reserved for future use)
+    //      0  0  0           = interlaced, still, non-default interlace order (not yet implemented)
+    //      1  1  1           = interlaced, animated, non-default interlace order (not yet implemented)
+    //              0         = RGB(A) color model (can be transformed to other color spaces like YCoCg/YCbCr)
+    //              1         = other color models, e.g. CMYK, RGBE (not yet implemented)
+    //              0 0 0 1   = grayscale (1 plane)
+    //              0 0 1 1   = RGB (3 planes)
+    //              0 1 0 0   = RGBA (4 planes)       (grayscale + alpha is encoded as RGBA to keep the number of cases low)
+    //   0                    = MANIAC trees with default context properties
+    //   1                    = (not yet implemented; could be used for other entropy coding methods)
     int c=' '+16*(static_cast<uint8_t>(encoding))+numPlanes;
     if (numFrames>1) c += 32;
     io.fputc(c);
@@ -437,7 +440,6 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     rangesList.push_back(getRanges(image));
     int tcount=0;
     v_printf(4,"Transforms: ");
-    uint8_t transform_l=0;
 
     for (unsigned int i=0; i<transDesc.size(); i++) {
         Transform<IO> *trans = create_transform<IO>(transDesc[i]);
@@ -452,7 +454,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
             v_printf(4,"%s", transDesc[i].c_str());
             fflush(stdout);
             rac.write_bit(true);
-            write_name(rac, transDesc[i], transform_l);
+            write_name(rac, transDesc[i]);
             trans->save(rangesList.back(), rac);
             fflush(stdout);
             rangesList.push_back(trans->meta(images, rangesList.back()));

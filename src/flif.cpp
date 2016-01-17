@@ -133,8 +133,8 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  ____ _(_)____\n");
-    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc4 [19 Dec 2015]\n");
-    v_printf(3,"  (__ | |_| __)    ");v_printf(2,"Copyright (C) 2015 Jon Sneyers and Pieter Wuille\n");
+    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc5 [17 Jan 2016]\n");
+    v_printf(3,"  (__ | |_| __)    ");v_printf(2,"Copyright (C) 2016 Jon Sneyers and Pieter Wuille\n");
     v_printf(3,"    (_|___|_)      ");v_printf(2,"License GPLv3+: GNU GPL version 3 or later\n");
     v_printf(3,"\n");
     v_printf(4,"This is free software: you are free to change and redistribute it.\n");
@@ -428,7 +428,7 @@ int main(int argc, char **argv)
         case 'A': acb=1; break;
         case 'B': acb=0; break;
         case 'P': palette_size=atoi(optarg);
-                  if (palette_size < -30000 || palette_size > 30000) {e_printf("Not a sensible number for option -P\n"); return 1; }
+                  if (palette_size < -32000 || palette_size > 32000) {e_printf("Not a sensible number for option -P\n"); return 1; }
                   if (palette_size == 0) {v_printf(5,"Palette disabled\n"); }
                   break;
         case 'R': learn_repeats=atoi(optarg);
@@ -465,7 +465,7 @@ int main(int argc, char **argv)
                   if (cutoff < 1 || cutoff > 128) {e_printf("Not a sensible number for option -X (try something between 1 and 128)\n"); return 1; }
                   break;
         case 'Z': alpha=atoi(optarg);
-                  if (alpha < 4 || alpha > 128) {e_printf("Not a sensible number for option -Z (try something between 4 and 128)\n"); return 1; }
+                  if (alpha < 2 || alpha > 128) {e_printf("Not a sensible number for option -Z (try something between 2 and 128)\n"); return 1; }
                   break;
 #endif
         case 'h': showhelp=true; break;

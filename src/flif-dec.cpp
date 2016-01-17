@@ -33,12 +33,10 @@
 
 using namespace maniac::util;
 
-template<typename RAC> std::string static read_name(RAC& rac, uint8_t &transform_l)
-{
+template<typename RAC> std::string static read_name(RAC& rac) {
     UniformSymbolCoder<RAC> coder(rac);
-    int nb = transform_l + coder.read_int(0, MAX_TRANSFORM-transform_l);
+    int nb = coder.read_int(0, MAX_TRANSFORM);
     if (nb>MAX_TRANSFORM) nb=MAX_TRANSFORM;
-    transform_l = nb+1;
     return transforms[nb];
 }
 
@@ -454,8 +452,6 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
         return false;
     if (width < 1 || height < 1) {e_printf("Invalid FLIF header\n"); return false;}
 
-    // TODO: implement downscaled decoding without allocating a fullscale image buffer!
-
     RacIn<IO> rac(io);
     SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> metaCoder(rac);
 
@@ -535,18 +531,16 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     rangesList.push_back(getRanges(images[0]));
     v_printf(4,"Transforms: ");
     int tcount=0;
-    uint8_t transform_l=0;
 
     while (rac.read_bit()) {
-        if (transform_l > MAX_TRANSFORM) return false;
-        std::string desc = read_name(rac, transform_l);
+        std::string desc = read_name(rac);
         Transform<IO> *trans = create_transform<IO>(desc);
         if (!trans) {
-            e_printf("Unknown transformation '%s'\n", desc.c_str());
+            e_printf("\nUnknown transformation '%s'\nTry upgrading your FLIF decoder?\n", desc.c_str());
             return false;
         }
         if (!trans->init(rangesList.back())) {
-            e_printf("Transformation '%s' failed\n", desc.c_str());
+            e_printf("Transformation '%s' failed\nTry upgrading your FLIF decoder?\n", desc.c_str());
             return false;
         }
         if (tcount++ > 0) v_printf(4,", ");

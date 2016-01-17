@@ -18,9 +18,12 @@
 
 #include "common.hpp"
 
-const std::vector<std::string> transforms = {"Channel_Compact","YCoCg","Bounds","Palette_Alpha","Palette","Color_Buckets",
-                                             "Duplicate_Frame","Frame_Shape","Frame_Lookback","Unknown/Reserved"};
-uint8_t transform_l = 0;
+const std::vector<std::string> transforms = {"Channel_Compact", "YCoCg", "Bounds",
+                                             "Palette_Alpha", "Palette", "?? Palette_Chroma ??", "Color_Buckets",
+                                             "Duplicate_Frame", "Frame_Shape", "Frame_Lookback",
+                                             "?? YCbCr ??", "?? DCT ??", "?? DWT ??", "?? Quantization ??",
+                                             "?? Reserved ??", "?? Other ??" };
+// Plenty of room for future extensions: transform "Other" can be used to encode identifiers of arbitrary many other transforms
 
 int64_t pixels_todo = 0;
 int64_t pixels_done = 0;
