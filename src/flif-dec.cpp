@@ -520,7 +520,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     int alpha = 0xFFFFFFFF / 19;
     if (metaCoder.read_int(0,1)) {
       cutoff = metaCoder.read_int(1,128);
-      alpha = 0xFFFFFFFF / metaCoder.read_int(4,128);
+      alpha = 0xFFFFFFFF / metaCoder.read_int(2,128);
       if (metaCoder.read_int(0,1)) {
         e_printf("Not yet implemented: non-default bitchance initialization\n");
         return false;

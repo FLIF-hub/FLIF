@@ -430,7 +430,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     } else {
       metaCoder.write_int(0,1,1); // not using default constants
       metaCoder.write_int(1,128,cutoff);
-      metaCoder.write_int(4,128,alpha);
+      metaCoder.write_int(2,128,alpha);
       metaCoder.write_int(0,1,0); // using default initial bitchances (non-default values has not been implemented yet!)
     }
     alpha = 0xFFFFFFFF/alpha;
