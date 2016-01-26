@@ -1,6 +1,6 @@
 #!/usr/bin/make -f
 %:
-	dh $@
+	dh $@ --with bash-completion
 
 
 override_dh_install:
@@ -17,4 +17,4 @@ override_dh_install:
 	dh_install -plibflif --autodest usr/lib/libflif.so.*
 	# libflif_dec
 	dh_install -plibflif-dec --autodest usr/lib/libflif_dec.so.*
-	dh_install --list-missing
+
