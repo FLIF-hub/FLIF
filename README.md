@@ -17,7 +17,7 @@ For more information on FLIF, visit http://flif.info
 
 * * *
 
-###License
+### License
 
 FLIF is copylefted free/libre software: you can redistribute it and/or modify it, provided that you share back.
 
@@ -30,7 +30,7 @@ The example code in `viewflif.c` is in the public domain (Creative Commons CC0 1
 
 * * *
 
-###Build Instructions
+### Build Instructions
 
 **GNU/Linux**
 
@@ -49,20 +49,22 @@ The example code in `viewflif.c` is in the public domain (Creative Commons CC0 1
 * Install Visual Studio
   ([VS Community 2015](https://www.visualstudio.com/en-us/products/free-developer-offers-vs.aspx)
   is free for open source projects)
-* Open the `build\MSVC` folder and Double click the `dl_make_vs.bat`. This will download required libraries and run `nmake` to build `flif.exe`
+* Open the `build\MSVC` folder and double-click the `dl_make_vs.bat` file.
+  This will download required libraries and run `nmake` to build `flif.exe`.
+  Then, run in the command line:
   * `nmake libflif.dll` to build the shared library
   * `nmake viewflif.exe` to build the example viewer
 
 **OS X**
 
 * Install [homebrew](http://brew.sh)
-* `brew install pkg-config libpng sdl2`
-* `make` in the FLIF/src directory
+* Install the dependencies: `brew install pkg-config libpng sdl2`
+* Run `make` in the FLIF/src directory
 
 
 * * *
 
-###Pre-Built Binaries
+### Pre-Built Binaries
 
 These will be available on the Release page
 
@@ -70,7 +72,7 @@ These will be available on the Release page
 
 * * *
 
-###Related Projects
+### Related Projects
 
 * **[Poly FLIF](https://github.com/UprootLabs/poly-flif)** - A javascript polyfill that allows you to use FLIF files in the browser. ([Demo](https://uprootlabs.github.io/poly-flif))
 * **[UGUI: FLIF](http://flif.info/UGUI_FLIF)** - A GUI that allows you to convert and view FLIF files.
