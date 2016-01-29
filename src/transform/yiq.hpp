@@ -26,6 +26,43 @@
 
 #define clip(x,l,u)   if ((x) < (l)) {(x)=(l);} else if ((x) > (u)) {(x)=(u);}
 
+/*
+    Explanation of lossless YCoCg:
+
+     Y = Luminance (near* weighted average of RGB in 1:2:1).
+     C = Chroma.
+    Co = Amount of [o]range chrome. Max = orange, 0 = gray, min = blue.
+    Cg = Amount of [g]reen chrome. Max = green, 0 = gray, min = purple.
+
+    RGB -> YCoCg
+    ------------
+    Co = R - B          <1> | This makes sense, if R = B, then we are gray.
+                            | If maximally orange, B = 0, R = max.
+                            | If maximally blue, B = max, R = 0.
+
+     p = (R + B)/2          | [P]urple, is the average of red/blue, truncated.
+     p = (2B + R - B)/2     | All these steps should be obviously
+     p = B + (R - B)/2      | equal, losslessly.
+     p = B + Co/2       <2>
+
+    Cg = G - p          <3> | Again, makes sense, green vs. purple.
+
+     Y = p + Cg/2       <4> | Near* weighted average of RGB in 1:2:1.
+     Y = p + (G - p)/2
+     Y ~= p + G/2 - p/2     | *These steps are not lossless (they can be off by
+     Y ~= p/2 + G/2         | 1 or perhaps 2), but illustrate that Y is a near
+     Y ~= (R + B)/4 + G/2   | weighted average of RGB in 1:2:1.
+
+    YCoCg -> RGB
+    ------------
+    p = Y - Cg/2       <4>
+    G = Cg + p         <3>
+    B = p - Co/2       <2>
+    R = Co + B         <1>
+*/
+
+
+
 ColorVal static inline get_min_y(int) {
     return 0;
 }
