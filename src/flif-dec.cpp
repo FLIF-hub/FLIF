@@ -40,6 +40,69 @@ template<typename RAC> std::string static read_name(RAC& rac) {
     return transforms[nb];
 }
 
+template<typename Coder, typename plane_t, typename alpha_t>
+void flif_decode_scanline_plane(plane_t &plane, Coder &coder, Images &images, const ColorRanges *ranges, alpha_t &alpha, Properties &properties, 
+                                const int p, const int fr, const uint32_t r, const ColorVal grey, const ColorVal minP, const bool alphazero, const bool FRA) {
+    ColorVal min,max;
+    Image& image = images[fr];
+    uint32_t begin=image.col_begin[r], end=image.col_end[r];
+    //if this is a duplicate frame, copy the row from the frame being duplicated
+    if (image.seen_before >= 0) { 
+        copy_row_range(plane,images[image.seen_before].getPlane(p),r,0,image.cols());
+        return;
+    }
+    //if this is not the first or only frame, fill the beginning of the row before the actual pixel data
+    if (fr > 0) {
+        //if alphazero is on, fill with a predicted value, otherwise copy pixels from the previous frame
+        if (alphazero && p < 3) {
+            for (uint32_t c = 0; c < begin; c++)
+                if (alpha.get(r,c) == 0) plane.set(r,c,predictScanlines_plane(plane,r,c, grey));
+        }
+        else if(p!=4) {
+            copy_row_range(plane,images[fr - 1].getPlane(p), r, 0, begin);
+        }
+    } else if (image.numPlanes()>3 && p<3) { begin=0; end=image.cols(); }
+    //decode actual pixel data
+    for (uint32_t c = begin; c < end; c++) {
+        //predict pixel for alphazero and get a previous pixel for FRA
+        if (alphazero && p<3 && alpha.get(r,c) == 0) {plane.set(r,c,predictScanlines_plane(plane,r,c, grey)); continue;}
+        if (FRA && p<4 && image.getFRA(r,c) > 0) {assert(fr >= image.getFRA(r,c)); plane.set(r,c,images[fr-image.getFRA(r,c)](p,r,c)); continue;}
+        //calculate properties and use them to decode the next pixel
+        ColorVal guess = predict_and_calcProps_scanlines_plane(properties,ranges,image,plane,p,r,c,min,max, minP);
+        if (FRA && p==4 && max > fr) max = fr;
+        ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
+        plane.set(r,c, curr);
+    }
+    //if this is not the first or only frame, fill the end of the row after the actual pixel data
+    if (fr>0) {
+        //if alphazero is on, fill with a predicted value, otherwise copy pixels from the previous frame
+        if (alphazero && p < 3) {
+            for (uint32_t c = end; c < image.cols(); c++)
+                if (alpha.get(r,c) == 0) plane.set(r,c,predictScanlines_plane(plane,r,c, grey));
+        }
+        else if(p!=4) { 
+            copy_row_range(plane,images[fr - 1].getPlane(p), r, end, image.cols());
+        }
+    }
+}
+
+template<typename Coder, typename alpha_t>
+struct scanline_plane_decoder: public PlaneVisitor {
+    Coder &coder; Images &images; const ColorRanges *ranges; Properties &properties;
+    const alpha_t &alpha; const int p, fr; const uint32_t r; const ColorVal grey, minP; const bool alphazero, FRA;
+    const alpha_t null_alpha;
+    scanline_plane_decoder(Coder &c, Images &i, const ColorRanges *ra, Properties &prop, const int pl, const int f, 
+                           const uint32_t row, const ColorVal g, const ColorVal m, const bool az, const bool fra) :
+        coder(c), images(i), ranges(ra), null_alpha(0,0), alpha(p < 3 && images[0].numPlanes() > 3 ? static_cast<const alpha_t&>(images[f].getPlane(p)) : null_alpha), 
+        properties(prop), p(pl), fr(f), r(row), grey(g), minP(m), alphazero(az), FRA(fra) {}
+
+    void visit(Plane<ColorVal_intern_8>   &plane) {flif_decode_scanline_plane(plane,coder,images,ranges,alpha,properties,p,fr,r,grey,minP,alphazero,FRA);}
+    void visit(Plane<ColorVal_intern_16>  &plane) {flif_decode_scanline_plane(plane,coder,images,ranges,alpha,properties,p,fr,r,grey,minP,alphazero,FRA);}
+    void visit(Plane<ColorVal_intern_16u> &plane) {flif_decode_scanline_plane(plane,coder,images,ranges,alpha,properties,p,fr,r,grey,minP,alphazero,FRA);}
+    void visit(Plane<ColorVal_intern_32>  &plane) {flif_decode_scanline_plane(plane,coder,images,ranges,alpha,properties,p,fr,r,grey,minP,alphazero,FRA);}
+    virtual void visit(ConstantPlane      &plane) {flif_decode_scanline_plane(plane,coder,images,ranges,alpha,properties,p,fr,r,grey,minP,alphazero,FRA);}
+};
+
 template<typename IO, typename Rac, typename Coder>
 bool flif_decode_scanlines_inner(IO &io, Rac &rac, std::vector<Coder> &coders, Images &images, const ColorRanges *ranges, int quality,
                                  std::vector<Transform<IO>*> &transforms, uint32_t (*callback)(int32_t,int64_t), Images &partial_images) {
@@ -80,27 +143,17 @@ bool flif_decode_scanlines_inner(IO &io, Rac &rac, std::vector<Coder> &coders, I
           for (uint32_t r = 0; r < images[0].rows(); r++) {
             if (images[0].cols() == 0) return false; // decode aborted
             for (int fr=0; fr< (int)images.size(); fr++) {
-              Image& image = images[fr];
-              uint32_t begin=image.col_begin[r], end=image.col_end[r];
-              if (image.seen_before >= 0) { for(uint32_t c=0; c<image.cols(); c++) image.set(p,r,c,images[image.seen_before](p,r,c)); continue; }
-              if (fr>0) {
-                for (uint32_t c = 0; c < begin; c++)
-                   if (alphazero && p<3 && image(3,r,c) == 0) image.set(p,r,c,predictScanlines(image,p,r,c, greys[p]));
-                   else if (p !=4 ) image.set(p,r,c,images[fr-1](p,r,c));
-              } else if (nump>3 && p<3) { begin=0; end=image.cols(); }
-              for (uint32_t c = begin; c < end; c++) {
-                if (alphazero && p<3 && image(3,r,c) == 0) {image.set(p,r,c,predictScanlines(image,p,r,c, greys[p])); continue;}
-                if (FRA && p<4 && image(4,r,c) > 0) {assert(fr >= image(4,r,c)); image.set(p,r,c,images[fr-image(4,r,c)](p,r,c)); continue;}
-                ColorVal guess = predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max, minP);
-                if (FRA && p==4 && max > fr) max = fr;
-                ColorVal curr = coders[p].read_int(properties, min - guess, max - guess) + guess;
-                image.set(p,r,c, curr);
-              }
-              if (fr>0) {
-                for (uint32_t c = end; c < image.cols(); c++)
-                   if (alphazero && p<3 && image(3,r,c) == 0) image.set(p,r,c,predictScanlines(image,p,r,c, greys[p]));
-                   else if (p !=4 ) image.set(p,r,c,images[fr-1](p,r,c));
-              }
+                Image &image = images[fr];
+                GeneralPlane &plane = image.getPlane(p);
+                if (image.getDepth() <= 8) {
+                    scanline_plane_decoder<Coder,Plane<ColorVal_intern_8>> decoder(coders[p],images,ranges,properties,p,fr,r,greys[p],minP,alphazero,FRA);
+                    plane.accept_visitor(decoder);
+#ifdef SUPPORT_HDR
+                } else {
+                    scanline_plane_decoder<Coder,Plane<ColorVal_intern_16u>> decoder(coders[p],images,ranges,properties,p,fr,r,greys[p],minP,alphazero,FRA);
+                    plane.accept_visitor(decoder);
+#endif
+                }
             }
           }
           int qual = 10000*pixels_done/pixels_todo;

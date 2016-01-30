@@ -45,14 +45,29 @@ std::unique_ptr<T> make_unique(Args &&... args)
     return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
 
+struct PlaneVisitor;
+
 class GeneralPlane {
 public:
     virtual void set(const uint32_t r, const uint32_t c, const ColorVal x) =0;
     virtual ColorVal get(const uint32_t r, const uint32_t c) const =0;
     virtual bool is_constant() const { return false; }
     virtual ~GeneralPlane() { }
+    virtual void check_equal(const ColorVal x, const uint32_t r, const uint32_t begin, const uint32_t end, const uint32_t stride) const =0;
+    virtual void accept_visitor(PlaneVisitor &v) =0;
 };
 
+template <typename> class Plane;
+class ConstantPlane;
+
+struct PlaneVisitor {
+    virtual void visit(Plane<ColorVal_intern_8>&) =0;
+    virtual void visit(Plane<ColorVal_intern_16>&) =0;
+    virtual void visit(Plane<ColorVal_intern_16u>&) =0;
+    virtual void visit(Plane<ColorVal_intern_32>&) =0;
+    virtual void visit(ConstantPlane&) =0;
+    virtual ~PlaneVisitor() {}
+};
 
 template <typename pixel_t> class Plane final : public GeneralPlane {
     std::valarray<pixel_t> data;
@@ -71,6 +86,14 @@ public:
         assert(r<height); assert(c<width);
         return data[r*width + c];
     }
+
+    void check_equal(const ColorVal x, const uint32_t r, const uint32_t begin, const uint32_t end, const uint32_t stride) const{
+        for(uint32_t c = begin; c < end; c+= stride) assert(x == get(r,c));
+    }
+
+    void accept_visitor(PlaneVisitor &v) {
+        v.visit(*this);
+    }
 };
 
 class ConstantPlane final : public GeneralPlane {
@@ -84,7 +107,27 @@ public:
         return color;
     }
     bool is_constant() const { return true; }
+
+    void check_equal(const ColorVal x, const uint32_t r, const uint32_t begin, const uint32_t end, const uint32_t stride) const{
+        assert(x == color);
+    }
+
+    void accept_visitor(PlaneVisitor &v) {
+        v.visit(*this);
+    }
 };
+
+template<typename plane_t>
+void copy_row_range(plane_t &plane, const GeneralPlane &other, const uint32_t r, const uint32_t begin, const uint32_t end, const uint32_t stride = 1) {
+    //assuming pixels are only ever copied from either a constant plane or a plane of the same type
+    if (plane.is_constant()) {
+        other.check_equal(plane.get(0,0),r,begin,end,stride);
+    }
+    else {
+        const plane_t &src = static_cast<const plane_t&>(other);
+        for(uint32_t c = begin; c < end; c+= stride) plane.set(r,c, src.get(r,c));
+    }
+}
 
 #define SCALED(x) (((x-1)>>scale)+1)
 class Image {
@@ -417,6 +460,25 @@ public:
         uint32_t r = rz*zoom_rowpixelsize(z);
         uint32_t c = cz*zoom_colpixelsize(z);
         set(p,r,c,x);
+    }
+
+    GeneralPlane& getPlane(int p) {
+        assert(p>=0);
+        assert(p<num);
+        return *planes[p];
+    }
+    const GeneralPlane& getPlane(int p) const{
+        assert(p>=0);
+        assert(p<num);
+        return *planes[p];
+    }
+
+    ColorVal getFRA(const uint32_t r, const uint32_t c) {
+        return static_cast<Plane<ColorVal_intern_8>&>(*planes[4]).get(r,c);
+    }
+
+    int getDepth() const {
+        return depth;
     }
 
     uint32_t checksum() {

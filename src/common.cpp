@@ -59,42 +59,7 @@ void initPropRanges_scanlines(Ranges &propRanges, const ColorRanges &ranges, int
 }
 
 ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRanges *ranges, const Image &image, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max, const ColorVal fallback) {
-    ColorVal guess;
-    int which = 0;
-    int index=0;
-    if (p < 3) {
-      for (int pp = 0; pp < p; pp++) {
-        properties[index++] = image(pp,r,c);
-      }
-      if (image.numPlanes()>3) properties[index++] = image(3,r,c);
-    }
-    ColorVal left = (c>0 ? image(p,r,c-1) : (r > 0 ? image(p, r-1, c) : fallback));
-    ColorVal top = (r>0 ? image(p,r-1,c) : left);
-    ColorVal topleft = (r>0 && c>0 ? image(p,r-1,c-1) : (r > 0 ? top : left));
-    ColorVal gradientTL = left + top - topleft;
-    guess = median3(gradientTL, left, top);
-    ranges->snap(p,properties,min,max,guess);
-    assert(min >= ranges->min(p));
-    assert(max <= ranges->max(p));
-    assert(guess >= min);
-    assert(guess <= max);
-    if (guess == gradientTL) which = 0;
-    else if (guess == left) which = 1;
-    else if (guess == top) which = 2;
-
-    properties[index++] = guess;
-    properties[index++] = which;
-
-    if (c > 0 && r > 0) { properties[index++] = left - topleft; properties[index++] = topleft - top; }
-                 else   { properties[index++] = 0; properties[index++] = 0;  }
-
-    if (c+1 < image.cols() && r > 0) properties[index++] = top - image(p,r-1,c+1); // top - topright
-                 else   properties[index++] = 0;
-    if (r > 1) properties[index++] = image(p,r-2,c)-top;    // toptop - top
-         else properties[index++] = 0;
-    if (c > 1) properties[index++] = image(p,r,c-2)-left;    // leftleft - left
-         else properties[index++] = 0;
-    return guess;
+    return predict_and_calcProps_scanlines_plane(properties,ranges,image,image.getPlane(p),p,r,c,min,max, fallback);
 }
 
 
