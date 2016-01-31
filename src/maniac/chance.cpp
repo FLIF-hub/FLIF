@@ -16,6 +16,8 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "../precompile.h"
+
 #include <string.h>
 #include <stdint.h>
 

@@ -1,3 +1,4 @@
+#include "../precompile.h"
 #include "color_range.hpp"
 
 const ColorRanges *getRanges(const Image &image) {

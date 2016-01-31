@@ -1,3 +1,4 @@
+#include "../precompile.h"
 #include <string.h>
 
 #include "image.hpp"

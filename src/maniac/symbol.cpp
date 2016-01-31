@@ -1,3 +1,4 @@
+#include "../precompile.h"
 #include <sstream>
 
 #include "symbol.hpp"
