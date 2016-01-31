@@ -229,9 +229,9 @@ public:
                 Co=image(1,r,c);
                 Cg=image(2,r,c);
 
-                R = Y + ((Co + 2)>>1) + ((Cg + 2)>>1);
-                G = Y - ((Co + 1)>>1);
-                B = Y + ((Co + 2)>>1) - ((Cg + 1)>>1);
+                R = Y + ((Cg + 2)>>1) + ((Co + 2)>>1);
+                G = Y - ((Cg + 1)>>1);
+                B = Y + ((Cg + 2)>>1) - ((Co + 1)>>1);
 
                 clip(R, 0, max[0]); // clipping only needed in case of lossy/partial decoding
                 clip(G, 0, max[1]);
