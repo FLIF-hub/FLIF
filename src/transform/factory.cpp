@@ -2,7 +2,8 @@
 
 #include "transform.hpp"
 
-#include "yiq.hpp"
+#include "ycocg.hpp"
+//#include "yc1c2.hpp"
 #include "bounds.hpp"
 #include "colorbuckets.hpp"
 #include "palette.hpp"
@@ -13,10 +14,11 @@
 #include "framecombine.hpp"
 
 template <typename IO>
-Transform<IO> *create_transform(std::string desc)
-{
+Transform<IO> *create_transform(std::string desc) {
     if (desc == "YCoCg")
-        return new TransformYIQ<IO>();
+        return new TransformYCoCg<IO>();
+// use this if you just want to quickly try YC1C2
+//        return new TransformYCC<IO>();
     if (desc == "Bounds")
         return new TransformBounds<IO>();
     if (desc == "Color_Buckets")
