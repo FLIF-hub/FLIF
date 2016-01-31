@@ -1,19 +1,19 @@
 /*
- FLIF - Free Lossless Image Format
- Copyright (C) 2010-2015  Jon Sneyers & Pieter Wuille, LGPL v3+
+FLIF - Free Lossless Image Format
 
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU Lesser General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
+Copyright 2010-2016, Jon Sneyers & Pieter Wuille
 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU Lesser General Public License for more details.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
- You should have received a copy of the GNU Lesser General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
 
 
@@ -71,7 +71,7 @@ ColorVal static inline get_max_y(int par) {
     return par*4-1;
 }
 
-ColorVal static inline get_min_i(int par, ColorVal y) {
+ColorVal static inline get_min_co(int par, ColorVal y) {
     assert(y >= get_min_y(par));
     assert(y <= get_max_y(par));
 
@@ -84,7 +84,7 @@ ColorVal static inline get_min_i(int par, ColorVal y) {
     }
 }
 
-ColorVal static inline get_max_i(int par, ColorVal y) {
+ColorVal static inline get_max_co(int par, ColorVal y) {
     assert(y >= get_min_y(par));
     assert(y <= get_max_y(par));
 
@@ -97,52 +97,52 @@ ColorVal static inline get_max_i(int par, ColorVal y) {
     }
 }
 
-ColorVal static inline get_min_q(int par, ColorVal y, ColorVal i) {
+ColorVal static inline get_min_cg(int par, ColorVal y, ColorVal co) {
     assert(y >= get_min_y(par));
     assert(y <= get_max_y(par));
-    if (i < get_min_i(par,y)) return 8*par; //invalid value
-    if (i > get_max_i(par,y)) return 8*par; //invalid value
-    // assert(i >= get_min_i(par,y));
-    // assert(i <= get_max_i(par,y));
+    if (co < get_min_co(par,y)) return 8*par; //invalid value
+    if (co > get_max_co(par,y)) return 8*par; //invalid value
+    // assert(i >= get_min_co(par,y));
+    // assert(i <= get_max_co(par,y));
 
     if (y<par-1) {
-      return -2-2*y+(abs(i+1)/2)*2;
+      return -2-2*y+(abs(co+1)/2)*2;
     } else if (y>=3*par) {
       return -1-2*(4*par-1-y);
     } else {
-      return std::max(-4*par + 1+(y-2*par)*2, -2*par-(y-par+1)*2+(abs(i+1)/2)*2);
+      return std::max(-4*par + 1+(y-2*par)*2, -2*par-(y-par+1)*2+(abs(co+1)/2)*2);
     }
 }
 
-ColorVal static inline get_max_q(int par, ColorVal y, ColorVal i) {
+ColorVal static inline get_max_cg(int par, ColorVal y, ColorVal co) {
     assert(y >= get_min_y(par));
     assert(y <= get_max_y(par));
 
-    if (i < get_min_i(par,y)) return -8*par; //invalid value
-    if (i > get_max_i(par,y)) return -8*par; //invalid value
-    // assert(i >= get_min_i(par,y));
-    // assert(i <= get_max_i(par,y));
+    if (co < get_min_co(par,y)) return -8*par; //invalid value
+    if (co > get_max_co(par,y)) return -8*par; //invalid value
+    // assert(i >= get_min_co(par,y));
+    // assert(i <= get_max_co(par,y));
 
     if (y<par-1) {
       return 2*y;
     } else if (y>=3*par) {
-      return -1+2*(4*par-1-y)-((1+abs(i+1))/2)*2;
+      return -1+2*(4*par-1-y)-((1+abs(co+1))/2)*2;
     } else {
-      return std::min(2*par-2+(y-par+1)*2, 2*par-1+(3*par-1-y)*2-((1+abs(i+1))/2)*2);
+      return std::min(2*par-2+(y-par+1)*2, 2*par-1+(3*par-1-y)*2-((1+abs(co+1))/2)*2);
     }
 
 }
 
 
-class ColorRangesYIQ final : public ColorRanges {
+class ColorRangesYCoCg final : public ColorRanges {
 protected:
 //    const int par=64; // range: [0..4*par-1]
     const int par;
     const ColorRanges *ranges;
 public:
-    ColorRangesYIQ(int parIn, const ColorRanges *rangesIn)
+    ColorRangesYCoCg(int parIn, const ColorRanges *rangesIn)
             : par(parIn), ranges(rangesIn) {
-    //        if (parIn != par) printf("OOPS: using YIQ transform on something other than rgb888 ?\n");
+    //        if (parIn != par) printf("OOPS: using YCoCg transform on something other than rgb888 ?\n");
     }
     bool isStatic() const { return false; }
     int numPlanes() const { return ranges->numPlanes(); }
@@ -165,8 +165,8 @@ public:
     }
 
     void minmax(const int p, const prevPlanes &pp, ColorVal &minv, ColorVal &maxv) const {
-         if (p==1) { minv=get_min_i(par, pp[0]); maxv=get_max_i(par, pp[0]); return; }
-         else if (p==2) { minv=get_min_q(par, pp[0], pp[1]); maxv=get_max_q(par, pp[0], pp[1]); return; }
+         if (p==1) { minv=get_min_co(par, pp[0]); maxv=get_max_co(par, pp[0]); return; }
+         else if (p==2) { minv=get_min_cg(par, pp[0], pp[1]); maxv=get_max_cg(par, pp[0], pp[1]); return; }
          else if (p==0) { minv=0; maxv=get_max_y(par); return;}
          else ranges->minmax(p,pp,minv,maxv);
     }
@@ -174,7 +174,7 @@ public:
 
 
 template <typename IO>
-class TransformYIQ : public Transform<IO> {
+class TransformYCoCg : public Transform<IO> {
 protected:
     int par;
     const ColorRanges *ranges;
@@ -191,13 +191,13 @@ public:
     }
 
     const ColorRanges *meta(Images&, const ColorRanges *srcRanges) {
-        return new ColorRangesYIQ(par, srcRanges);
+        return new ColorRangesYCoCg(par, srcRanges);
     }
 
 #ifdef HAS_ENCODER
     void data(Images& images) const {
-//        printf("TransformYIQ::data: par=%i\n", par);
-        ColorVal R,G,B,Y,I,Q;
+//        printf("TransformYCoCg::data: par=%i\n", par);
+        ColorVal R,G,B,Y,Co,Cg;
         for (Image& image : images)
         for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
@@ -206,18 +206,18 @@ public:
                 B=image(2,r,c);
 
                 Y = (((R + B)>>1) + G)>>1;
-                I = (R - B) - 1;
-                Q = (((R + B)>>1) - G) - 1;
+                Co = (R - B) - 1;
+                Cg = (((R + B)>>1) - G) - 1;
 
                 image.set(0,r,c, Y);
-                image.set(1,r,c, I);
-                image.set(2,r,c, Q);
+                image.set(1,r,c, Co);
+                image.set(2,r,c, Cg);
             }
         }
     }
 #endif
     void invData(Images& images) const {
-        ColorVal R,G,B,Y,I,Q;
+        ColorVal R,G,B,Y,Co,Cg;
         const ColorVal max[3] = {ranges->max(0), ranges->max(1), ranges->max(2)};
         for (Image& image : images) {
           image.undo_make_constant_plane(0);
@@ -226,14 +226,14 @@ public:
           for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
                 Y=image(0,r,c);
-                I=image(1,r,c);
-                Q=image(2,r,c);
+                Co=image(1,r,c);
+                Cg=image(2,r,c);
 
-                R = Y + ((Q + 2)>>1) + ((I + 2)>>1);
-                G = Y - ((Q + 1)>>1);
-                B = Y + ((Q + 2)>>1) - ((I + 1)>>1);
+                R = Y + ((Co + 2)>>1) + ((Cg + 2)>>1);
+                G = Y - ((Co + 1)>>1);
+                B = Y + ((Co + 2)>>1) - ((Cg + 1)>>1);
 
-                clip(R, 0, max[0]);                // clipping only needed in case of lossy/partial decoding
+                clip(R, 0, max[0]); // clipping only needed in case of lossy/partial decoding
                 clip(G, 0, max[1]);
                 clip(B, 0, max[2]);
 
