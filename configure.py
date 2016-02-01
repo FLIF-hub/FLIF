@@ -3,16 +3,17 @@ import sys
 import fnmatch
 
 
-__doc__ = """Configurator for FLIF build.
+__doc__ = """Build configurator for FLIF.
 
 Usage:
-    configure.py [options] [-D var[=val]]...
+    configure.py [options] [-D var]...
 
 Options:
-  --native       Enable native optimizations.
-  -d, --debug    Compile with debug.
-  -D var=val     Define variable.
-  -h, --help     Show this screen.
+  --native           Enable native optimizations.
+  -d, --debug        Compile with debug.
+  -D var             Define variable. Also -D EXAMPLE=1.
+  -o file            Output ninja file [default: build.ninja].
+  -h, --help         Show this screen.
 """
 
 
@@ -48,10 +49,6 @@ def write_ninja(n, args):
     ###################
     # Build commands. #
     ###################
-
-    # Precompiled header.
-    n.build("src/precompile.h.gch", "cxx", "src/precompile.h", variables={"xtype": "-x c++-header"})
-
     objects = []
     for root, dirnames, filenames in os.walk("src"):
         for filename in fnmatch.filter(filenames, "*.cpp"):
@@ -59,7 +56,7 @@ def write_ninja(n, args):
                 continue
             src = os.path.join(root, filename)
             obj = os.path.join("obj", os.path.splitext(src)[0] + ".o")
-            n.build(obj, "cxx", src, "src/precompile.h.gch")
+            n.build(obj, "cxx", src)
             objects.append(obj)
 
     exe_ext = ".exe" if os.name == "nt" else ""
@@ -82,11 +79,13 @@ download https://bootstrap.pypa.io/get-pip.py and run it."""
     sys.exit(1)
 
 
-# Check if we're likely running for the first time.
-first_time = not os.path.isfile("build.ninja")
-
 args = docopt(__doc__)
-with open("build.ninja", "w") as ninja_file:
+
+# Check if we're likely running for the first time.
+first_time = not os.path.isfile(args["-o"])
+
+# Write ninja build file.
+with open(args["-o"], "w") as ninja_file:
     n = ninja_syntax.Writer(ninja_file)
     write_ninja(n, args)
 
@@ -119,9 +118,3 @@ On linux it's easiest to compile from source:
 
 This should only take half a minute or so."""
     print(msg.format(os.path.basename(sys.executable)))
-
-
-
-
-
-

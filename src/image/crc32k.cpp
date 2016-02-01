@@ -1,4 +1,3 @@
-#include "../precompile.h"
 #include "crc32k.hpp"
 
 CRC32KTable::CRC32KTable() {
