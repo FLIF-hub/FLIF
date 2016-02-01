@@ -1,3 +1,17 @@
+# build system
+obj/
+*.pyc
+*.pyo
+*.o
+*.cpp.d
+*.c.d
+*.h.d
+*.gch.d
+*.gch
+.ninja*
+build.ninja
+
+tags
 
 # binarys
 src/flif
