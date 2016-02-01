@@ -21,7 +21,7 @@ def write_ninja(n, args):
     ########################
     # Generic build rules. #
     ########################
-    n.variable("cc", "gcc")
+    exe_ext = ".exe" if os.name == "nt" else ""
     n.variable("cxx", "g++")
 
     if args["--debug"]:
@@ -35,7 +35,6 @@ def write_ninja(n, args):
     n.variable("optflags", "-O2 -ftree-vectorize" + native_flag + debug_flag)
 
     defines = [" -D" + d for d in args["-D"]]
-
     cxxflags = "-std=c++11 -Wall -pedantic `pkg-config --cflags zlib libpng`"
     n.variable("cxxflags", cxxflags + "".join(defines))
     n.variable("cxxlinkflags", "`pkg-config --libs libpng`")
@@ -59,7 +58,6 @@ def write_ninja(n, args):
             n.build(obj, "cxx", src)
             objects.append(obj)
 
-    exe_ext = ".exe" if os.name == "nt" else ""
     n.build("src/flif" + exe_ext, "cxxlink", objects)
     n.default("src/flif" + exe_ext)
 
