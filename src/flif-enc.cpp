@@ -1,9 +1,9 @@
 /*
  FLIF encoder - Free Lossless Image Format
- Copyright (C) 2010-2015  Jon Sneyers & Pieter Wuille, GPL v3+
+ Copyright (C) 2010-2016  Jon Sneyers & Pieter Wuille, LGPL v3+
 
  This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
+ it under the terms of the GNU Lesser General Public License as published by
  the Free Software Foundation, either version 3 of the License, or
  (at your option) any later version.
 
@@ -12,7 +12,7 @@
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
 
- You should have received a copy of the GNU General Public License
+ You should have received a copy of the GNU Lesser General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
@@ -435,6 +435,9 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     }
     alpha = 0xFFFFFFFF/alpha;
 
+    if (alphazero) for (Image& i : images) i.make_invisible_rgb_black();
+    const uint32_t checksum = image.checksum(); // if there are multiple frames, the checksum is based only on the first frame.
+
     std::vector<const ColorRanges*> rangesList;
     std::vector<Transform<IO>*> transforms;
     rangesList.push_back(getRanges(image));
@@ -510,7 +513,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
 
     if (io.ftell() > 100) {
       // not computing checksum until after transformations and potential zero-alpha changes
-      const uint32_t checksum = image.checksum();
+//      const uint32_t checksum = image.checksum();
       //v_printf(2,"Writing checksum: %X\n", checksum);
       metaCoder.write_int(0,1,1);
       metaCoder.write_int(16, (checksum >> 16) & 0xFFFF);
