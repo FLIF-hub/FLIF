@@ -1,9 +1,9 @@
 /*
  FLIF - Free Lossless Image Format
- Copyright (C) 2010-2015  Jon Sneyers & Pieter Wuille, GPL v3+
+ Copyright (C) 2010-2016  Jon Sneyers & Pieter Wuille, LGPL v3+
 
  This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
+ it under the terms of the GNU Lesser General Public License as published by
  the Free Software Foundation, either version 3 of the License, or
  (at your option) any later version.
 
@@ -12,7 +12,7 @@
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
 
- You should have received a copy of the GNU General Public License
+ You should have received a copy of the GNU Lesser General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
@@ -139,9 +139,9 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  ____ _(_)____\n");
-    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc5 [17 Jan 2016]\n");
+    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc6 [2 Feb 2016]\n");
     v_printf(3,"  (__ | |_| __)    ");v_printf(2,"Copyright (C) 2016 Jon Sneyers and Pieter Wuille\n");
-    v_printf(3,"    (_|___|_)      ");v_printf(2,"License GPLv3+: GNU GPL version 3 or later\n");
+    v_printf(3,"    (_|___|_)      ");v_printf(2,"License LGPLv3+: GNU LGPL version 3 or later\n");
     v_printf(3,"\n");
     v_printf(4,"This is free software: you are free to change and redistribute it.\n");
     v_printf(4,"There is NO WARRANTY, to the extent permitted by law.\n");

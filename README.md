@@ -21,9 +21,9 @@ For more information on FLIF, visit http://flif.info
 
 FLIF is copylefted free/libre software: you can redistribute it and/or modify it, provided that you share back.
 
-The reference implementation of FLIF is released under the terms of the GNU General Public License version 3 or later (GPLv3+).
+The reference implementation of FLIF is released under the terms of the GNU Lesser General Public License version 3 or later (LGPLv3+).
 
-The decoder library `libflif_dec` is released under the terms of the GNU **Lesser** General Public License (LGPLv3+).
+The decoder library `libflif_dec` is released under a weaker, non-copyleft free software license: the Apache 2.0 license.
 
 The example application `viewflif` illustrates how to use the decode library.
 The example code in `viewflif.c` is in the public domain (Creative Commons CC0 1.0 Universal).
