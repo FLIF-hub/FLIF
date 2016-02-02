@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import os
 import sys
 import fnmatch
@@ -99,8 +100,9 @@ else:
 is_exe = lambda p: os.path.exists(p) and os.access(p, os.F_OK | os.X_OK) and not os.path.isdir(p)
 has_ninja = any(is_exe(os.path.join(d, f)) for d in path for f in files)
 
-if first_time and not has_ninja:
-    msg = """It appears you're running configure.py for the first time, but do not have
+if first_time:
+    if not has_ninja:
+        msg = """It appears you're running configure.py for the first time, but do not have
 ninja in your path. On Windows we recommend simply downloading the binary:
 
     https://github.com/ninja-build/ninja/releases/download/v1.6.0/ninja-win.zip
@@ -115,4 +117,6 @@ On linux it's easiest to compile from source:
     sudo cp ninja /usr/local/bin
 
 This should only take half a minute or so."""
-    print(msg.format(os.path.basename(sys.executable)))
+        print(msg.format(os.path.basename(sys.executable)))
+    else:
+        print("Type 'ninja' to build FLIF.")
