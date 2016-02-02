@@ -76,11 +76,11 @@ ColorVal static inline get_min_co(int par, ColorVal y) {
     assert(y <= get_max_y(par));
 
     if (y<par-1) {
-      return -4-4*y;
+      return -3-4*y;
     } else if (y>=3*par) {
-      return 3+4*(y-4*par);
+      return 4*(1+y-4*par);
     } else {
-      return -4*par;
+      return -4*par+1;
     }
 }
 
@@ -89,11 +89,11 @@ ColorVal static inline get_max_co(int par, ColorVal y) {
     assert(y <= get_max_y(par));
 
     if (y<par-1) {
-      return 2+4*y;
+      return 3+4*y;
     } else if (y>=3*par) {
-      return 4*par-5-4*(y-3*par);
+      return 4*par-4*(1+y-3*par);
     } else {
-      return 4*par-2;
+      return 4*par-1;
     }
 }
 
@@ -106,11 +106,11 @@ ColorVal static inline get_min_cg(int par, ColorVal y, ColorVal co) {
     // assert(i <= get_max_co(par,y));
 
     if (y<par-1) {
-      return -2-2*y+(abs(co+1)/2)*2;
+      return -(2*y+1);
     } else if (y>=3*par) {
-      return -1-2*(4*par-1-y);
+      return -(2*(4*par-1-y)-((1+abs(co))/2)*2);
     } else {
-      return std::max(-4*par + 1+(y-2*par)*2, -2*par-(y-par+1)*2+(abs(co+1)/2)*2);
+      return -std::min(2*par-1+(y-par+1)*2, 2*par+(3*par-1-y)*2-((1+abs(co))/2)*2);
     }
 }
 
@@ -124,11 +124,11 @@ ColorVal static inline get_max_cg(int par, ColorVal y, ColorVal co) {
     // assert(i <= get_max_co(par,y));
 
     if (y<par-1) {
-      return 2*y;
+      return 1+2*y-(abs(co)/2)*2;
     } else if (y>=3*par) {
-      return -1+2*(4*par-1-y)-((1+abs(co+1))/2)*2;
+      return 2*(4*par-1-y);
     } else {
-      return std::min(2*par-2+(y-par+1)*2, 2*par-1+(3*par-1-y)*2-((1+abs(co+1))/2)*2);
+      return -std::max(-4*par + (1+y-2*par)*2, -2*par-(y-par)*2-1+(abs(co)/2)*2);
     }
 
 }
@@ -150,16 +150,16 @@ public:
     ColorVal min(int p) const {
       switch(p) {
         case 0: return 0;
-        case 1: return -4*par;
-        case 2: return -4*par;
+        case 1: return -4*par+1;
+        case 2: return -4*par+1;
         default: return ranges->min(p);
       };
     }
     ColorVal max(int p) const {
       switch(p) {
         case 0: return 4*par-1;
-        case 1: return 4*par-2;
-        case 2: return 4*par-2;
+        case 1: return 4*par-1;
+        case 2: return 4*par-1;
         default: return ranges->max(p);
       };
     }
@@ -206,9 +206,14 @@ public:
                 B=image(2,r,c);
 
                 Y = (((R + B)>>1) + G)>>1;
-                Co = (R - B) - 1;
-                Cg = (((R + B)>>1) - G) - 1;
-
+                Co = R - B;
+                Cg = G - ((R + B)>>1);
+/* alternative: (not exactly the same!)
+                Co = R - B;
+                ColorVal p = B + Co/2;
+                Cg = G - p;
+                Y = p + Cg/2;
+*/
                 image.set(0,r,c, Y);
                 image.set(1,r,c, Co);
                 image.set(2,r,c, Cg);
@@ -229,9 +234,23 @@ public:
                 Co=image(1,r,c);
                 Cg=image(2,r,c);
 
-                R = Y + ((Cg + 2)>>1) + ((Co + 2)>>1);
-                G = Y - ((Cg + 1)>>1);
-                B = Y + ((Cg + 2)>>1) - ((Co + 1)>>1);
+                // the >> is assumed to be an arithmetic right shift, i.e. >>1 is dividing by two ROUNDED DOWN (not rounding towards zero)
+                // this is strictly speaking not guaranteed behavior on signed ints, so to be sure we'll check it at compile time
+#if (((-1)>>1) == -1)
+                // R = Y + ((1-Cg)>>1) + ((Co+1)>>1);
+                G = Y - ((-Cg)>>1);
+                B = Y + ((1-Cg)>>1) - (Co>>1);
+                R = Co + B;
+#else
+                Intentional syntax error: bitshift (>>) is not behaving as expected on negative integers
+#endif
+
+/* alternative (not exactly the same!)
+                ColorVal p = Y - Cg/2;
+                G = Cg + p;
+                B = p - Co/2;
+                R = Co + B;
+*/
 
                 clip(R, 0, max[0]); // clipping only needed in case of lossy/partial decoding
                 clip(G, 0, max[1]);
