@@ -55,7 +55,7 @@ public:
     virtual bool is_constant() const { return false; }
     virtual ~GeneralPlane() { }
     virtual void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) =0;
-    virtual ColorVal get(const int z, const uint32_t r, const uint32_t c) =0;
+    virtual ColorVal get(const int z, const uint32_t r, const uint32_t c) const =0;
     virtual void normalize_scale() {}
     virtual void check_equal(const ColorVal x, const uint32_t r, const uint32_t begin, const uint32_t end, const uint32_t stride) const =0;
     virtual void accept_visitor(PlaneVisitor &v) =0;
@@ -86,7 +86,7 @@ template <typename pixel_t> class Plane final : public GeneralPlane {
     const uint32_t width, height;
     int s;
 public:
-    Plane(uint32_t w, uint32_t h, ColorVal color=0, int scale = 0) : s(scale), data(color, SCALED(w)*SCALED(h)), width(SCALED(w)), height(SCALED(h)) { }
+    Plane(uint32_t w = 0, uint32_t h = 0, ColorVal color=0, int scale = 0) : s(scale), data(color, SCALED(w)*SCALED(h)), width(SCALED(w)), height(SCALED(h)) { }
     void clear() {
         data.clear();
     }
@@ -105,7 +105,7 @@ public:
     void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) {
         set(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z),x);
     }
-    ColorVal get(const int z, const uint32_t r, const uint32_t c) {
+    ColorVal get(const int z, const uint32_t r, const uint32_t c) const {
         return get(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z));
     }
     void normalize_scale() { s = 0; }
@@ -121,7 +121,7 @@ public:
 class ConstantPlane final : public GeneralPlane {
     ColorVal color;
 public:
-    ConstantPlane(ColorVal c) : color(c) {}
+    ConstantPlane(ColorVal c = 0) : color(c) {}
     void set(const uint32_t r, const uint32_t c, const ColorVal x) {
         assert(x == color);
     }
@@ -133,7 +133,7 @@ public:
     void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) {
         assert(x == color);
     }
-    ColorVal get(const int z, const uint32_t r, const uint32_t c) {
+    ColorVal get(const int z, const uint32_t r, const uint32_t c) const {
         return color;
     }
     void check_equal(const ColorVal x, const uint32_t r, const uint32_t begin, const uint32_t end, const uint32_t stride) const{
@@ -148,10 +148,10 @@ public:
 template<typename plane_t>
 void copy_row_range(plane_t &plane, const GeneralPlane &other, const uint32_t r, const uint32_t begin, const uint32_t end, const uint32_t stride = 1) {
     //assuming pixels are only ever copied from either a constant plane or a plane of the same type
-    if (plane.is_constant()) {
-        other.check_equal(plane.get(0,0),r,begin,end,stride);
-    }
-    else {
+    if (other.is_constant()) {
+        const ConstantPlane &src = static_cast<const ConstantPlane&>(other);
+        for(uint32_t c = begin; c < end; c+= stride) plane.set(r,c, src.get(r,c));
+    }else {
         const plane_t &src = static_cast<const plane_t&>(other);
         for(uint32_t c = begin; c < end; c+= stride) plane.set(r,c, src.get(r,c));
     }
@@ -505,6 +505,10 @@ public:
 
     ColorVal getFRA(const uint32_t r, const uint32_t c) {
         return static_cast<Plane<ColorVal_intern_8>&>(*planes[4]).get(r,c);
+    }
+
+    ColorVal getFRA(const uint32_t z, const uint32_t r, const uint32_t c) {
+        return static_cast<Plane<ColorVal_intern_8>&>(*planes[4]).get(z,r,c);
     }
 
     int getDepth() const {

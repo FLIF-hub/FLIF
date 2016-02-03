@@ -93,70 +93,7 @@ void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p) {
 // Actual prediction. Also sets properties. Property vector should already have the right size before calling this.
 ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges, const Image &image, const int z, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) ATTRIBUTE_HOT;
 ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges, const Image &image, const int z, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) {
-    ColorVal guess;
-    int which = 0;
-    int index = 0;
-
-    if (p < 3) {
-      for (int pp = 0; pp < p; pp++) {
-        properties[index++] = image(pp,z,r,c);
-      }
-      if (image.numPlanes()>3) properties[index++] = image(3,z,r,c);
-    }
-    ColorVal left;
-    ColorVal top;
-    ColorVal topleft;
-    ColorVal topright;
-    if (z%2 == 0) { // filling horizontal lines
-      top = image(p,z,r-1,c);
-      left = (c>0 ? image(p,z,r,c-1) : top);
-      topleft = (c>0 ? image(p,z,r-1,c-1) : top);
-      topright = (c+1 < image.cols(z) ? image(p,z,r-1,c+1) : top);
-      const ColorVal gradientTL = left + top - topleft;
-      const bool bottomPresent = r+1 < image.rows(z);
-      const ColorVal bottom = (bottomPresent ? image(p,z,r+1,c) : left);
-      const ColorVal bottomleft = (bottomPresent && c>0 ? image(p,z,r+1,c-1) : bottom);
-      const ColorVal gradientBL = left + bottom - bottomleft;
-      const ColorVal avg = (top + bottom)>>1;
-      guess = median3(gradientTL, gradientBL, avg);
-      ranges->snap(p,properties,min,max,guess);
-      if (guess == avg) which = 0;
-      else if (guess == gradientTL) which = 1;
-      else if (guess == gradientBL) which = 2;
-      properties[index++] = top-bottom;
-    } else { // filling vertical lines
-      left = image(p,z,r,c-1);
-      top = (r>0 ? image(p,z,r-1,c) : left);
-      topleft = (r>0 ? image(p,z,r-1,c-1) : left);
-      const bool rightPresent = c+1 < image.cols(z);
-      const ColorVal right = (rightPresent ? image(p,z,r,c+1) : top);
-      topright = (r>0 && rightPresent ? image(p,z,r-1,c+1) : right);
-      const ColorVal gradientTL = left + top - topleft;
-      const ColorVal gradientTR = right + top - topright;
-      ColorVal avg = (left + right)>>1;
-      guess = median3(gradientTL, gradientTR, avg);
-      ranges->snap(p,properties,min,max,guess);
-      if (guess == avg) which = 0;
-      else if (guess == gradientTL) which = 1;
-      else if (guess == gradientTR) which = 2;
-      properties[index++] = left-right;
-    }
-    properties[index++]=guess;
-    properties[index++]=which;
-
-    if (c > 0 && r > 0) { properties[index++]=left - topleft; properties[index++]=topleft - top; }
-                 else   { properties[index++]=0; properties[index++]=0; }
-
-    if (c+1 < image.cols(z) && r > 0) properties[index++]=top - topright;
-                 else   properties[index++]=0;
-
-    if (p < 2 || p >= 3) {
-     if (r > 1) properties[index++]=image(p,z,r-2,c)-top;    // toptop - top
-         else properties[index++]=0;
-     if (c > 1) properties[index++]=image(p,z,r,c-2)-left;    // leftleft - left
-         else properties[index++]=0;
-    }
-    return guess;
+    predict_and_calcProps_plane(properties,ranges,image,image.getPlane(p),z,p,r,c,min,max);
 }
 
 int plane_zoomlevels(const Image &image, const int beginZL, const int endZL) {
