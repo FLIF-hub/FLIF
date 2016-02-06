@@ -45,31 +45,76 @@ std::unique_ptr<T> make_unique(Args &&... args)
     return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
 
+struct PlaneVisitor;
+
+
 class GeneralPlane {
 public:
     virtual void set(const uint32_t r, const uint32_t c, const ColorVal x) =0;
     virtual ColorVal get(const uint32_t r, const uint32_t c) const =0;
     virtual bool is_constant() const { return false; }
     virtual ~GeneralPlane() { }
+    virtual void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) =0;
+    virtual ColorVal get(const int z, const uint32_t r, const uint32_t c) const =0;
+    virtual void normalize_scale() {}
+    virtual void check_equal(const ColorVal x, const uint32_t r, const uint32_t begin, const uint32_t end, const uint32_t stride) const =0;
+    virtual void accept_visitor(PlaneVisitor &v) =0;
+    // access pixel by zoomlevel coordinate
+    uint32_t zoom_rowpixelsize(int zoomlevel) const {
+        return 1<<((zoomlevel+1)/2);
+    }
+    uint32_t zoom_colpixelsize(int zoomlevel) const {
+        return 1<<((zoomlevel)/2);
+    }
 };
 
+template <typename> class Plane;
+class ConstantPlane;
 
+struct PlaneVisitor {
+    virtual void visit(Plane<ColorVal_intern_8>&) =0;
+    virtual void visit(Plane<ColorVal_intern_16>&) =0;
+    virtual void visit(Plane<ColorVal_intern_16u>&) =0;
+    virtual void visit(Plane<ColorVal_intern_32>&) =0;
+    virtual void visit(ConstantPlane&) =0;
+    virtual ~PlaneVisitor() {}
+};
+
+#define SCALED(x) (((x-1)>>scale)+1)
 template <typename pixel_t> class Plane final : public GeneralPlane {
     std::valarray<pixel_t> data;
     const uint32_t width, height;
+    int s;
 public:
-    Plane(uint32_t w, uint32_t h, ColorVal color=0) : data(color, w*h), width(w), height(h) { }
+    Plane(uint32_t w, uint32_t h, ColorVal color=0, int scale = 0) : s(scale), data(color, SCALED(w)*SCALED(h)), width(SCALED(w)), height(SCALED(h)) { }
     void clear() {
         data.clear();
     }
     void set(const uint32_t r, const uint32_t c, const ColorVal x) {
-        assert(r<height); assert(c<width);
-        data[r*width + c] = x;
+        const uint32_t sr = r>>s, sc = c>>s;
+        assert(sr<height); assert(sc<width);
+        data[sr*width + sc] = x;
     }
     ColorVal get(const uint32_t r, const uint32_t c) const ATTRIBUTE_HOT {
 //        if (r >= height || r < 0 || c >= width || c < 0) {printf("OUT OF RANGE!\n"); return 0;}
-        assert(r<height); assert(c<width);
-        return data[r*width + c];
+        const uint32_t sr = r>>s, sc = c>>s;
+        assert(sr<height); assert(sc<width);
+        return data[sr*width + sc];
+    }
+
+    void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) {
+        set(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z),x);
+    }
+    ColorVal get(const int z, const uint32_t r, const uint32_t c) const {
+        return get(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z));
+    }
+    void normalize_scale() { s = 0; }
+    void check_equal(const ColorVal x, const uint32_t r, const uint32_t begin, const uint32_t end, const uint32_t stride) const{
+        for(uint32_t c = begin; c < end; c+= stride) assert(x == get(r,c));
+    }
+
+    void accept_visitor(PlaneVisitor &v) {
+        v.visit(*this);
     }
 };
 
@@ -84,9 +129,35 @@ public:
         return color;
     }
     bool is_constant() const { return true; }
+
+    void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) {
+        assert(x == color);
+    }
+    ColorVal get(const int z, const uint32_t r, const uint32_t c) const {
+        return color;
+    }
+    void check_equal(const ColorVal x, const uint32_t r, const uint32_t begin, const uint32_t end, const uint32_t stride) const{
+        assert(x == color);
+    }
+
+    void accept_visitor(PlaneVisitor &v) {
+        v.visit(*this);
+    }
 };
 
-#define SCALED(x) (((x-1)>>scale)+1)
+template<typename plane_t>
+void copy_row_range(plane_t &plane, const GeneralPlane &other, const uint32_t r, const uint32_t begin, const uint32_t end, const uint32_t stride = 1) {
+    //assuming pixels are only ever copied from either a constant plane or a plane of the same type
+    if (other.is_constant()) {
+        const ConstantPlane &src = static_cast<const ConstantPlane&>(other);
+        for(uint32_t c = begin; c < end; c+= stride) plane.set(r,c, src.get(r,c));
+    }else {
+        const plane_t &src = static_cast<const plane_t&>(other);
+        for(uint32_t c = begin; c < end; c+= stride) plane.set(r,c, src.get(r,c));
+    }
+}
+
+
 class Image {
     std::unique_ptr<GeneralPlane> planes[5];
     uint32_t width, height;
@@ -123,19 +194,19 @@ class Image {
       {
       int p=num;
       if (depth <= 8) {
-        if (p>0) planes[0] = make_unique<Plane<ColorVal_intern_8>>(SCALED(width), SCALED(height)); // R,Y
-        if (p>1) planes[1] = make_unique<Plane<ColorVal_intern_16>>(SCALED(width), SCALED(height)); // G,I
-        if (p>2) planes[2] = make_unique<Plane<ColorVal_intern_16>>(SCALED(width), SCALED(height)); // B,Q
-        if (p>3) planes[3] = make_unique<Plane<ColorVal_intern_8>>(SCALED(width), SCALED(height)); // A
+        if (p>0) planes[0] = make_unique<Plane<ColorVal_intern_8>>(width, height, 0, scale); // R,Y
+        if (p>1) planes[1] = make_unique<Plane<ColorVal_intern_16>>(width, height, 0, scale); // G,I
+        if (p>2) planes[2] = make_unique<Plane<ColorVal_intern_16>>(width, height, 0, scale); // B,Q
+        if (p>3) planes[3] = make_unique<Plane<ColorVal_intern_8>>(width, height, 0, scale); // A
 #ifdef SUPPORT_HDR
       } else {
-        if (p>0) planes[0] = make_unique<Plane<ColorVal_intern_16u>>(SCALED(width), SCALED(height)); // R,Y
-        if (p>1) planes[1] = make_unique<Plane<ColorVal_intern_32>>(SCALED(width), SCALED(height)); // G,I
-        if (p>2) planes[2] = make_unique<Plane<ColorVal_intern_32>>(SCALED(width), SCALED(height)); // B,Q
-        if (p>3) planes[3] = make_unique<Plane<ColorVal_intern_16u>>(SCALED(width), SCALED(height)); // A
+        if (p>0) planes[0] = make_unique<Plane<ColorVal_intern_16u>>(width, height, 0, scale); // R,Y
+        if (p>1) planes[1] = make_unique<Plane<ColorVal_intern_32>>(width, height, 0, scale); // G,I
+        if (p>2) planes[2] = make_unique<Plane<ColorVal_intern_32>>(width, height, 0, scale); // B,Q
+        if (p>3) planes[3] = make_unique<Plane<ColorVal_intern_16u>>(width, height, 0, scale); // A
 #endif
       }
-      if (p>4) planes[4] = make_unique<Plane<ColorVal_intern_8>>(SCALED(width), SCALED(height)); // FRA
+      if (p>4) planes[4] = make_unique<Plane<ColorVal_intern_8>>(width, height, 0, scale); // FRA
       }
       for(int p=0; p<num; p++)
           for (uint32_t r=0; r<height; r++)
@@ -233,19 +304,19 @@ public:
       clear();
       try {
       if (depth <= 8) {
-        if (p>0) planes[0] = make_unique<Plane<ColorVal_intern_8>>(SCALED(width), SCALED(height)); // R,Y
-        if (p>1) planes[1] = make_unique<Plane<ColorVal_intern_16>>(SCALED(width), SCALED(height)); // G,I
-        if (p>2) planes[2] = make_unique<Plane<ColorVal_intern_16>>(SCALED(width), SCALED(height)); // B,Q
-        if (p>3) planes[3] = make_unique<Plane<ColorVal_intern_8>>(SCALED(width), SCALED(height)); // A
+        if (p>0) planes[0] = make_unique<Plane<ColorVal_intern_8>>(width, height, 0, scale); // R,Y
+        if (p>1) planes[1] = make_unique<Plane<ColorVal_intern_16>>(width, height, 0, scale); // G,I
+        if (p>2) planes[2] = make_unique<Plane<ColorVal_intern_16>>(width, height, 0, scale); // B,Q
+        if (p>3) planes[3] = make_unique<Plane<ColorVal_intern_8>>(width, height, 0, scale); // A
 #ifdef SUPPORT_HDR
       } else {
-        if (p>0) planes[0] = make_unique<Plane<ColorVal_intern_16u>>(SCALED(width), SCALED(height)); // R,Y
-        if (p>1) planes[1] = make_unique<Plane<ColorVal_intern_32>>(SCALED(width), SCALED(height)); // G,I
-        if (p>2) planes[2] = make_unique<Plane<ColorVal_intern_32>>(SCALED(width), SCALED(height)); // B,Q
-        if (p>3) planes[3] = make_unique<Plane<ColorVal_intern_16u>>(SCALED(width), SCALED(height)); // A
+        if (p>0) planes[0] = make_unique<Plane<ColorVal_intern_16u>>(width, height, 0, scale); // R,Y
+        if (p>1) planes[1] = make_unique<Plane<ColorVal_intern_32>>(width, height, 0, scale); // G,I
+        if (p>2) planes[2] = make_unique<Plane<ColorVal_intern_32>>(width, height, 0, scale); // B,Q
+        if (p>3) planes[3] = make_unique<Plane<ColorVal_intern_16u>>(width, height, 0, scale); // A
 #endif
       }
-      if (p>4) planes[4] = make_unique<Plane<ColorVal_intern_8>>(SCALED(width), SCALED(height)); // FRA
+      if (p>4) planes[4] = make_unique<Plane<ColorVal_intern_8>>(width, height, 0, scale); // FRA
       }
       catch (std::bad_alloc& ba) {
         e_printf("Error: could not allocate enough memory for image data.\n");
@@ -270,6 +341,8 @@ public:
       col_begin.resize(height,0);
       col_end.clear();
       col_end.resize(height,width);
+      for(int p = 0; p < num; p++)
+          planes[p]->normalize_scale();
     }
 
     void clear() {
@@ -334,16 +407,16 @@ public:
       ColorVal val = operator()(p,0,0);
       planes[p].reset(nullptr);
       if (depth <= 8) {
-        if (p==0) planes[0] = make_unique<Plane<ColorVal_intern_8>>(SCALED(width), SCALED(height), val); // R,Y
-        if (p==1) planes[1] = make_unique<Plane<ColorVal_intern_16>>(SCALED(width), SCALED(height), val); // G,I
-        if (p==2) planes[2] = make_unique<Plane<ColorVal_intern_16>>(SCALED(width), SCALED(height), val); // B,Q
-        if (p==3) planes[3] = make_unique<Plane<ColorVal_intern_8>>(SCALED(width), SCALED(height), val); // A
+        if (p==0) planes[0] = make_unique<Plane<ColorVal_intern_8>>(width, height, val, scale); // R,Y
+        if (p==1) planes[1] = make_unique<Plane<ColorVal_intern_16>>(width, height, val, scale); // G,I
+        if (p==2) planes[2] = make_unique<Plane<ColorVal_intern_16>>(width, height, val, scale); // B,Q
+        if (p==3) planes[3] = make_unique<Plane<ColorVal_intern_8>>(width, height, val, scale); // A
 #ifdef SUPPORT_HDR
       } else {
-        if (p==0) planes[0] = make_unique<Plane<ColorVal_intern_16u>>(SCALED(width), SCALED(height), val); // R,Y
-        if (p==1) planes[1] = make_unique<Plane<ColorVal_intern_32>>(SCALED(width), SCALED(height), val); // G,I
-        if (p==2) planes[2] = make_unique<Plane<ColorVal_intern_32>>(SCALED(width), SCALED(height), val); // B,Q
-        if (p==3) planes[3] = make_unique<Plane<ColorVal_intern_16u>>(SCALED(width), SCALED(height), val); // A
+        if (p==0) planes[0] = make_unique<Plane<ColorVal_intern_16u>>(width, height, val, scale); // R,Y
+        if (p==1) planes[1] = make_unique<Plane<ColorVal_intern_32>>(width, height, val, scale); // G,I
+        if (p==2) planes[2] = make_unique<Plane<ColorVal_intern_32>>(width, height, val, scale); // B,Q
+        if (p==3) planes[3] = make_unique<Plane<ColorVal_intern_16u>>(width, height, val, scale); // A
 #endif
       }
     }
@@ -371,7 +444,7 @@ public:
     void ensure_frame_lookbacks() {
         if (num < 5) {
             ensure_alpha();
-            planes[4] = make_unique<Plane<ColorVal_intern_8>>(SCALED(width), SCALED(height));
+            planes[4] = make_unique<Plane<ColorVal_intern_8>>(width, height, 0, scale);
             num=5;
         }
     }
@@ -385,12 +458,12 @@ public:
     ColorVal operator()(const int p, const uint32_t r, const uint32_t c) const ATTRIBUTE_HOT {
       assert(p>=0);
       assert(p<num);
-      return planes[p]->get(r>>scale,c>>scale);
+      return planes[p]->get(r,c);
     }
     void set(int p, uint32_t r, uint32_t c, ColorVal x) {
       assert(p>=0);
       assert(p<num);
-      planes[p]->set(r>>scale,c>>scale,x);
+      planes[p]->set(r,c,x);
     }
 
     int numPlanes() const { return num; }
@@ -419,14 +492,37 @@ public:
         return z;
     }
     ColorVal operator()(int p, int z, uint32_t rz, uint32_t cz) const ATTRIBUTE_HOT {
-        uint32_t r = rz*zoom_rowpixelsize(z);
-        uint32_t c = cz*zoom_colpixelsize(z);
-        return operator()(p,r,c);
+        assert(p>=0);
+        assert(p<num);
+        return planes[p]->get(z,rz,cz);
     }
     void set(int p, int z, uint32_t rz, uint32_t cz, ColorVal x) {
-        uint32_t r = rz*zoom_rowpixelsize(z);
-        uint32_t c = cz*zoom_colpixelsize(z);
-        set(p,r,c,x);
+        assert(p>=0);
+        assert(p<num);
+        planes[p]->set(z,rz,cz,x);
+    }
+
+    GeneralPlane& getPlane(int p) {
+        assert(p>=0);
+        assert(p<num);
+        return *planes[p];
+    }
+    const GeneralPlane& getPlane(int p) const{
+        assert(p>=0);
+        assert(p<num);
+        return *planes[p];
+    }
+
+    ColorVal getFRA(const uint32_t r, const uint32_t c) {
+        return static_cast<Plane<ColorVal_intern_8>&>(*planes[4]).get(r,c);
+    }
+
+    ColorVal getFRA(const uint32_t z, const uint32_t r, const uint32_t c) {
+        return static_cast<Plane<ColorVal_intern_8>&>(*planes[4]).get(z,r,c);
+    }
+
+    int getDepth() const {
+        return depth;
     }
 
     uint32_t checksum() {
