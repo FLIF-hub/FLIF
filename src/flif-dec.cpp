@@ -91,7 +91,7 @@ template<typename Coder, typename alpha_t>
 struct scanline_plane_decoder: public PlaneVisitor {
     Coder &coder; Images &images; const ColorRanges *ranges; Properties &properties; const alpha_t &alpha; const int p, fr; const uint32_t r; const ColorVal grey, minP; const bool alphazero, FRA;
     scanline_plane_decoder(Coder &c, Images &i, const ColorRanges *ra, Properties &prop, const GeneralPlane &al, const int pl, const int f, const uint32_t row, const ColorVal g, const ColorVal m, const bool az, const bool fra) :
-        coder(c), images(i), ranges(ra), alpha(static_cast<const alpha_t&>(al)), properties(prop), p(pl), fr(f), r(row), grey(g), minP(m), alphazero(az), FRA(fra) {}
+        coder(c), images(i), ranges(ra), properties(prop), alpha(static_cast<const alpha_t&>(al)), p(pl), fr(f), r(row), grey(g), minP(m), alphazero(az), FRA(fra) {}
 
     void visit(Plane<ColorVal_intern_8>   &plane) {flif_decode_scanline_plane(plane,coder,images,ranges,alpha,properties,p,fr,r,grey,minP,alphazero,FRA);}
     void visit(Plane<ColorVal_intern_16>  &plane) {flif_decode_scanline_plane(plane,coder,images,ranges,alpha,properties,p,fr,r,grey,minP,alphazero,FRA);}
@@ -103,7 +103,6 @@ struct scanline_plane_decoder: public PlaneVisitor {
 template<typename IO, typename Rac, typename Coder>
 bool flif_decode_scanlines_inner(IO &io, Rac &rac, std::vector<Coder> &coders, Images &images, const ColorRanges *ranges, int quality,
                                  std::vector<Transform<IO>*> &transforms, uint32_t (*callback)(int32_t,int64_t), Images &partial_images) {
-    ColorVal min,max;
     const int nump = images[0].numPlanes();
     const bool alphazero = images[0].alpha_zero_special;
     const bool FRA = (nump == 5);
@@ -308,7 +307,7 @@ template<typename Coder, typename alpha_t>
 struct horizontal_plane_decoder: public PlaneVisitor {
     Coder &coder; Images &images; const ColorRanges *ranges; Properties &properties; const alpha_t &alpha; const int p, z, fr; const uint32_t r; const bool alphazero, FRA;
     horizontal_plane_decoder(Coder &c, Images &i, const ColorRanges *ra, Properties &prop,const GeneralPlane &al,  const int pl, const int zl, const int f, const uint32_t row, const bool az, const bool fra) :
-        coder(c), images(i), ranges(ra), alpha(static_cast<const alpha_t&>(al)), properties(prop), p(pl), z(zl), fr(f), r(row), alphazero(az), FRA(fra) {}
+        coder(c), images(i), ranges(ra), properties(prop), alpha(static_cast<const alpha_t&>(al)), p(pl), z(zl), fr(f), r(row), alphazero(az), FRA(fra) {}
 
     void visit(Plane<ColorVal_intern_8>   &plane) {flif_decode_plane_zoomlevel_horizontal(plane,coder,images,ranges,alpha,properties,p,z,fr,r,alphazero,FRA);}
     void visit(Plane<ColorVal_intern_16>  &plane) {flif_decode_plane_zoomlevel_horizontal(plane,coder,images,ranges,alpha,properties,p,z,fr,r,alphazero,FRA);}
@@ -322,7 +321,7 @@ template<typename Coder, typename alpha_t>
 struct vertical_plane_decoder: public PlaneVisitor {
     Coder &coder; Images &images; const ColorRanges *ranges; Properties &properties; const alpha_t &alpha; const int p, z, fr; const uint32_t r; const bool alphazero, FRA;
     vertical_plane_decoder(Coder &c, Images &i, const ColorRanges *ra, Properties &prop, const GeneralPlane &al, const int pl, const int zl, const int f, const uint32_t row, const bool az, const bool fra) :
-        coder(c), images(i), ranges(ra), alpha(static_cast<const alpha_t&>(al)), properties(prop), p(pl), z(zl), fr(f), r(row), alphazero(az), FRA(fra) {}
+        coder(c), images(i), ranges(ra), properties(prop), alpha(static_cast<const alpha_t&>(al)), p(pl), z(zl), fr(f), r(row), alphazero(az), FRA(fra) {}
 
     void visit(Plane<ColorVal_intern_8>   &plane) {flif_decode_plane_zoomlevel_vertical(plane,coder,images,ranges,alpha,properties,p,z,fr,r,alphazero,FRA);}
     void visit(Plane<ColorVal_intern_16>  &plane) {flif_decode_plane_zoomlevel_vertical(plane,coder,images,ranges,alpha,properties,p,z,fr,r,alphazero,FRA);}
@@ -335,7 +334,6 @@ template<typename IO, typename Rac, typename Coder>
 bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Images &images, const ColorRanges *ranges,
                              const int beginZL, const int endZL, int quality, int scale, std::vector<Transform<IO>*> &transforms,
                              uint32_t (*callback)(int32_t,int64_t), Images &partial_images) {
-    ColorVal min,max;
     const int nump = images[0].numPlanes();
     const bool alphazero = images[0].alpha_zero_special;
     const bool FRA = (nump == 5);
