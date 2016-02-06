@@ -540,6 +540,7 @@ protected:
 
             int64_t total_pixels = (int64_t) images.size() * images[0].rows() * images[0].cols();
             v_printf(7,", [D=%i,C=%i,P=%i]",totaldiscretecolors,totalcontinuousbuckets,(int) (total_pixels/100));
+            if (total_pixels > 5000000) total_pixels = 5000000; // let's discourage using ColorBuckets just because the image is big
             if (totaldiscretecolors < total_pixels/200 && totalcontinuousbuckets < total_pixels/50) return true;
             if (totaldiscretecolors < total_pixels/100 && totalcontinuousbuckets < total_pixels/200) return true;
             if (totaldiscretecolors < total_pixels/40 && totalcontinuousbuckets < total_pixels/500) return true;
