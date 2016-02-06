@@ -181,7 +181,9 @@ inline ColorVal predict(const Image &image, int z, int p, uint32_t r, uint32_t c
 
 // Actual prediction. Also sets properties. Property vector should already have the right size before calling this.
 template <typename plane_t>
-ColorVal predict_and_calcProps_plane(Properties &properties, const ColorRanges *ranges, const Image &image, const plane_t &plane, const int z, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) ATTRIBUTE_HOT{
+ColorVal predict_and_calcProps_plane(Properties &properties, const ColorRanges *ranges, const Image &image, const plane_t &plane, const int z, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) ATTRIBUTE_HOT;
+template <typename plane_t>
+ColorVal predict_and_calcProps_plane(Properties &properties, const ColorRanges *ranges, const Image &image, const plane_t &plane, const int z, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) {
     ColorVal guess;
     int which = 0;
     int index = 0;
