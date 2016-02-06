@@ -86,7 +86,7 @@ template <typename pixel_t> class Plane final : public GeneralPlane {
     const uint32_t width, height;
     int s;
 public:
-    Plane(uint32_t w, uint32_t h, ColorVal color=0, int scale = 0) : s(scale), data(color, SCALED(w)*SCALED(h)), width(SCALED(w)), height(SCALED(h)) { }
+    Plane(uint32_t w, uint32_t h, ColorVal color=0, int scale = 0) : data(color, SCALED(w)*SCALED(h)), width(SCALED(w)), height(SCALED(h)), s(scale) { }
     void clear() {
         data.clear();
     }
