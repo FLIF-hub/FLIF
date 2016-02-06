@@ -86,7 +86,7 @@ template <typename pixel_t> class Plane final : public GeneralPlane {
     const uint32_t width, height;
     int s;
 public:
-    Plane(uint32_t w = 0, uint32_t h = 0, ColorVal color=0, int scale = 0) : s(scale), data(color, SCALED(w)*SCALED(h)), width(SCALED(w)), height(SCALED(h)) { }
+    Plane(uint32_t w, uint32_t h, ColorVal color=0, int scale = 0) : s(scale), data(color, SCALED(w)*SCALED(h)), width(SCALED(w)), height(SCALED(h)) { }
     void clear() {
         data.clear();
     }
@@ -121,7 +121,7 @@ public:
 class ConstantPlane final : public GeneralPlane {
     ColorVal color;
 public:
-    ConstantPlane(ColorVal c = 0) : color(c) {}
+    ConstantPlane(ColorVal c) : color(c) {}
     void set(const uint32_t r, const uint32_t c, const ColorVal x) {
         assert(x == color);
     }
