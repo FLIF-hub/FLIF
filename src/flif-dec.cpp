@@ -251,8 +251,9 @@ void flif_decode_plane_zoomlevel_horizontal(plane_t &plane, Coder &coder, Images
                 if (alpha.get(z,r,c) == 0) plane.set(z,r,c, predict_plane_horizontal(plane,z,p,r,c, image.rows(z)));
         }
         else if (p != 4) {
-            copy_row_range(plane, images[fr - 1].getPlane(p), r, 0, begin, image.zoom_colpixelsize(z));
-            copy_row_range(plane, images[fr - 1].getPlane(p), r, end, image.cols(z), image.zoom_colpixelsize(z));
+            const uint32_t cs = image.zoom_colpixelsize(z), rs = image.zoom_rowpixelsize(z);
+            copy_row_range(plane, images[fr - 1].getPlane(p), rs*r, cs*0, cs*begin, cs);
+            copy_row_range(plane, images[fr - 1].getPlane(p), rs*r, cs*end, cs*image.cols(z), cs);
         }
     } else {
         if (image.numPlanes()>3 && p<3) {begin=0; end=image.cols(z);}
@@ -285,8 +286,9 @@ void flif_decode_plane_zoomlevel_vertical(plane_t &plane, Coder &coder, Images &
                 if (alpha.get(z, r, c) == 0) plane.set(z, r, c, predict_plane_vertical(plane, z, p, r, c, image.cols(z)));
         }
         else if (p != 4) {
-            copy_row_range(plane, images[fr - 1].getPlane(p), r, 1, begin, image.zoom_colpixelsize(z)*2);
-            copy_row_range(plane, images[fr - 1].getPlane(p), r, end, image.cols(z), image.zoom_colpixelsize(z)*2);
+            const uint32_t cs = image.zoom_colpixelsize(z), rs = image.zoom_rowpixelsize(z);
+            copy_row_range(plane, images[fr - 1].getPlane(p), rs*r, cs*1, cs*begin, cs*2);
+            copy_row_range(plane, images[fr - 1].getPlane(p), rs*r, cs*end, cs*image.cols(z), cs*2);
         }
     } else {
         if (image.numPlanes()>3 && p<3) {begin=1; end=image.cols(z);}
