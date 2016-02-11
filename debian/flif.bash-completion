@@ -1,0 +1,167 @@
+# flif(1) completion                                     -*- shell-script -*-
+
+_flif()
+{
+    local cur prev words cword split
+    _init_completion -s || return
+
+    action=unknown
+    next_arg_needed=unknown
+    base_name=output
+
+    # scan the previous arguments to guess what we are doing: encoding or decoding?
+    for pw in ${words[@]:1:$(($cword - 1))}; do
+        case $pw in
+            -d|--decode)
+                action=decode
+                next_arg_needed=flif
+                ;;
+            -i|--identify)
+                action=identify
+                next_arg_needed=flif
+                ;;
+            -t|--transcode)
+                action=transcode
+                next_arg_needed=flif
+                ;;
+            -e|--encode)
+                action=encode
+                next_arg_needed=nonflif
+                ;;
+            -*)
+                ;;
+            *.flif|*.flf)
+                case $action in
+                    unknown|decode)
+                        action=decode
+                        base_name=$pw
+                        base_name=$(basename $base_name .flif)
+                        base_name=$(basename $base_name .flf)
+                        case $next_arg_needed in
+                            flif|unknown)
+                                next_arg_needed=nonflif
+                                ;;
+                            nonflif)
+                                action=transcode
+                                next_arg_needed=none
+                                ;;
+                        esac
+                        ;;
+                    transcode)
+                        case $next_arg_needed in
+                            flif)
+                                next_arg_needed=flif2
+                                base_name=$pw
+                                base_name=$(basename $base_name .flif)
+                                base_name=$(basename $base_name .flf)
+                                base_name="$base_name-transcoded"
+                                ;;
+                            flif2)
+                                next_arg_needed=none
+                                ;;
+                        esac
+                        ;;
+                    encode)
+                        next_arg_needed=none
+                        ;;
+                esac
+                ;;
+            *)
+                case $action in
+                    unknown|encode)
+                        action=encode
+                        next_arg_needed=flif
+                        base_name=$pw
+                        base_name=$(basename $base_name .png)
+                        base_name=$(basename $base_name .pnm)
+                        base_name=$(basename $base_name .pam)
+                        base_name=$(basename $base_name .ppm)
+                        base_name=$(basename $base_name .pgm)
+                        base_name=$(basename $base_name .pbm)
+                        base_name=$(basename $base_name .rggb)
+                        ;;
+                    decode)
+                        next_arg_needed=none
+                        ;;
+                esac
+                ;;
+        esac
+    done
+    if [[ $cur != "" ]]; then
+        base_name=$cur
+    fi
+
+
+    case $action-$next_arg_needed in
+        # input file names
+        decode-flif|identify-flif|transcode-flif)
+            _filedir '@(flif|flf)'
+            return
+            ;;
+        encode-nonflif)
+            _filedir '@(png|pnm|pam|ppm|pgm|pbm|rggb)'
+            return
+            ;;
+
+        # suggest sensible name for output file
+        encode-flif)
+            if [[ $cur == -* ]]; then
+                COMPREPLY=( $( compgen -W '$( _parse_help "$1" -vvveh )'  -- "$cur" ) )
+                [[ $COMPREPLY == *= ]] && compopt -o nospace
+                return
+            fi
+            COMPREPLY=$base_name.flif
+            return
+            ;;
+        transcode-flif2)
+            if [[ $cur == -* ]]; then
+                COMPREPLY=( $( compgen -W '$( _parse_help "$1" -vvvh )'  -- "$cur" ) )
+                [[ $COMPREPLY == *= ]] && compopt -o nospace
+                return
+            fi
+            COMPREPLY=$base_name.flif
+            return
+            ;;
+        decode-nonflif)
+            if [[ $cur == -* ]]; then
+                COMPREPLY=( $( compgen -W '$( _parse_help "$1" -vvvdh )'  -- "$cur" ) )
+                [[ $COMPREPLY == *= ]] && compopt -o nospace
+                return
+            fi
+            COMPREPLY=$base_name.png
+            return
+            ;;
+
+        # no more arguments needed, suggest options
+        decode-none)
+            # only show decode options
+            COMPREPLY=( $( compgen -W '$( _parse_help "$1" -vvvdh)'  -- "$cur") )
+            [[ $COMPREPLY == *= ]] && compopt -o nospace
+            return
+            ;;
+        encode-none)
+            # only show encode options
+            COMPREPLY=( $( compgen -W '$( _parse_help "$1" -vvveh)'  -- "$cur" ) )
+            [[ $COMPREPLY == *= ]] && compopt -o nospace
+            return
+            ;;
+        *-none)
+            # show all options
+            COMPREPLY=( $( compgen -W '$( _parse_help "$1" -vvvh)'  -- "$cur" ) )
+            [[ $COMPREPLY == *= ]] && compopt -o nospace
+            return
+            ;;
+    esac
+
+    $split && return 0
+
+    if [[ $cur == -* ]]; then
+        COMPREPLY=( $( compgen -W '$( _parse_help "$1" -vvvh )'  -- "$cur" ) )
+        [[ $COMPREPLY == *= ]] && compopt -o nospace
+        return
+    fi
+
+    # suggest filenames
+    _filedir '@(flif|flf|png|pnm|pam|ppm|pgm|pbm|rggb)'
+} &&
+complete -F _flif flif

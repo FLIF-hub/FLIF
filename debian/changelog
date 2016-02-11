@@ -1,5 +1,5 @@
 flif (0.2-1) UNRELEASED; urgency=low
 
-  * Initial release.
+  * Initial release. Closes: #812761
 
- -- Jon Sneyers <jon.sneyers@gmail.com>  Mon, 21 Dec 2015 15:34:31 +0100
+ -- Jon Sneyers <jon.sneyers@gmail.com>  Tue, 2 Feb 2016 14:45:57 +0100

@@ -1,9 +1,9 @@
 /*
  FLIF - Free Lossless Image Format
- Copyright (C) 2010-2015  Jon Sneyers & Pieter Wuille, GPL v3+
+ Copyright (C) 2010-2016  Jon Sneyers & Pieter Wuille, LGPL v3+
 
  This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
+ it under the terms of the GNU Lesser General Public License as published by
  the Free Software Foundation, either version 3 of the License, or
  (at your option) any later version.
 
@@ -12,7 +12,7 @@
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
 
- You should have received a copy of the GNU General Public License
+ You should have received a copy of the GNU Lesser General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
@@ -70,7 +70,9 @@
 /******************************************/
 /*   FLIF2 encoding/decoding              */
 /******************************************/
-void show_help() {
+void show_help(int mode) {
+    // mode = 0: only encode options
+    // mode = 1: only decode options
     v_printf(1,"Usage:\n");
 #ifdef HAS_ENCODER
     v_printf(1,"   flif [-e] [encode options] <input image(s)> <output.flif>\n");
@@ -84,6 +86,7 @@ void show_help() {
     v_printf(1,"   -h, --help                  show help (use -hvv for advanced options)\n");
     v_printf(1,"   -v, --verbose               increase verbosity (multiple -v for more output)\n");
 #ifdef HAS_ENCODER
+    if (mode != 1) {
     v_printf(1,"Encode options: (-e, --encode)\n");
     v_printf(1,"   -I, --interlace             interlacing (default, except for tiny images)\n");
     v_printf(1,"   -N, --no-interlace          force no interlacing\n");
@@ -104,12 +107,15 @@ void show_help() {
     v_printf(3,"   -M, --maniac-min-size=N     MANIAC post-pruning threshold; default: -M%i\n",CONTEXT_TREE_MIN_SUBTREE_SIZE);
     v_printf(3,"   -X, --chance-cutoff=N       minimum chance (N/4096); default: -X2\n");
     v_printf(3,"   -Z, --chance-alpha=N        chance decay factor; default: -Z19\n");
+    }
 #endif
+    if (mode != 0) {
     v_printf(1,"Decode options: (-d, --decode)\n");
     v_printf(1,"   -i, --identify             do not decode, just identify the input FLIF file\n");
     v_printf(1,"   -q, --quality=N            lossy decode quality percentage; default -q100\n");
     v_printf(1,"   -s, --scale=N              lossy downscaled image at scale 1:N (2,4,8,16,32); default -s1\n");
     v_printf(1,"   -r, --resize=WxH           lossy downscaled image to fit WxH\n");
+    }
 }
 
 bool file_exists(const char * filename){
@@ -133,9 +139,9 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  ____ _(_)____\n");
-    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc5 [17 Jan 2016]\n");
+    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc6 [2 Feb 2016]\n");
     v_printf(3,"  (__ | |_| __)    ");v_printf(2,"Copyright (C) 2016 Jon Sneyers and Pieter Wuille\n");
-    v_printf(3,"    (_|___|_)      ");v_printf(2,"License GPLv3+: GNU GPL version 3 or later\n");
+    v_printf(3,"    (_|___|_)      ");v_printf(2,"License LGPLv3+: GNU LGPL version 3 or later\n");
     v_printf(3,"\n");
     v_printf(4,"This is free software: you are free to change and redistribute it.\n");
     v_printf(4,"There is NO WARRANTY, to the extent permitted by law.\n");
@@ -339,7 +345,7 @@ int main(int argc, char **argv)
 {
     Images images;
 #ifdef HAS_ENCODER
-    int mode = 0; // 0 = encode, 1 = decode, 2 = transcode
+    int mode = -1; // 0 = encode, 1 = decode, 2 = transcode
     flifEncodingOptional method;
     int learn_repeats = -1;
     int acb = -1; // try auto color buckets
@@ -363,7 +369,7 @@ int main(int argc, char **argv)
     int scale = 1;
     int resize_width = 0, resize_height = 0;
     bool showhelp = false;
-    if (strcmp(argv[0],"flif") == 0) mode = 0;
+    if (strcmp(argv[0],"cflif") == 0) mode = 0;
     if (strcmp(argv[0],"dflif") == 0) mode = 1;
     if (strcmp(argv[0],"deflif") == 0) mode = 1;
     if (strcmp(argv[0],"decflif") == 0) mode = 1;
@@ -469,7 +475,7 @@ int main(int argc, char **argv)
                   break;
 #endif
         case 'h': showhelp=true; break;
-        default: show_help(); return 0;
+        default: show_help(mode); return 0;
         }
     }
     argc -= optind;
@@ -477,16 +483,17 @@ int main(int argc, char **argv)
 
     show_banner();
     if (argc == 0 || showhelp) {
-        if (get_verbosity() == 1 || showhelp) show_help();
+        if (get_verbosity() == 1 || showhelp) show_help(mode);
         return 0;
     }
 
     if (argc == 1 && scale != -1) {
-        show_help();
+        show_help(mode);
         e_printf("\nOutput file missing.\n");
         return 1;
     }
     if (scale == -1) mode = 1;
+    if (mode < 0) mode = 0;
     if (file_exists(argv[0])) {
         char *f = strrchr(argv[0],'/');
         char *ext = f ? strrchr(f,'.') : strrchr(argv[0],'.');

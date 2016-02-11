@@ -1,9 +1,9 @@
 /*
  FLIF encoder - Free Lossless Image Format
- Copyright (C) 2010-2015  Jon Sneyers & Pieter Wuille, GPL v3+
+ Copyright (C) 2010-2016  Jon Sneyers & Pieter Wuille, LGPL v3+
 
  This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
+ it under the terms of the GNU Lesser General Public License as published by
  the Free Software Foundation, either version 3 of the License, or
  (at your option) any later version.
 
@@ -12,7 +12,7 @@
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
 
- You should have received a copy of the GNU General Public License
+ You should have received a copy of the GNU Lesser General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
@@ -132,7 +132,7 @@ void flif_encode_FLIF2_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const
         // horizontal: scan the odd rows, output pixel values
           for (uint32_t r = 1; r < images[0].rows(z); r += 2) {
             pixels_done += images[0].cols(z);
-            if (endZL == 0 && (r & 65)==65) v_printf(3,"\r%i%% done [%i/%i] ENC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
+            if (endZL == 0 && (r & 257)==257) v_printf(3,"\r%i%% done [%i/%i] ENC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
             for (int fr=0; fr<(int)images.size(); fr++) {
               const Image& image = images[fr];
               if (image.seen_before >= 0) { continue; }
@@ -153,7 +153,7 @@ void flif_encode_FLIF2_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const
         // vertical: scan the odd columns
           for (uint32_t r = 0; r < images[0].rows(z); r++) {
             pixels_done += images[0].cols(z)/2;
-            if (endZL == 0 && (r&129)==129) v_printf(3,"\r%i%% done [%i/%i] ENC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
+            if (endZL == 0 && (r&513)==513) v_printf(3,"\r%i%% done [%i/%i] ENC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
             for (int fr=0; fr<(int)images.size(); fr++) {
               const Image& image = images[fr];
               if (image.seen_before >= 0) { continue; }
@@ -435,6 +435,9 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     }
     alpha = 0xFFFFFFFF/alpha;
 
+    if (alphazero) for (Image& i : images) i.make_invisible_rgb_black();
+    const uint32_t checksum = image.checksum(); // if there are multiple frames, the checksum is based only on the first frame.
+
     std::vector<const ColorRanges*> rangesList;
     std::vector<Transform<IO>*> transforms;
     rangesList.push_back(getRanges(image));
@@ -510,7 +513,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
 
     if (io.ftell() > 100) {
       // not computing checksum until after transformations and potential zero-alpha changes
-      const uint32_t checksum = image.checksum();
+//      const uint32_t checksum = image.checksum();
       //v_printf(2,"Writing checksum: %X\n", checksum);
       metaCoder.write_int(0,1,1);
       metaCoder.write_int(16, (checksum >> 16) & 0xFFFF);
