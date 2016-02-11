@@ -57,7 +57,6 @@ public:
     virtual void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) =0;
     virtual ColorVal get(const int z, const uint32_t r, const uint32_t c) const =0;
     virtual void normalize_scale() {}
-    virtual void check_equal(const ColorVal x, const uint32_t r, const uint32_t begin, const uint32_t end, const uint32_t stride) const =0;
     virtual void accept_visitor(PlaneVisitor &v) =0;
     // access pixel by zoomlevel coordinate
     uint32_t zoom_rowpixelsize(int zoomlevel) const {
@@ -109,9 +108,6 @@ public:
         return get(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z));
     }
     void normalize_scale() { s = 0; }
-    void check_equal(const ColorVal x, const uint32_t r, const uint32_t begin, const uint32_t end, const uint32_t stride) const{
-        for(uint32_t c = begin; c < end; c+= stride) assert(x == get(r,c));
-    }
 
     void accept_visitor(PlaneVisitor &v) {
         v.visit(*this);
@@ -135,9 +131,6 @@ public:
     }
     ColorVal get(const int z, const uint32_t r, const uint32_t c) const {
         return color;
-    }
-    void check_equal(const ColorVal x, const uint32_t r, const uint32_t begin, const uint32_t end, const uint32_t stride) const{
-        assert(x == color);
     }
 
     void accept_visitor(PlaneVisitor &v) {
