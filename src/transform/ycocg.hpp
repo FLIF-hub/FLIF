@@ -222,12 +222,34 @@ public:
     }
 #endif
     void invData(Images& images) const {
-        ColorVal R,G,B,Y,Co,Cg;
         const ColorVal max[3] = {ranges->max(0), ranges->max(1), ranges->max(2)};
         for (Image& image : images) {
           image.undo_make_constant_plane(0);
           image.undo_make_constant_plane(1);
           image.undo_make_constant_plane(2);
+#ifdef USE_SIMD
+          // special case for 8-bit RGB decoding
+          if (image.max(0) < 256) {
+            Plane<ColorVal_intern_8>&  p0 = static_cast<Plane<ColorVal_intern_8>&>(image.getPlane(0));
+            Plane<ColorVal_intern_16>& p1 = static_cast<Plane<ColorVal_intern_16>&>(image.getPlane(1));
+            Plane<ColorVal_intern_16>& p2 = static_cast<Plane<ColorVal_intern_16>&>(image.getPlane(2));
+            EightColorVals R,G,B,Y,Co,Cg;
+            for (uint32_t pos=0; pos < image.rows()*image.cols(); pos += 8) {
+                Y = p0.get8(pos);
+                Co = p1.get8(pos);
+                Cg = p2.get8(pos);
+                G = Y - ((-Cg)>>1);
+                B = Y + ((1-Cg)>>1) - (Co>>1);
+                R = Co + B;
+                p0.set8(pos,R);
+                p1.set8(pos,G);
+                p2.set8(pos,B);
+            }
+          } else
+#endif
+          // general code, without SIMD
+          {
+          ColorVal R,G,B,Y,Co,Cg;
           for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
                 Y=image(0,r,c);
@@ -260,6 +282,7 @@ public:
                 image.set(1,r,c, G);
                 image.set(2,r,c, B);
             }
+          }
           }
         }
     }

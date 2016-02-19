@@ -506,7 +506,7 @@ bool flif_decode_main(RacIn<IO>& rac, IO& io, Images &images, const ColorRanges 
     if (encoding == 2 && (quality <= 0 || pixels_done >= pixels_todo)) {
       v_printf(3,"Not decoding MANIAC tree\n");
       flif_decode_FLIF2_inner_interpol(images, ranges, 0, roughZL, 0, -1, scale);
-      return false;
+      return pixels_done >= pixels_todo;
     } else {
       v_printf(3,"Decoded header + rough data. Decoding MANIAC tree.\n");
       if (!flif_decode_tree<IO, FLIFBitChanceTree, RacIn<IO>>(io, rac, ranges, forest, encoding)) {

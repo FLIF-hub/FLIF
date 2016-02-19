@@ -16,6 +16,8 @@
 #define CHECK_FOR_BROKENFILES 1
 
 
+#define USE_SIMD 1
+
 
 /*************************************************/
 /* OPTIONS TO CHANGE DEFAULT ENCODING PARAMETERS */

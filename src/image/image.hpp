@@ -36,6 +36,11 @@ typedef uint16_t ColorVal_intern_16u;
 typedef int16_t ColorVal_intern_16;
 typedef int32_t ColorVal_intern_32;
 
+#ifdef USE_SIMD
+typedef ColorVal FourColorVals __attribute__ ((vector_size (16)));
+typedef int16_t  EightColorVals __attribute__ ((vector_size (16)));  // only for 8-bit images (or at most 14-bit I guess)
+#endif
+
 // It's a part of C++14. Following impl was taken from GotW#102
 // (http://herbsutter.com/gotw/_102/).
 // It should go into some common header one day.
@@ -52,6 +57,12 @@ class GeneralPlane {
 public:
     virtual void set(const uint32_t r, const uint32_t c, const ColorVal x) =0;
     virtual ColorVal get(const uint32_t r, const uint32_t c) const =0;
+#ifdef USE_SIMD
+    virtual FourColorVals get4(const uint32_t pos) const =0;
+    virtual void set4(const uint32_t pos, const FourColorVals x) =0;
+    virtual EightColorVals get8(const uint32_t pos) const =0;
+    virtual void set8(const uint32_t pos, const EightColorVals x) =0;
+#endif
     virtual bool is_constant() const { return false; }
     virtual ~GeneralPlane() { }
     virtual void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) =0;
@@ -81,12 +92,18 @@ struct PlaneVisitor {
 };
 
 #define SCALED(x) (((x-1)>>scale)+1)
+#ifdef USE_SIMD
+// pad to a multiple of 8
+#define PAD(x) ((x) + 8-((x)%8))
+#else
+#define PAD(x) (x)
+#endif
 template <typename pixel_t> class Plane final : public GeneralPlane {
     std::valarray<pixel_t> data;
     const uint32_t width, height;
     int s;
 public:
-    Plane(uint32_t w, uint32_t h, ColorVal color=0, int scale = 0) : data(color, SCALED(w)*SCALED(h)), width(SCALED(w)), height(SCALED(h)), s(scale) { }
+    Plane(uint32_t w, uint32_t h, ColorVal color=0, int scale = 0) : data(color, PAD(SCALED(w)*SCALED(h))), width(SCALED(w)), height(SCALED(h)), s(scale) { }
     void clear() {
         data.clear();
     }
@@ -101,7 +118,33 @@ public:
         assert(sr<height); assert(sc<width);
         return data[sr*width + sc];
     }
-
+#ifdef USE_SIMD
+    FourColorVals get4(const uint32_t pos) const ATTRIBUTE_HOT {
+        FourColorVals x {data[pos], data[pos+1], data[pos+2], data[pos+3]};
+        return x;
+    }
+    void set4(const uint32_t pos, const FourColorVals x) {
+        data[pos]=x[0];
+        data[pos+1]=x[1];
+        data[pos+2]=x[2];
+        data[pos+3]=x[3];
+    }
+    EightColorVals get8(const uint32_t pos) const ATTRIBUTE_HOT {
+        EightColorVals x {(int16_t)data[pos], (int16_t)data[pos+1], (int16_t)data[pos+2], (int16_t)data[pos+3],
+                          (int16_t)data[pos+4], (int16_t)data[pos+5], (int16_t)data[pos+6], (int16_t)data[pos+7]};
+        return x;
+    }
+    void set8(const uint32_t pos, const EightColorVals x) {
+        data[pos]=x[0];
+        data[pos+1]=x[1];
+        data[pos+2]=x[2];
+        data[pos+3]=x[3];
+        data[pos+4]=x[4];
+        data[pos+5]=x[5];
+        data[pos+6]=x[6];
+        data[pos+7]=x[7];
+    }
+#endif
     void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) {
         set(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z),x);
     }
@@ -128,6 +171,33 @@ public:
     ColorVal get(const uint32_t r, const uint32_t c) const {
         return color;
     }
+#ifdef USE_SIMD
+    FourColorVals get4(const uint32_t pos) const ATTRIBUTE_HOT {
+        FourColorVals x {color,color,color,color};
+        return x;
+    }
+    void set4(const uint32_t pos, const FourColorVals x) {
+        assert(x[0] == color);
+        assert(x[1] == color);
+        assert(x[2] == color);
+        assert(x[3] == color);
+    }
+    EightColorVals get8(const uint32_t pos) const ATTRIBUTE_HOT {
+        int16_t c = color;
+        EightColorVals x {c,c,c,c,c,c,c,c};
+        return x;
+    }
+    void set8(const uint32_t pos, const EightColorVals x) {
+        assert(x[0] == color);
+        assert(x[1] == color);
+        assert(x[2] == color);
+        assert(x[3] == color);
+        assert(x[4] == color);
+        assert(x[5] == color);
+        assert(x[6] == color);
+        assert(x[7] == color);
+    }
+#endif
     bool is_constant() const { return true; }
 
     void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) {
