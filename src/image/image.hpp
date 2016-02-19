@@ -37,8 +37,14 @@ typedef int16_t ColorVal_intern_16;
 typedef int32_t ColorVal_intern_32;
 
 #ifdef USE_SIMD
+#ifdef __clang__
+// clang does not support scalar/vector operations with vector_size syntax
+typedef ColorVal FourColorVals __attribute__ ((ext_vector_type (4)));
+typedef int16_t  EightColorVals __attribute__ ((ext_vector_type (8)));  // only for 8-bit images (or at most 14-bit I guess)
+#else
 typedef ColorVal FourColorVals __attribute__ ((vector_size (16)));
 typedef int16_t  EightColorVals __attribute__ ((vector_size (16)));  // only for 8-bit images (or at most 14-bit I guess)
+#endif
 #endif
 
 // It's a part of C++14. Following impl was taken from GotW#102
