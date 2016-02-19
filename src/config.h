@@ -16,7 +16,9 @@
 #define CHECK_FOR_BROKENFILES 1
 
 
+#ifndef __clang__
 #define USE_SIMD 1
+#endif
 
 
 /*************************************************/
