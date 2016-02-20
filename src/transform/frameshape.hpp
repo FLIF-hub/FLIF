@@ -33,9 +33,9 @@ protected:
     uint32_t cols;
     uint32_t nb;
 
-    bool undo_redo_during_decode() { return false; }
+    bool undo_redo_during_decode() override { return false; }
 
-    const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) {
+    const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) override {
         uint32_t pos=0;
         for (unsigned int fr=1; fr<images.size(); fr++) {
             Image& image = images[fr];
@@ -50,9 +50,9 @@ protected:
         return new DupColorRanges(srcRanges);
     }
 
-    void configure(const int setting) { if (nb==0) nb=setting; else cols=setting; } // ok this is dirty
+    void configure(const int setting) override { if (nb==0) nb=setting; else cols=setting; } // ok this is dirty
 
-    bool load(const ColorRanges *, RacIn<IO> &rac) {
+    bool load(const ColorRanges *, RacIn<IO> &rac) override {
         SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> coder(rac);
         for (unsigned int i=0; i<nb; i+=1) {b.push_back(coder.read_int(0,cols));}
         for (unsigned int i=0; i<nb; i+=1) {
@@ -66,7 +66,7 @@ protected:
     }
 
 #if HAS_ENCODER
-    void save(const ColorRanges *, RacOut<IO> &rac) const {
+    void save(const ColorRanges *, RacOut<IO> &rac) const override {
         SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18> coder(rac);
         assert(nb == b.size());
         assert(nb == e.size());
@@ -74,7 +74,7 @@ protected:
         for (unsigned int i=0; i<nb; i+=1) { coder.write_int(0,cols-b[i],cols-e[i]); }
     }
 
-    bool process(const ColorRanges *srcRanges, const Images &images) {
+    bool process(const ColorRanges *srcRanges, const Images &images) override {
         if (images.size()<2) return false;
         int np=srcRanges->numPlanes();
         nb = 0;
