@@ -31,12 +31,12 @@ protected:
     int nb_colors[4];
 public:
     ColorRangesPaletteC(const ColorRanges *rangesIn, const int nb[4]) : ranges(rangesIn) { for (int i=0; i<4; i++) nb_colors[i] = nb[i]; }
-    bool isStatic() const { return true; }
-    int numPlanes() const { return ranges->numPlanes(); }
+    bool isStatic() const override { return true; }
+    int numPlanes() const override { return ranges->numPlanes(); }
 
-    ColorVal min(int p) const { return 0; }
-    ColorVal max(int p) const { return nb_colors[p]; }
-    void minmax(const int p, const prevPlanes &pp, ColorVal &minv, ColorVal &maxv) const {
+    ColorVal min(int p) const override { return 0; }
+    ColorVal max(int p) const override { return nb_colors[p]; }
+    void minmax(const int p, const prevPlanes &pp, ColorVal &minv, ColorVal &maxv) const override {
          minv=0; maxv=nb_colors[p];
     }
 
@@ -50,11 +50,11 @@ protected:
     std::vector<ColorVal> CPalette_inv_vector[4];
 
 public:
-    bool init(const ColorRanges *) {
+    bool init(const ColorRanges *) override {
         return true;
     }
 
-    const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) {
+    const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) override {
         int nb[4] = {};
         v_printf(4,"[");
         for (int i=0; i<srcRanges->numPlanes(); i++) {
@@ -67,7 +67,7 @@ public:
         return new ColorRangesPaletteC(srcRanges, nb);
     }
 
-    void invData(Images& images) const {
+    void invData(Images& images) const override {
         for (Image& image : images) {
          for (int p=0; p<image.numPlanes(); p++) {
 //          const int stretch = (CPalette_vector[p].size()>64 ? 0 : 2);
@@ -83,7 +83,7 @@ public:
     }
 
 #if HAS_ENCODER
-    bool process(const ColorRanges *srcRanges, const Images &images) {
+    bool process(const ColorRanges *srcRanges, const Images &images) override {
         std::set<ColorVal> CPalette;
         bool nontrivial=false;
         for (int p=0; p<srcRanges->numPlanes(); p++) {
@@ -114,7 +114,7 @@ public:
         }
         return nontrivial;
     }
-    void data(Images& images) const {
+    void data(Images& images) const override {
         for (Image& image : images) {
          for (int p=0; p<image.numPlanes(); p++) {
 //          const int stretch = (CPalette_vector[p].size()>64 ? 0 : 2);
@@ -129,7 +129,7 @@ public:
          }
         }
     }
-    void save(const ColorRanges *srcRanges, RacOut<IO> &rac) const {
+    void save(const ColorRanges *srcRanges, RacOut<IO> &rac) const override {
         SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18> coder(rac);
         for (int p=0; p<srcRanges->numPlanes(); p++) {
           coder.write_int(0, srcRanges->max(p)-srcRanges->min(p), CPalette_vector[p].size()-1);
@@ -143,7 +143,7 @@ public:
         }
     }
 #endif
-    bool load(const ColorRanges *srcRanges, RacIn<IO> &rac) {
+    bool load(const ColorRanges *srcRanges, RacIn<IO> &rac) override {
         SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> coder(rac);
         for (int p=0; p<srcRanges->numPlanes(); p++) {
           unsigned int nb = coder.read_int(0, srcRanges->max(p)-srcRanges->min(p)) + 1;

@@ -34,18 +34,18 @@ protected:
     int nb_colors;
 public:
     ColorRangesPalette(const ColorRanges *rangesIn, const int nb) : ranges(rangesIn), nb_colors(nb) { }
-    bool isStatic() const { return false; }
-    int numPlanes() const { return ranges->numPlanes(); }
+    bool isStatic() const override { return false; }
+    int numPlanes() const override { return ranges->numPlanes(); }
 
-    ColorVal min(int p) const { if (p<3) return 0; else return ranges->min(p); }
-    ColorVal max(int p) const { switch(p) {
+    ColorVal min(int p) const override { if (p<3) return 0; else return ranges->min(p); }
+    ColorVal max(int p) const override { switch(p) {
                                         case 0: return 0;
                                         case 1: return nb_colors-1;
                                         case 2: return 0;
                                         default: return ranges->max(p);
                                          };
                               }
-    void minmax(const int p, const prevPlanes &pp, ColorVal &minv, ColorVal &maxv) const {
+    void minmax(const int p, const prevPlanes &pp, ColorVal &minv, ColorVal &maxv) const override {
          if (p==1) { minv=0; maxv=nb_colors-1; return;}
          else if (p<3) { minv=0; maxv=0; return;}
          else ranges->minmax(p,pp,minv,maxv);
@@ -63,11 +63,11 @@ protected:
     bool ordered_palette;
 
 public:
-    void configure(const int setting) {
+    void configure(const int setting) override {
         if (setting>0) { ordered_palette=true; max_palette_size = setting;}
         else {ordered_palette=false; max_palette_size = -setting;}
     }
-    bool init(const ColorRanges *srcRanges) {
+    bool init(const ColorRanges *srcRanges) override {
         if (srcRanges->numPlanes() < 3) return false;
         if (srcRanges->max(0) == 0 && srcRanges->max(2) == 0 &&
             srcRanges->numPlanes() > 3 && srcRanges->min(3) == 1 && srcRanges->max(3) == 1) return false; // already did PLA!
@@ -77,11 +77,11 @@ public:
         return true;
     }
 
-    const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) {
+    const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) override {
         for (Image& image : images) image.palette=true;
         return new ColorRangesPalette(srcRanges, Palette_vector.size());
     }
-    void invData(Images& images) const {
+    void invData(Images& images) const override {
         for (Image& image : images) {
           image.undo_make_constant_plane(0);
           image.undo_make_constant_plane(1); // only needed when there is only one palette color, so plane 1 is also constant
@@ -99,7 +99,7 @@ public:
     }
 
 #ifdef HAS_ENCODER
-    bool process(const ColorRanges *, const Images &images) {
+    bool process(const ColorRanges *, const Images &images) override {
         if (ordered_palette) {
           std::set<Color> Palette;
           for (const Image& image : images)
@@ -131,7 +131,7 @@ public:
 //        printf("Palette size: %lu\n",Palette.size());
         return true;
     }
-    void data(Images& images) const {
+    void data(Images& images) const override {
 //        printf("TransformPalette::data\n");
         for (Image& image : images) {
           for (uint32_t r=0; r<image.rows(); r++) {
@@ -148,7 +148,7 @@ public:
           image.make_constant_plane(2,0);
         }
     }
-    void save(const ColorRanges *srcRanges, RacOut<IO> &rac) const {
+    void save(const ColorRanges *srcRanges, RacOut<IO> &rac) const override {
         SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18> coder(rac);
         SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18> coderY(rac);
         SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18> coderI(rac);
@@ -192,7 +192,7 @@ public:
         if (!ordered_palette) v_printf(5,"Unsorted");
     }
 #endif
-    bool load(const ColorRanges *srcRanges, RacIn<IO> &rac) {
+    bool load(const ColorRanges *srcRanges, RacIn<IO> &rac) override {
         SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> coder(rac);
         SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> coderY(rac);
         SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> coderI(rac);

@@ -113,7 +113,7 @@ public:
     void clear() {
         data.clear();
     }
-    void set(const uint32_t r, const uint32_t c, const ColorVal x) {
+    void set(const uint32_t r, const uint32_t c, const ColorVal x) override {
         const uint32_t sr = r>>s, sc = c>>s;
         assert(sr<height); assert(sc<width);
         data[sr*width + sc] = x;
@@ -129,7 +129,7 @@ public:
         FourColorVals x {data[pos], data[pos+1], data[pos+2], data[pos+3]};
         return x;
     }
-    void set4(const uint32_t pos, const FourColorVals x) {
+    void set4(const uint32_t pos, const FourColorVals x) override {
         data[pos]=x[0];
         data[pos+1]=x[1];
         data[pos+2]=x[2];
@@ -140,7 +140,7 @@ public:
                           (int16_t)data[pos+4], (int16_t)data[pos+5], (int16_t)data[pos+6], (int16_t)data[pos+7]};
         return x;
     }
-    void set8(const uint32_t pos, const EightColorVals x) {
+    void set8(const uint32_t pos, const EightColorVals x) override {
         data[pos]=x[0];
         data[pos+1]=x[1];
         data[pos+2]=x[2];
@@ -151,18 +151,18 @@ public:
         data[pos+7]=x[7];
     }
 #endif
-    void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) {
+    void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) override {
         set(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z),x);
     }
-    ColorVal get(const int z, const uint32_t r, const uint32_t c) const {
+    ColorVal get(const int z, const uint32_t r, const uint32_t c) const override {
         return get(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z));
     }
-    void normalize_scale() { s = 0; }
-    void check_equal(const ColorVal x, const uint32_t r, const uint32_t begin, const uint32_t end, const uint32_t stride) const{
+    void normalize_scale() override { s = 0; }
+    void check_equal(const ColorVal x, const uint32_t r, const uint32_t begin, const uint32_t end, const uint32_t stride) const override {
         for(uint32_t c = begin; c < end; c+= stride) assert(x == get(r,c));
     }
 
-    void accept_visitor(PlaneVisitor &v) {
+    void accept_visitor(PlaneVisitor &v) override {
         v.visit(*this);
     }
 };
@@ -171,10 +171,10 @@ class ConstantPlane final : public GeneralPlane {
     ColorVal color;
 public:
     ConstantPlane(ColorVal c) : color(c) {}
-    void set(const uint32_t r, const uint32_t c, const ColorVal x) {
+    void set(const uint32_t r, const uint32_t c, const ColorVal x) override {
         assert(x == color);
     }
-    ColorVal get(const uint32_t r, const uint32_t c) const {
+    ColorVal get(const uint32_t r, const uint32_t c) const override {
         return color;
     }
 #ifdef USE_SIMD
@@ -182,7 +182,7 @@ public:
         FourColorVals x {color,color,color,color};
         return x;
     }
-    void set4(const uint32_t pos, const FourColorVals x) {
+    void set4(const uint32_t pos, const FourColorVals x) override {
         assert(x[0] == color);
         assert(x[1] == color);
         assert(x[2] == color);
@@ -193,7 +193,7 @@ public:
         EightColorVals x {c,c,c,c,c,c,c,c};
         return x;
     }
-    void set8(const uint32_t pos, const EightColorVals x) {
+    void set8(const uint32_t pos, const EightColorVals x) override {
         assert(x[0] == color);
         assert(x[1] == color);
         assert(x[2] == color);
@@ -204,19 +204,19 @@ public:
         assert(x[7] == color);
     }
 #endif
-    bool is_constant() const { return true; }
+    bool is_constant() const override { return true; }
 
-    void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) {
+    void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) override {
         assert(x == color);
     }
-    ColorVal get(const int z, const uint32_t r, const uint32_t c) const {
+    ColorVal get(const int z, const uint32_t r, const uint32_t c) const override {
         return color;
     }
-    void check_equal(const ColorVal x, const uint32_t r, const uint32_t begin, const uint32_t end, const uint32_t stride) const{
+    void check_equal(const ColorVal x, const uint32_t r, const uint32_t begin, const uint32_t end, const uint32_t stride) const override {
         assert(x == color);
     }
 
-    void accept_visitor(PlaneVisitor &v) {
+    void accept_visitor(PlaneVisitor &v) override {
         v.visit(*this);
     }
 };

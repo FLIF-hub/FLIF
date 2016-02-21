@@ -69,7 +69,7 @@ protected:
     const ColorRanges *ranges;
 
 public:
-    bool virtual init(const ColorRanges *srcRanges) {
+    bool virtual init(const ColorRanges *srcRanges) override {
         if (srcRanges->numPlanes() < 3) return false;
         if (srcRanges->min(0) < 0 || srcRanges->min(1) < 0 || srcRanges->min(2) < 0) return false;
         if (srcRanges->min(0) == srcRanges->max(0) || srcRanges->min(1) == srcRanges->max(1) || srcRanges->min(2) == srcRanges->max(2)) return false;
@@ -78,12 +78,12 @@ public:
         return true;
     }
 
-    const ColorRanges *meta(Images&, const ColorRanges *srcRanges) {
+    const ColorRanges *meta(Images&, const ColorRanges *srcRanges) override {
         return new ColorRangesYCC(maximum, srcRanges);
     }
 
 #ifdef HAS_ENCODER
-    void data(Images& images) const {
+    void data(Images& images) const override {
         ColorVal R,G,B,Y,C1,C2;
         for (Image& image : images)
         for (uint32_t r=0; r<image.rows(); r++) {
@@ -103,7 +103,7 @@ public:
         }
     }
 #endif
-    void invData(Images& images) const {
+    void invData(Images& images) const override {
         ColorVal R,G,B,Y,C1,C2;
         const ColorVal max[3] = {ranges->max(0), ranges->max(1), ranges->max(2)};
         for (Image& image : images) {
