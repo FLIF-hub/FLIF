@@ -144,10 +144,10 @@ public:
             : par(parIn), ranges(rangesIn) {
     //        if (parIn != par) printf("OOPS: using YCoCg transform on something other than rgb888 ?\n");
     }
-    bool isStatic() const { return false; }
-    int numPlanes() const { return ranges->numPlanes(); }
+    bool isStatic() const override { return false; }
+    int numPlanes() const override { return ranges->numPlanes(); }
 
-    ColorVal min(int p) const {
+    ColorVal min(int p) const override {
       switch(p) {
         case 0: return 0;
         case 1: return -4*par+1;
@@ -155,7 +155,7 @@ public:
         default: return ranges->min(p);
       };
     }
-    ColorVal max(int p) const {
+    ColorVal max(int p) const override {
       switch(p) {
         case 0: return 4*par-1;
         case 1: return 4*par-1;
@@ -164,7 +164,7 @@ public:
       };
     }
 
-    void minmax(const int p, const prevPlanes &pp, ColorVal &minv, ColorVal &maxv) const {
+    void minmax(const int p, const prevPlanes &pp, ColorVal &minv, ColorVal &maxv) const override {
          if (p==1) { minv=get_min_co(par, pp[0]); maxv=get_max_co(par, pp[0]); return; }
          else if (p==2) { minv=get_min_cg(par, pp[0], pp[1]); maxv=get_max_cg(par, pp[0], pp[1]); return; }
          else if (p==0) { minv=0; maxv=get_max_y(par); return;}
@@ -180,7 +180,7 @@ protected:
     const ColorRanges *ranges;
 
 public:
-    bool virtual init(const ColorRanges *srcRanges) {
+    bool virtual init(const ColorRanges *srcRanges) override {
         if (srcRanges->numPlanes() < 3) return false;
         if (srcRanges->min(0) < 0 || srcRanges->min(1) < 0 || srcRanges->min(2) < 0) return false;
         if (srcRanges->min(0) == srcRanges->max(0) || srcRanges->min(1) == srcRanges->max(1) || srcRanges->min(2) == srcRanges->max(2)) return false;
@@ -190,12 +190,12 @@ public:
         return true;
     }
 
-    const ColorRanges *meta(Images&, const ColorRanges *srcRanges) {
+    const ColorRanges *meta(Images&, const ColorRanges *srcRanges) override {
         return new ColorRangesYCoCg(par, srcRanges);
     }
 
 #ifdef HAS_ENCODER
-    void data(Images& images) const {
+    void data(Images& images) const override {
 //        printf("TransformYCoCg::data: par=%i\n", par);
         ColorVal R,G,B,Y,Co,Cg;
         for (Image& image : images)
@@ -221,7 +221,7 @@ public:
         }
     }
 #endif
-    void invData(Images& images) const {
+    void invData(Images& images) const override {
         const ColorVal max[3] = {ranges->max(0), ranges->max(1), ranges->max(2)};
         for (Image& image : images) {
           image.undo_make_constant_plane(0);
