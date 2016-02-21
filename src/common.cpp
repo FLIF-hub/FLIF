@@ -93,7 +93,8 @@ void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p) {
 // Actual prediction. Also sets properties. Property vector should already have the right size before calling this.
 ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges, const Image &image, const int z, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) ATTRIBUTE_HOT;
 ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges, const Image &image, const int z, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) {
-    return predict_and_calcProps_plane(properties,ranges,image,image.getPlane(p),z,p,r,c,min,max);
+    if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,true,false>(properties,ranges,image,image.getPlane(p),z,p,r,c,min,max);
+    else return predict_and_calcProps_plane<GeneralPlane,false,false>(properties,ranges,image,image.getPlane(p),z,p,r,c,min,max);
 }
 
 int plane_zoomlevels(const Image &image, const int beginZL, const int endZL) {

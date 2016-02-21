@@ -257,13 +257,35 @@ void flif_decode_plane_zoomlevel_horizontal(plane_t &plane, Coder &coder, Images
     } else {
         if (image.numPlanes()>3 && p<3) {begin=0; end=image.cols(z);}
     }
-    for (uint32_t c = begin; c < end; c++) {
+    // avoid branching for border cases
+    if (r > 1 && r < image.rows(z)-1 && !FRA && begin == 0 && end > 3) {
+      for (uint32_t c = begin; c < 2; c++) {
+        if (alphazero && p<3 && alpha.get(z,r,c) == 0) { plane.set(z,r,c,predict_plane_horizontal(plane,z,p,r,c, image.rows(z))); continue;}
+        ColorVal guess = predict_and_calcProps_plane<plane_t,true,false>(properties,ranges,image,plane,z,p,r,c,min,max);
+        ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
+        plane.set(z,r,c, curr);
+      }
+      for (uint32_t c = 2; c < end-2; c++) {
+        if (alphazero && p<3 && alpha.get(z,r,c) == 0) { plane.set(z,r,c,predict_plane_horizontal(plane,z,p,r,c, image.rows(z))); continue;}
+        ColorVal guess = predict_and_calcProps_plane<plane_t,true,true>(properties,ranges,image,plane,z,p,r,c,min,max);
+        ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
+        plane.set(z,r,c, curr);
+      }
+      for (uint32_t c = end-2; c < end; c++) {
+        if (alphazero && p<3 && alpha.get(z,r,c) == 0) { plane.set(z,r,c,predict_plane_horizontal(plane,z,p,r,c, image.rows(z))); continue;}
+        ColorVal guess = predict_and_calcProps_plane<plane_t,true,false>(properties,ranges,image,plane,z,p,r,c,min,max);
+        ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
+        plane.set(z,r,c, curr);
+      }
+    } else {
+      for (uint32_t c = begin; c < end; c++) {
         if (alphazero && p<3 && alpha.get(z,r,c) == 0) { plane.set(z,r,c,predict_plane_horizontal(plane,z,p,r,c, image.rows(z))); continue;}
         if (FRA && p<4 && image.getFRA(z,r,c) > 0) { plane.set(z,r,c,images[fr-image.getFRA(z,r,c)](p,z,r,c)); continue;}
-        ColorVal guess = predict_and_calcProps_plane(properties,ranges,image,plane,z,p,r,c,min,max);
+        ColorVal guess = predict_and_calcProps_plane<plane_t,true,false>(properties,ranges,image,plane,z,p,r,c,min,max);
         if (FRA && p==4 && max > fr) max = fr;
         ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
         plane.set(z,r,c, curr);
+      }
     }
 }
 
@@ -292,13 +314,36 @@ void flif_decode_plane_zoomlevel_vertical(plane_t &plane, Coder &coder, Images &
     } else {
         if (image.numPlanes()>3 && p<3) {begin=1; end=image.cols(z);}
     }
-    for (uint32_t c = begin; c < end; c+=2) {
+    // avoid branching for border cases
+    if (r > 1 && r < image.rows(z)-1 && !FRA && end == image.cols(z) && end > 5 && begin == 1) {
+      uint32_t c = begin;
+      for (; c < 3; c+=2) {
+        if (alphazero && p<3 && alpha.get(z,r,c) == 0) { plane.set(z,r,c,predict_plane_vertical(plane, z, p, r, c, image.cols(z))); continue;}
+        ColorVal guess = predict_and_calcProps_plane<plane_t,false,false>(properties,ranges,image,plane,z,p,r,c,min,max);
+        ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
+        plane.set(z,r,c, curr);
+      }
+      for (; c < end-2; c+=2) {
+        if (alphazero && p<3 && alpha.get(z,r,c) == 0) { plane.set(z,r,c,predict_plane_vertical(plane, z, p, r, c, image.cols(z))); continue;}
+        ColorVal guess = predict_and_calcProps_plane<plane_t,false,true>(properties,ranges,image,plane,z,p,r,c,min,max);
+        ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
+        plane.set(z,r,c, curr);
+      }
+      for (; c < end; c+=2) {
+        if (alphazero && p<3 && alpha.get(z,r,c) == 0) { plane.set(z,r,c,predict_plane_vertical(plane, z, p, r, c, image.cols(z))); continue;}
+        ColorVal guess = predict_and_calcProps_plane<plane_t,false,false>(properties,ranges,image,plane,z,p,r,c,min,max);
+        ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
+        plane.set(z,r,c, curr);
+      }
+    } else {
+      for (uint32_t c = begin; c < end; c+=2) {
         if (alphazero && p<3 && alpha.get(z,r,c) == 0) { plane.set(z,r,c,predict_plane_vertical(plane, z, p, r, c, image.cols(z))); continue;}
         if (FRA && p<4 && image.getFRA(z,r,c) > 0) { plane.set(z,r,c,images[fr-image.getFRA(z,r,c)](p,z,r,c)); continue;}
-        ColorVal guess = predict_and_calcProps_plane(properties,ranges,image,plane,z,p,r,c,min,max);
+        ColorVal guess = predict_and_calcProps_plane<plane_t,false,false>(properties,ranges,image,plane,z,p,r,c,min,max);
         if (FRA && p==4 && max > fr) max = fr;
         ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
         plane.set(z,r,c, curr);
+      }
     }
 }
 
