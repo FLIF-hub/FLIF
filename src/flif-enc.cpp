@@ -339,7 +339,7 @@ void flif_encode_main(RacOut<IO>& rac, IO& io, Images &images, flifEncoding enco
 template <typename IO>
 bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding,
                  int learn_repeats, int acb, int palette_size, int lookback,
-                 int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int cutoff=2, int alpha=19) {
+                 int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int cutoff=2, int alpha=19, int crc_check=-1) {
 
     io.fputs("FLIF");  // bytes 1-4 are fixed magic
     int numPlanes = images[0].numPlanes();
@@ -435,8 +435,11 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     }
     alpha = 0xFFFFFFFF/alpha;
 
-    if (alphazero) for (Image& i : images) i.make_invisible_rgb_black();
-    const uint32_t checksum = image.checksum(); // if there are multiple frames, the checksum is based only on the first frame.
+    uint32_t checksum = 0;
+    if (crc_check) {
+      if (alphazero) for (Image& i : images) i.make_invisible_rgb_black();
+      checksum = image.checksum(); // if there are multiple frames, the checksum is based only on the first frame.
+    }
 
     std::vector<const ColorRanges*> rangesList;
     std::vector<Transform<IO>*> transforms;
@@ -511,15 +514,13 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
 #endif
     }
 
-    if (io.ftell() > 100) {
-      // not computing checksum until after transformations and potential zero-alpha changes
-//      const uint32_t checksum = image.checksum();
+    if (crc_check && (crc_check>0 || io.ftell() > 100)) {
       //v_printf(2,"Writing checksum: %X\n", checksum);
       metaCoder.write_int(0,1,1);
       metaCoder.write_int(16, (checksum >> 16) & 0xFFFF);
       metaCoder.write_int(16, checksum & 0xFFFF);
     } else {
-      metaCoder.write_int(0,1,0); // don't write checksum for tiny images
+      metaCoder.write_int(0,1,0); // don't write checksum for tiny images or when asked not to
     }
     rac.flush();
     io.flush();
@@ -543,7 +544,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
 }
 
 
-template bool flif_encode(FileIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int palette_size, int lookback, int divisor, int min_size, int split_threshold, int cutoff, int alpha);
-template bool flif_encode(BlobIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int palette_size, int lookback, int divisor, int min_size, int split_threshold, int cutoff, int alpha);
+template bool flif_encode(FileIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int palette_size, int lookback, int divisor, int min_size, int split_threshold, int cutoff, int alpha, int crc_check);
+template bool flif_encode(BlobIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int palette_size, int lookback, int divisor, int min_size, int split_threshold, int cutoff, int alpha, int crc_check);
 
 #endif

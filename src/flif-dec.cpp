@@ -576,7 +576,7 @@ bool flif_decode_main(RacIn<IO>& rac, IO& io, Images &images, const ColorRanges 
 }
 
 template <typename IO>
-bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int first_callback_quality, Images &partial_images, int rw, int rh) {
+bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int first_callback_quality, Images &partial_images, int rw, int rh, int crc_check) {
     bool just_identify = false;
     if (scale == -1) just_identify=true;
     else if (scale != 1 && scale != 2 && scale != 4 && scale != 8 && scale != 16 && scale != 32 && scale != 64 && scale != 128) {
@@ -813,10 +813,12 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     }
     rangesList.clear();
 
+    // don't bother making the invisible pixels black if we're not checking the crc anyway
+    if (alphazero && crc_check) for (Image& image : images) image.make_invisible_rgb_black();
 
-    if (alphazero) for (Image& image : images) image.make_invisible_rgb_black();
-
-    if (quality>=100 && scale==1 && fully_decoded) {
+    if (!crc_check) {
+      v_printf(3,"Not checking checksum, as requested.\n");
+    } else if (quality>=100 && scale==1 && fully_decoded) {
       bool contains_checksum = metaCoder.read_int(0,1);
       if (contains_checksum) {
         const uint32_t checksum = images[0].checksum();
@@ -852,5 +854,5 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
 }
 
 
-template bool flif_decode(FileIO& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int, Images &partial_images, int, int);
-template bool flif_decode(BlobReader& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int, Images &partial_images, int, int);
+template bool flif_decode(FileIO& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int, Images &partial_images, int, int, int);
+template bool flif_decode(BlobReader& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int, Images &partial_images, int, int, int);

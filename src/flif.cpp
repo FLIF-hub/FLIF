@@ -85,6 +85,7 @@ void show_help(int mode) {
     v_printf(1,"General Options:\n");
     v_printf(1,"   -h, --help                  show help (use -hvv for advanced options)\n");
     v_printf(1,"   -v, --verbose               increase verbosity (multiple -v for more output)\n");
+    v_printf(2,"   -c, --no-crc                don't verify the CRC (or don't add a CRC)\n");
 #ifdef HAS_ENCODER
     if (mode != 1) {
     v_printf(1,"Encode options: (-e, --encode)\n");
@@ -139,7 +140,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  ____ _(_)____\n");
-    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc6 [2 Feb 2016]\n");
+    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc6 [21 Feb 2016]\n");
     v_printf(3,"  (__ | |_| __)    ");v_printf(2,"Copyright (C) 2016 Jon Sneyers and Pieter Wuille\n");
     v_printf(3,"    (_|___|_)      ");v_printf(2,"License LGPLv3+: GNU LGPL version 3 or later\n");
     v_printf(3,"\n");
@@ -215,7 +216,7 @@ bool encode_load_input_images(int argc, char **argv, Images &images) {
 }
 bool encode_flif(int argc, char **argv, Images &images, int palette_size, int acb, flifEncodingOptional method, int lookback,
                  int learn_repeats, std::vector<int> &frame_delay, int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE,
-                 int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int yiq=1, int plc=1, int frs=1, int cutoff=2, int alpha=19) {
+                 int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int yiq=1, int plc=1, int frs=1, int cutoff=2, int alpha=19, int crc_check=-1) {
     bool flat=true;
     unsigned int framenb=0;
     for (Image& i : images) { i.frame_delay = frame_delay[framenb]; if (framenb+1 < frame_delay.size()) framenb++; }
@@ -282,33 +283,33 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
     if (!file)
         return false;
     FileIO fio(file, argv[0]);
-    return flif_encode(fio, images, desc, method.encoding, learn_repeats, acb, palette_size, lookback, divisor, min_size, split_threshold, cutoff, alpha);
+    return flif_encode(fio, images, desc, method.encoding, learn_repeats, acb, palette_size, lookback, divisor, min_size, split_threshold, cutoff, alpha, crc_check);
 }
 
 bool handle_encode(int argc, char **argv, Images &images, int palette_size, int acb, flifEncodingOptional method,
                    int lookback, int learn_repeats, std::vector<int> &frame_delay, int divisor=CONTEXT_TREE_COUNT_DIV,
                    int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD,
-                   int yiq=1, int plc=1, bool alpha_zero_special=true, int frs=1, int cutoff=2, int alpha=19) {
+                   int yiq=1, int plc=1, bool alpha_zero_special=true, int frs=1, int cutoff=2, int alpha=19, int crc_check=-1) {
     if (!encode_load_input_images(argc,argv,images)) return false;
     if (!alpha_zero_special) for (Image& i : images) i.alpha_zero_special = false;
     argv += (argc-1);
     argc = 1;
-    return encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, frs, cutoff, alpha);
+    return encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, frs, cutoff, alpha, crc_check);
 }
 #endif
 
-bool decode_flif(char **argv, Images &images, int quality, int scale, int resize_width, int resize_height) {
+bool decode_flif(char **argv, Images &images, int quality, int scale, int resize_width, int resize_height, int crc_check) {
     FILE *file = fopen(argv[0],"rb");
     if(!file) return false;
     FileIO fio(file, argv[0]);
-    return flif_decode(fio, images, quality, scale, resize_width, resize_height);
+    return flif_decode(fio, images, quality, scale, resize_width, resize_height, crc_check);
 }
 
-int handle_decode(int argc, char **argv, Images &images, int quality, int scale, int resize_width, int resize_height) {
+int handle_decode(int argc, char **argv, Images &images, int quality, int scale, int resize_width, int resize_height, int crc_check) {
     if (scale < 0) {
         // just identify the file(s), don't actually decode
         while (argc>0) {
-            decode_flif(argv, images, quality, scale, resize_width, resize_height);
+            decode_flif(argv, images, quality, scale, resize_width, resize_height, crc_check);
             argv++; argc--;
         }
         return 0;
@@ -318,7 +319,7 @@ int handle_decode(int argc, char **argv, Images &images, int quality, int scale,
         e_printf("Error: expected \".png\", \".pnm\" or \".pam\" file name extension for output file\n");
         return 1;
     }
-    if (!decode_flif(argv, images, quality, scale, resize_width, resize_height)) {
+    if (!decode_flif(argv, images, quality, scale, resize_width, resize_height, crc_check)) {
         e_printf("Error: could not decode FLIF file\n"); return 3;
     }
     if (!strcmp(argv[1],"null:")) return 0;
@@ -365,6 +366,7 @@ int main(int argc, char **argv)
 #else
     int mode = 1;
 #endif
+    int crc_check = -1;
     int quality = 100; // 100 = everything, positive value: partial decode, negative value: only rough data
     int scale = 1;
     int resize_width = 0, resize_height = 0;
@@ -377,6 +379,7 @@ int main(int argc, char **argv)
         {"help", 0, NULL, 'h'},
         {"decode", 0, NULL, 'd'},
         {"verbose", 0, NULL, 'v'},
+        {"no-crc", 0, NULL, 'c'},
         {"quality", 1, NULL, 'q'},
         {"scale", 1, NULL, 's'},
         {"resize", 1, NULL, 'r'},
@@ -407,14 +410,15 @@ int main(int argc, char **argv)
     };
     int i,c;
 #ifdef HAS_ENCODER
-    while ((c = getopt_long (argc, argv, "hdviVq:s:r:etINnF:KP:ABYCL:SR:D:M:T:X:Z:", optlist, &i)) != -1) {
+    while ((c = getopt_long (argc, argv, "hdvciVq:s:r:etINnF:KP:ABYCL:SR:D:M:T:X:Z:", optlist, &i)) != -1) {
 #else
-    while ((c = getopt_long (argc, argv, "hdviVq:s:r:", optlist, &i)) != -1) {
+    while ((c = getopt_long (argc, argv, "hdvciVq:s:r:", optlist, &i)) != -1) {
 #endif
         switch (c) {
         case 'd': mode=1; break;
         case 'v': increase_verbosity(); break;
         case 'V': increase_verbosity(3); break;
+        case 'c': crc_check = 0; break;
         case 'q': quality=atoi(optarg);
                   if (quality < 0 || quality > 100) {e_printf("Not a sensible number for option -q\n"); return 1; }
                   break;
@@ -532,16 +536,16 @@ int main(int argc, char **argv)
 
 #ifdef HAS_ENCODER
     if (mode == 0) {
-        if (!handle_encode(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, alpha_zero_special, frs, cutoff, alpha)) return 2;
+        if (!handle_encode(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, alpha_zero_special, frs, cutoff, alpha, crc_check)) return 2;
     } else if (mode == 1) {
 #endif
-        return handle_decode(argc, argv, images, quality, scale, resize_width, resize_height);
+        return handle_decode(argc, argv, images, quality, scale, resize_width, resize_height, crc_check);
 #ifdef HAS_ENCODER
     } else if (mode == 2) {
 //        if (scale > 1) {e_printf("Not yet supported: transcoding downscaled image; use decode + encode!\n");}
-        if (!decode_flif(argv, images, quality, scale, resize_width, resize_height)) return 2;
+        if (!decode_flif(argv, images, quality, scale, resize_width, resize_height, crc_check)) return 2;
         argc--; argv++;
-        if (!encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, frs, cutoff, alpha)) return 2;
+        if (!encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, frs, cutoff, alpha, crc_check)) return 2;
     }
 #endif
     return 0;
