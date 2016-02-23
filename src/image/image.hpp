@@ -47,6 +47,7 @@ typedef int16_t  EightColorVals __attribute__ ((vector_size (16)));  // only for
 #endif
 #endif
 
+
 // It's a part of C++14. Following impl was taken from GotW#102
 // (http://herbsutter.com/gotw/_102/).
 // It should go into some common header one day.
@@ -58,6 +59,7 @@ std::unique_ptr<T> make_unique(Args &&... args)
 
 struct PlaneVisitor;
 
+//static const uint32_t pixelsizes[]={1,1,2,2,4,4,8,8,16,16,32,32,64,64,128,128,256,256,512,512,1024,1024,2048,2048,4096,4096,8192,8192,1<<14,1<<14,1<<15,1<<15,1<<16,1<<16};
 
 class GeneralPlane {
 public:
@@ -69,6 +71,11 @@ public:
     virtual EightColorVals get8(const uint32_t pos) const =0;
     virtual void set8(const uint32_t pos, const EightColorVals x) =0;
 #endif
+
+    virtual void prepare_zoomlevel(const int z) const =0;
+    virtual ColorVal get_fast(uint32_t r, uint32_t c) const =0;
+    virtual void set_fast(uint32_t r, uint32_t c, ColorVal x) =0;
+
     virtual bool is_constant() const { return false; }
     virtual ~GeneralPlane() { }
     virtual void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) =0;
@@ -78,9 +85,11 @@ public:
     virtual void accept_visitor(PlaneVisitor &v) =0;
     // access pixel by zoomlevel coordinate
     uint32_t zoom_rowpixelsize(int zoomlevel) const {
+    //    return pixelsizes[zoomlevel+1];
         return 1<<((zoomlevel+1)/2);
     }
     uint32_t zoom_colpixelsize(int zoomlevel) const {
+    //    return pixelsizes[zoomlevel];
         return 1<<((zoomlevel)/2);
     }
 };
@@ -91,9 +100,11 @@ class ConstantPlane;
 struct PlaneVisitor {
     virtual void visit(Plane<ColorVal_intern_8>&) =0;
     virtual void visit(Plane<ColorVal_intern_16>&) =0;
+#ifdef SUPPORT_HDR
     virtual void visit(Plane<ColorVal_intern_16u>&) =0;
     virtual void visit(Plane<ColorVal_intern_32>&) =0;
-    virtual void visit(ConstantPlane&) =0;
+#endif
+//    virtual void visit(ConstantPlane&) =0;
     virtual ~PlaneVisitor() {}
 };
 
@@ -104,10 +115,14 @@ struct PlaneVisitor {
 #else
 #define PAD(x) (x)
 #endif
+
+
 template <typename pixel_t> class Plane final : public GeneralPlane {
     std::valarray<pixel_t> data;
     const uint32_t width, height;
     int s;
+    mutable uint32_t s_r, s_c;
+
 public:
     Plane(uint32_t w, uint32_t h, ColorVal color=0, int scale = 0) : data(color, PAD(SCALED(w)*SCALED(h))), width(SCALED(w)), height(SCALED(h)), s(scale) { }
     void clear() {
@@ -124,7 +139,19 @@ public:
         assert(sr<height); assert(sc<width);
         return data[sr*width + sc];
     }
+// get/set specialized for a particular zoomlevel
+    void prepare_zoomlevel(const int z) const override {
+        s_r = (zoom_rowpixelsize(z)>>s)*width;
+        s_c = (zoom_colpixelsize(z)>>s);
+    }
+    ColorVal get_fast(uint32_t r, uint32_t c) const override {
+        return data[r*s_r+c*s_c];
+    }
+    void set_fast(uint32_t r, uint32_t c, ColorVal x) override {
+        data[r*s_r+c*s_c] = x;
+    }
 #ifdef USE_SIMD
+// methods to just get all the values quickly
     FourColorVals get4(const uint32_t pos) const ATTRIBUTE_HOT {
         FourColorVals x {data[pos], data[pos+1], data[pos+2], data[pos+3]};
         return x;
@@ -177,6 +204,11 @@ public:
     ColorVal get(const uint32_t r, const uint32_t c) const override {
         return color;
     }
+
+    void prepare_zoomlevel(const int z) const override {}
+    ColorVal get_fast(uint32_t r, uint32_t c) const override { return color; }
+    void set_fast(uint32_t r, uint32_t c, ColorVal x) override { assert(x == color); }
+
 #ifdef USE_SIMD
     FourColorVals get4(const uint32_t pos) const ATTRIBUTE_HOT {
         FourColorVals x {color,color,color,color};
@@ -217,7 +249,8 @@ public:
     }
 
     void accept_visitor(PlaneVisitor &v) override {
-        v.visit(*this);
+//        v.visit(*this);
+        assert(false); // there should never be a need to visit a constant plane
     }
 };
 

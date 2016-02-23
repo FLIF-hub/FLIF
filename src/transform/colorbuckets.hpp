@@ -42,13 +42,15 @@ const unsigned int max_per_colorbucket[] = {MAX_PER_BUCKET_0, MAX_PER_BUCKET_1, 
 static int totaldiscretecolors=0;
 static int totalcontinuousbuckets=0;
 
+typedef int16_t ColorValCB; // not doing this transform for high-bit-depth images anyway
+
 class ColorBucket {
 public:
-    ColorVal min;
-    ColorVal max;
-    std::vector<ColorVal> values;
+    std::vector<ColorValCB> snapvalues;
+    std::vector<ColorValCB> values;
+    ColorValCB min;
+    ColorValCB max;
     bool discrete;
-    std::vector<ColorVal> snapvalues;
 
     ColorBucket() {
         min = 10000;  // +infinity
@@ -160,6 +162,7 @@ public:
         }
         return c;
     }
+/*
     void print() const {
         if (min>max) printf("E ");
         else if (min==max) printf("S%i ",min);
@@ -184,6 +187,7 @@ public:
                 }
         }
     }
+*/
 };
 
 class ColorBuckets {
@@ -248,6 +252,7 @@ public:
         }
         return false;
     }
+/*
     void print() {
         printf("Y buckets:\n");
         bucket0.print();
@@ -260,6 +265,7 @@ public:
           bucket3.print();
         }
     }
+*/
 };
 
 class ColorRangesCB final : public ColorRanges {
