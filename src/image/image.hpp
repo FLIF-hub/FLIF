@@ -129,13 +129,17 @@ public:
         data.clear();
     }
     void set(const uint32_t r, const uint32_t c, const ColorVal x) override {
-        const uint32_t sr = r>>s, sc = c>>s;
+//        const uint32_t sr = r>>s, sc = c>>s;
+        const uint32_t sr = r, sc = c;
+        assert(s==0);
         assert(sr<height); assert(sc<width);
         data[sr*width + sc] = x;
     }
     ColorVal get(const uint32_t r, const uint32_t c) const ATTRIBUTE_HOT {
 //        if (r >= height || r < 0 || c >= width || c < 0) {printf("OUT OF RANGE!\n"); return 0;}
-        const uint32_t sr = r>>s, sc = c>>s;
+//        const uint32_t sr = r>>s, sc = c>>s;
+        const uint32_t sr = r, sc = c;
+        assert(s==0);
         assert(sr<height); assert(sc<width);
         return data[sr*width + sc];
     }
@@ -179,10 +183,12 @@ public:
     }
 #endif
     void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) override {
-        set(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z),x);
+//        set(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z),x);
+         data[(r*zoom_rowpixelsize(z)>>s)*width + (c*zoom_colpixelsize(z)>>s)] = x;
     }
     ColorVal get(const int z, const uint32_t r, const uint32_t c) const override {
-        return get(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z));
+//        return get(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z));
+        return data[(r*zoom_rowpixelsize(z)>>s)*width + (c*zoom_colpixelsize(z)>>s)];
     }
     void normalize_scale() override { s = 0; }
     void check_equal(const ColorVal x, const uint32_t r, const uint32_t begin, const uint32_t end, const uint32_t stride) const override {
@@ -299,6 +305,7 @@ class Image {
       col_begin = other.col_begin;
       col_end = other.col_end;
       seen_before = other.seen_before;
+      fully_decoded = other.fully_decoded;
       clear();
       {
       int p=num;
@@ -333,6 +340,7 @@ public:
     std::vector<uint32_t> col_begin;
     std::vector<uint32_t> col_end;
     int seen_before;
+    bool fully_decoded;
 
     Image(uint32_t width, uint32_t height, ColorVal min, ColorVal max, int planes, int s=0) : scale(s) {
         init(width, height, min, max, planes);
@@ -343,6 +351,7 @@ public:
       minval = maxval = 0;
       num = 0;
       frame_delay = 0;
+      fully_decoded = false;
 #ifdef SUPPORT_HDR
       depth = 0;
 #endif
@@ -363,6 +372,7 @@ public:
       maxval = other.maxval;
       num = other.num;
       scale = other.scale;
+      fully_decoded = other.fully_decoded;
       for (int p=0; p<num; p++) planes[p] = std::move(other.planes[p]);
       frame_delay = other.frame_delay;
 #ifdef SUPPORT_HDR
@@ -374,6 +384,7 @@ public:
       other.minval = other.maxval = 0;
       other.num = 0;
       other.frame_delay = 0;
+      other.fully_decoded = false;
 
       palette = other.palette;
       alpha_zero_special = other.alpha_zero_special;
@@ -409,6 +420,7 @@ public:
       assert(min == 0);
       assert(max < (1<<depth));
       assert(p <= 4);
+      fully_decoded=false;
 
       clear();
       try {

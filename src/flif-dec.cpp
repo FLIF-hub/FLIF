@@ -632,7 +632,7 @@ bool flif_decode_FLIF2_pass(IO &io, Rac &rac, Images &images, const ColorRanges 
       UniformSymbolCoder<Rac> metaCoder(rac);
       for (int p = 0; p < images[0].numPlanes(); p++) {
         if (ranges->min(p) < ranges->max(p)) {
-          for (Image& image : images) image.set(p,0,0, metaCoder.read_int(ranges->min(p), ranges->max(p)));
+          for (Image& image : images) image.set(p,0,0,0, metaCoder.read_int(ranges->min(p), ranges->max(p)));
           pixels_done++;
         }
       }
@@ -937,7 +937,10 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     else
       v_printf(2,"\rDecoding done, %li bytes for %i frames of %ux%u pixels (%.4fbpp)   \n",io.ftell(), numFrames, images[0].cols()/scale, images[0].rows()/scale, 8.0*io.ftell()/numFrames/images[0].rows()*scale*scale/images[0].cols());
 
-    for (Image& i : images) i.normalize_scale();
+    for (Image& i : images) {
+        i.normalize_scale();
+        if (fully_decoded && quality>=100 && scale==1) i.fully_decoded=true;
+    }
 
     for (int i=(int)transforms.size()-1; i>=0; i--) {
         transforms[i]->invData(images);

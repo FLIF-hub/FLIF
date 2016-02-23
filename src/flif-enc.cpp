@@ -198,7 +198,7 @@ void flif_encode_FLIF2_pass(IO& io, Rac &rac, const Images &images, const ColorR
       UniformSymbolCoder<Rac> metaCoder(rac);
       for (int p = 0; p < images[0].numPlanes(); p++) {
         if (ranges->min(p) < ranges->max(p)) {
-            for (const Image& image : images) metaCoder.write_int(ranges->min(p), ranges->max(p), image(p,0,0));
+            for (const Image& image : images) metaCoder.write_int(ranges->min(p), ranges->max(p), image(p,0,0,0));
             pixels_done++;
         }
       }
