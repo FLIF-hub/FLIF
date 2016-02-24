@@ -948,6 +948,9 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
         if (fully_decoded && quality>=100 && scale==1) i.fully_decoded=true;
     }
 
+    for (int i=(int)transforms.size()-1; i>=0; i--) {
+        transforms[i]->invData(images);
+    }
     transforms.clear();
     rangesList.clear();
 
