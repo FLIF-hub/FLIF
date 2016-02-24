@@ -4,4 +4,4 @@
 #include <string>
 
 template <typename IO>
-Transform<IO> *create_transform(std::string desc);
+std::unique_ptr<Transform<IO>> create_transform(std::string desc);
