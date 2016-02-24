@@ -851,20 +851,21 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
         return false;
       }
     }
-    std::vector<const ColorRanges*> rangesList;
-    std::vector<Transform<IO>*> transforms;
-    rangesList.push_back(getRanges(images[0]));
+    std::vector<std::unique_ptr<const ColorRanges>> rangesList;
+    std::vector<std::unique_ptr<Transform<IO>>> transforms;
+    rangesList.push_back(std::unique_ptr<const ColorRanges>(getRanges(images[0])));
     v_printf(4,"Transforms: ");
     int tcount=0;
 
     while (rac.read_bit()) {
         std::string desc = read_name(rac);
-        Transform<IO> *trans = create_transform<IO>(desc);
+        auto trans = create_transform<IO>(desc);
+        auto previous_range = rangesList.back().get();
         if (!trans) {
             e_printf("\nUnknown transformation '%s'\nTry upgrading your FLIF decoder?\n", desc.c_str());
             return false;
         }
-        if (!trans->init(rangesList.back())) {
+        if (!trans->init(previous_range)) {
             e_printf("Transformation '%s' failed\nTry upgrading your FLIF decoder?\n", desc.c_str());
             return false;
         }
@@ -882,12 +883,17 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
                 trans->configure(unique_frames*images[0].rows()); trans->configure(images[0].cols()); }
         if (desc == "Duplicate_Frame") { if (images.size()<2) return false; else trans->configure(images.size()); }
         if (desc == "Palette_Alpha") { trans->configure(images[0].alpha_zero_special); }
-        if (!trans->load(rangesList.back(), rac)) return false;
-        rangesList.push_back(trans->meta(images, rangesList.back()));
-        transforms.push_back(trans);
+        if (!trans->load(previous_range, rac)) return false;
+        rangesList.push_back(std::unique_ptr<const ColorRanges>(trans->meta(images, previous_range)));
+        transforms.push_back(std::move(trans));
     }
+
+    std::vector<Transform<IO>*> transform_ptrs;
+    for(const auto& ptr : transforms)
+        transform_ptrs.push_back(ptr.get());
+
     if (tcount==0) v_printf(4,"none\n"); else v_printf(4,"\n");
-    const ColorRanges* ranges = rangesList.back();
+    const ColorRanges* ranges = rangesList.back().get();
 
     int realnumplanes = 0;
     for (int i=0; i<ranges->numPlanes(); i++) if (ranges->min(i)<ranges->max(i)) realnumplanes++;
@@ -925,10 +931,10 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
 #endif
     bool fully_decoded;
     if (bits == 10) {
-       fully_decoded = flif_decode_main<10>(rac, io, images, ranges, transforms, quality, scale, callback, partial_images, encoding, cutoff, alpha);
+       fully_decoded = flif_decode_main<10>(rac, io, images, ranges, transform_ptrs, quality, scale, callback, partial_images, encoding, cutoff, alpha);
 #ifdef SUPPORT_HDR
     } else {
-       fully_decoded = flif_decode_main<18>(rac, io, images, ranges, transforms, quality, scale, callback, partial_images, encoding, cutoff, alpha);
+       fully_decoded = flif_decode_main<18>(rac, io, images, ranges, transform_ptrs, quality, scale, callback, partial_images, encoding, cutoff, alpha);
 #endif
     }
 
@@ -944,12 +950,8 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
 
     for (int i=(int)transforms.size()-1; i>=0; i--) {
         transforms[i]->invData(images);
-        delete transforms[i];
     }
     transforms.clear();
-    for (unsigned int i=0; i<rangesList.size(); i++) {
-        delete rangesList[i];
-    }
     rangesList.clear();
 
     // don't bother making the invisible pixels black if we're not checking the crc anyway

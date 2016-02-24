@@ -441,18 +441,18 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
       checksum = image.checksum(); // if there are multiple frames, the checksum is based only on the first frame.
     }
 
-    std::vector<const ColorRanges*> rangesList;
-    std::vector<Transform<IO>*> transforms;
-    rangesList.push_back(getRanges(image));
+    std::vector<std::unique_ptr<const ColorRanges>> rangesList;
+    rangesList.push_back(std::unique_ptr<const ColorRanges>(getRanges(image)));
     int tcount=0;
     v_printf(4,"Transforms: ");
 
     for (unsigned int i=0; i<transDesc.size(); i++) {
-        Transform<IO> *trans = create_transform<IO>(transDesc[i]);
+        auto trans = create_transform<IO>(transDesc[i]);
+        auto previous_range = rangesList.back().get();
         if (transDesc[i] == "Palette" || transDesc[i] == "Palette_Alpha") trans->configure(palette_size);
         if (transDesc[i] == "Frame_Lookback") trans->configure(lookback);
-        if (!trans->init(rangesList.back()) ||
-            (!trans->process(rangesList.back(), images)
+        if (!trans->init(previous_range) ||
+            (!trans->process(previous_range, images)
               && !(acb==1 && transDesc[i] == "Color_Buckets" && (v_printf(4,", forced "), (tcount=0), true) ))) {
             //e_printf( "Transform '%s' failed\n", transDesc[i].c_str());
         } else {
@@ -461,16 +461,15 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
             fflush(stdout);
             rac.write_bit(true);
             write_name(rac, transDesc[i]);
-            trans->save(rangesList.back(), rac);
+            trans->save(previous_range, rac);
             fflush(stdout);
-            rangesList.push_back(trans->meta(images, rangesList.back()));
+            rangesList.push_back(std::unique_ptr<const ColorRanges>(trans->meta(images, previous_range)));
             trans->data(images);
         }
-        delete trans;
     }
     if (tcount==0) v_printf(4,"none\n"); else v_printf(4,"\n");
     rac.write_bit(false);
-    const ColorRanges* ranges = rangesList.back();
+    const ColorRanges* ranges = rangesList.back().get();
 
     for (int p = 0; p < ranges->numPlanes(); p++) {
       v_printf(7,"Plane %i: %i..%i\n",p,ranges->min(p),ranges->max(p));
@@ -532,14 +531,6 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
 
 //    images[0].save("debug.pam");
 
-    for (int i=(int)transforms.size()-1; i>=0; i--) {
-        delete transforms[i];
-    }
-    transforms.clear();
-    for (unsigned int i=0; i<rangesList.size(); i++) {
-        delete rangesList[i];
-    }
-    rangesList.clear();
     return true;
 }
 

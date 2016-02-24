@@ -304,11 +304,17 @@ public:
 
 template <typename IO>
 class TransformCB : public Transform<IO> {
+public:
+    TransformCB()
+    : cb(0)
+    , really_used(false)
+    {
+    }
+    ~TransformCB() {if (!really_used) delete cb;}
 protected:
     ColorBuckets *cb;
     bool really_used;
 
-    ~TransformCB() {if (!really_used) delete cb;}
     bool undo_redo_during_decode() { return false; }
 
     const ColorRanges* meta(Images&, const ColorRanges *srcRanges) override {
