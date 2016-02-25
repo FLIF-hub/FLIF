@@ -123,8 +123,10 @@ struct scanline_plane_decoder: public PlaneVisitor {
 
     void visit(Plane<ColorVal_intern_8>   &plane) override {flif_decode_scanline_plane(plane,coder,images,ranges,alpha,properties,p,fr,r,grey,minP,alphazero,FRA);}
     void visit(Plane<ColorVal_intern_16>  &plane) override {flif_decode_scanline_plane(plane,coder,images,ranges,alpha,properties,p,fr,r,grey,minP,alphazero,FRA);}
+#ifdef SUPPORT_HDR
     void visit(Plane<ColorVal_intern_16u> &plane) override {flif_decode_scanline_plane(plane,coder,images,ranges,alpha,properties,p,fr,r,grey,minP,alphazero,FRA);}
     void visit(Plane<ColorVal_intern_32>  &plane) override {flif_decode_scanline_plane(plane,coder,images,ranges,alpha,properties,p,fr,r,grey,minP,alphazero,FRA);}
+#endif
 //    void visit(ConstantPlane              &plane) override {flif_decode_scanline_plane(plane,coder,images,ranges,alpha,properties,p,fr,r,grey,minP,alphazero,FRA);}
 };
 

@@ -187,6 +187,7 @@ template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min
         } else {sign = false; max=-1;}
       } else {sign = true; min=1;}
     } else {
+        // max < 0 || min > 0
         if (min<0) sign = false;
         else sign = true;
     }
@@ -197,25 +198,31 @@ template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min
     const int emax = maniac::util::ilog2(amax);
     int e = maniac::util::ilog2(amin);
 
+    //for (; e < emax; e++) {
     for (; e < emax; e++) {
         // if exponent >e is impossible, we are done
-        if ((1 << (e+1)) > amax) break;
+        // actually that cannot happen
+        //if ((1 << (e+1)) > amax) break;
         if (coder.read(BIT_EXP,e)) break;
     }
 
     int have = (1 << e);
     int left = have-1;
     for (int pos = e; pos>0;) {
-        int bit = 1;
-        left ^= (1 << (--pos));
+        //int bit = 1;
+        //left ^= (1 << (--pos));
+        left >>= 1; pos--;
         int minabs1 = have | (1<<pos);
         int maxabs0 = have | left;
         if (minabs1 > amax) { // 1-bit is impossible
-            bit = 0;
+            //bit = 0;
+            continue;
         } else if (maxabs0 >= amin) { // 0-bit and 1-bit are both possible
-            bit = coder.read(BIT_MANT,pos);
-        }
-        have |= (bit << pos);
+            //bit = coder.read(BIT_MANT,pos);
+            if (coder.read(BIT_MANT,pos)) have = minabs1;
+        } // else 0-bit is impossible, so bit stays 1
+        else have = minabs1;
+        //have |= (bit << pos);
     }
     return (sign ? have : -have);
 }
