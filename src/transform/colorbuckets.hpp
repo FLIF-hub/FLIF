@@ -315,7 +315,7 @@ protected:
     ColorBuckets *cb;
     bool really_used;
 
-    bool undo_redo_during_decode() { return false; }
+    bool undo_redo_during_decode() override { return false; }
 
     const ColorRanges* meta(Images&, const ColorRanges *srcRanges) override {
 //        cb->print();
