@@ -135,7 +135,7 @@ public:
         assert(sr<height); assert(sc<width);
         data[sr*width + sc] = x;
     }
-    ColorVal get(const uint32_t r, const uint32_t c) const ATTRIBUTE_HOT {
+    ColorVal get(const uint32_t r, const uint32_t c) const override ATTRIBUTE_HOT {
 //        if (r >= height || r < 0 || c >= width || c < 0) {printf("OUT OF RANGE!\n"); return 0;}
 //        const uint32_t sr = r>>s, sc = c>>s;
         const uint32_t sr = r, sc = c;
