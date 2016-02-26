@@ -29,7 +29,11 @@ limitations under the License.
 #include "../config.h"
 #include "../compiler-specific.hpp"
 
+#ifdef SUPPORT_HDR
 typedef int32_t ColorVal;  // used in computations
+#else
+typedef int16_t ColorVal;  // at most 9-bit numbers + sign
+#endif
 
 typedef uint8_t ColorVal_intern_8;
 typedef uint16_t ColorVal_intern_16u;
@@ -83,6 +87,7 @@ public:
     virtual void normalize_scale() {}
     virtual void check_equal(const ColorVal x, const uint32_t r, const uint32_t begin, const uint32_t end, const uint32_t stride) const =0;
     virtual void accept_visitor(PlaneVisitor &v) =0;
+    virtual uint32_t compute_crc32(uint32_t previous_crc32) =0;
     // access pixel by zoomlevel coordinate
     uint32_t zoom_rowpixelsize(int zoomlevel) const {
     //    return pixelsizes[zoomlevel+1];
@@ -198,6 +203,9 @@ public:
     void accept_visitor(PlaneVisitor &v) override {
         v.visit(*this);
     }
+    uint32_t compute_crc32(uint32_t previous_crc32) override {
+        return crc32_fast(&data[0], width*height*sizeof(pixel_t), previous_crc32);
+    }
 };
 
 class ConstantPlane final : public GeneralPlane {
@@ -257,6 +265,10 @@ public:
     void accept_visitor(PlaneVisitor &v) override {
 //        v.visit(*this);
         assert(false); // there should never be a need to visit a constant plane
+    }
+    uint32_t compute_crc32(uint32_t previous_crc32) override {
+        uint16_t onepixel = color;
+        return crc32_fast(&onepixel, 2, previous_crc32);
     }
 };
 
@@ -647,6 +659,11 @@ public:
     }
 
     uint32_t checksum() {
+          uint32_t crc = (width << 16) + height;
+          for(int p=0; p<num; p++)
+            crc = planes[p]->compute_crc32(crc);
+          return crc;
+/*
           uint_fast32_t crc=0;
           crc32k_transform(crc,width & 255);
           crc32k_transform(crc,width / 256);
@@ -662,6 +679,7 @@ public:
                }
 //          printf("Computed checksum: %X\n", (~crc & 0xFFFFFFFF));
           return (~crc & 0xFFFFFFFF);
+*/
     }
     void abort_decoding() {
         width = 0; // this is used to signal the decoder to stop
