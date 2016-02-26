@@ -5,6 +5,10 @@
 // see http://create.stephan-brumme.com/disclaimer.html
 //
 
+// (original code was zlib licensed)
+// slightly modified for FLIF to optionally not embed the big lookup table, depending on ../config.h
+
+
 // g++ -o Crc32 Crc32.cpp -O3 -lrt -march=native -mtune=native
 
 // if running on an embedded system, you might consider shrinking the
@@ -18,54 +22,8 @@
 // - crc32_16bytes  needs all of Crc32Lookup
 
 #include "../config.h"
+#include "crc32k.hpp"
 
-#include <stdlib.h>
-
-// define endianess and some integer data types
-#if defined(_MSC_VER) || defined(__MINGW32__)
-  typedef unsigned __int8  uint8_t;
-  typedef unsigned __int32 uint32_t;
-  typedef   signed __int32  int32_t;
-
-  #define __LITTLE_ENDIAN 1234
-  #define __BIG_ENDIAN    4321
-  #define __BYTE_ORDER    __LITTLE_ENDIAN
-
-  #include <xmmintrin.h>
-  #ifdef __MINGW32__
-    #define PREFETCH(location) __builtin_prefetch(location)
-  #else
-    #define PREFETCH(location) _mm_prefetch(location, _MM_HINT_T0)
-  #endif
-#else
-  // uint8_t, uint32_t, in32_t
-  #include <stdint.h>
-  // defines __BYTE_ORDER as __LITTLE_ENDIAN or __BIG_ENDIAN
-  #include <sys/param.h>
-
-  #ifdef __GNUC__
-    #define PREFETCH(location) __builtin_prefetch(location)
-  #else
-    #define PREFETCH(location) ;
-  #endif
-#endif
-
-
-/// zlib's CRC32 polynomial
-const uint32_t Polynomial = 0xEDB88320;
-
-/// swap endianess
-static inline uint32_t swap(uint32_t x)
-{
-#if defined(__GNUC__) || defined(__clang__)
-  return __builtin_bswap32(x);
-#else
-  return (x >> 24) |
-        ((x >>  8) & 0x0000FF00) |
-        ((x <<  8) & 0x00FF0000) |
-         (x << 24);
-#endif
-}
 
 
 /// Slicing-By-16
@@ -81,6 +39,9 @@ struct CRC32KTable {
 extern const CRC32KTable crc32k;
 
 #define Crc32Lookup crc32k.tab
+
+/* commenting out the CRC algorithms that we aren't actually using
+
 
 /// compute CRC32 (bitwise algorithm)
 uint32_t crc32_bitwise(const void* data, size_t length, uint32_t previousCrc32 = 0)
@@ -109,7 +70,6 @@ uint32_t crc32_bitwise(const void* data, size_t length, uint32_t previousCrc32 =
 }
 
 
-/* commenting out the CRC algorithms that aren't actually used
 
 /// compute CRC32 (half-byte algoritm)
 uint32_t crc32_halfbyte(const void* data, size_t length, uint32_t previousCrc32 = 0)
@@ -429,7 +389,7 @@ uint32_t crc32_16bytes_prefetch(const void* data, size_t length, uint32_t previo
 
 
 /// compute CRC32 using the fastest algorithm for large datasets on modern CPUs
-uint32_t crc32_fast(const void* data, size_t length, uint32_t previousCrc32 = 0)
+uint32_t crc32_fast(const void* data, size_t length, uint32_t previousCrc32)
 {
 //  return crc32_16bytes(data, length, previousCrc32);
   return crc32_16bytes_prefetch(data, length, previousCrc32);
@@ -456,8 +416,7 @@ CRC32KTable::CRC32KTable() {
     }
 #else
 CRC32KTable::CRC32KTable() :
-    tab(
-
+    tab
 
 // //////////////////////////////////////////////////////////
 // constants
@@ -1042,7 +1001,7 @@ CRC32KTable::CRC32KTable() :
     0xF088C1A2,0x5EE05033,0x7728E4C1,0xD9407550,0x24B98D25,0x8AD11CB4,0xA319A846,0x0D7139D7,
   }
  }
-)
+
 { }
 
 #endif
