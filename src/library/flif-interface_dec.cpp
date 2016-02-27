@@ -26,6 +26,7 @@ FLIF_DECODER::FLIF_DECODER()
 , first_quality(0)
 , rw(0)
 , rh(0)
+, crc_check(0)
 , working(false)
 { }
 
@@ -40,7 +41,7 @@ int32_t FLIF_DECODER::decode_file(const char* filename) {
     FileIO fio(file, filename);
 
     working = true;
-    if(!flif_decode(fio, internal_images, quality, scale, reinterpret_cast<uint32_t (*)(int32_t,int64_t)>(callback), first_quality, images, rw, rh))
+    if(!flif_decode(fio, internal_images, quality, scale, reinterpret_cast<uint32_t (*)(int32_t,int64_t)>(callback), first_quality, images, rw, rh, crc_check))
         { working = false; return 0; }
     working = false;
 
@@ -57,7 +58,7 @@ int32_t FLIF_DECODER::decode_memory(const void* buffer, size_t buffer_size_bytes
     BlobReader reader(reinterpret_cast<const uint8_t*>(buffer), buffer_size_bytes);
 
     working = true;
-    if(!flif_decode(reader, internal_images, quality, scale, reinterpret_cast<uint32_t (*)(int32_t,int64_t)>(callback), first_quality, images, rw, rh))
+    if(!flif_decode(reader, internal_images, quality, scale, reinterpret_cast<uint32_t (*)(int32_t,int64_t)>(callback), first_quality, images, rw, rh, crc_check))
         { working = false; return 0; }
     working = false;
 
@@ -130,6 +131,14 @@ FLIF_DLLEXPORT void FLIF_API flif_destroy_decoder(FLIF_DECODER* decoder) {
     // delete should never let exceptions out
     delete decoder;
     decoder = NULL;
+}
+
+FLIF_DLLEXPORT void FLIF_API flif_decoder_set_crc_check(FLIF_DECODER* decoder, int32_t crc_check) {
+    try
+    {
+        decoder->crc_check = crc_check;
+    }
+    catch(...) {}
 }
 
 FLIF_DLLEXPORT void FLIF_API flif_decoder_set_quality(FLIF_DECODER* decoder, int32_t quality) {

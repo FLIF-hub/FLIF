@@ -32,6 +32,7 @@ extern "C" {
     FLIF_DLLIMPORT int32_t FLIF_API flif_abort_decoder(FLIF_DECODER* decoder);
     FLIF_DLLIMPORT void FLIF_API flif_destroy_decoder(FLIF_DECODER* decoder);
 
+    FLIF_DLLIMPORT void FLIF_API flif_decoder_set_crc_check(FLIF_DECODER* decoder, int32_t crc_check); // default: no (0)
     FLIF_DLLIMPORT void FLIF_API flif_decoder_set_quality(FLIF_DECODER* decoder, int32_t quality); // valid quality: 0-100
     FLIF_DLLIMPORT void FLIF_API flif_decoder_set_scale(FLIF_DECODER* decoder, uint32_t scale); // valid scales: 1,2,4,8,16,...
     FLIF_DLLIMPORT void FLIF_API flif_decoder_set_resize(FLIF_DECODER* decoder, uint32_t width, uint32_t height);

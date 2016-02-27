@@ -42,13 +42,15 @@ const unsigned int max_per_colorbucket[] = {MAX_PER_BUCKET_0, MAX_PER_BUCKET_1, 
 static int totaldiscretecolors=0;
 static int totalcontinuousbuckets=0;
 
+typedef int16_t ColorValCB; // not doing this transform for high-bit-depth images anyway
+
 class ColorBucket {
 public:
-    ColorVal min;
-    ColorVal max;
-    std::vector<ColorVal> values;
+    std::vector<ColorValCB> snapvalues;
+    std::vector<ColorValCB> values;
+    ColorValCB min;
+    ColorValCB max;
     bool discrete;
-    std::vector<ColorVal> snapvalues;
 
     ColorBucket() {
         min = 10000;  // +infinity
@@ -160,6 +162,7 @@ public:
         }
         return c;
     }
+/*
     void print() const {
         if (min>max) printf("E ");
         else if (min==max) printf("S%i ",min);
@@ -184,6 +187,7 @@ public:
                 }
         }
     }
+*/
 };
 
 class ColorBuckets {
@@ -248,6 +252,7 @@ public:
         }
         return false;
     }
+/*
     void print() {
         printf("Y buckets:\n");
         bucket0.print();
@@ -260,6 +265,7 @@ public:
           bucket3.print();
         }
     }
+*/
 };
 
 class ColorRangesCB final : public ColorRanges {
@@ -272,18 +278,18 @@ public:
     ~ColorRangesCB() {
         delete buckets;
     }
-    bool isStatic() const { return false; }
-    int numPlanes() const { return ranges->numPlanes(); }
-    ColorVal min(int p) const { return ranges->min(p); }
-    ColorVal max(int p) const { return ranges->max(p); }
-    void snap(const int p, const prevPlanes &pp, ColorVal &minv, ColorVal &maxv, ColorVal &v) const {
+    bool isStatic() const override { return false; }
+    int numPlanes() const override { return ranges->numPlanes(); }
+    ColorVal min(int p) const override { return ranges->min(p); }
+    ColorVal max(int p) const override { return ranges->max(p); }
+    void snap(const int p, const prevPlanes &pp, ColorVal &minv, ColorVal &maxv, ColorVal &v) const override {
         const ColorBucket& b = bucket(p,pp);
         minv=b.min;
         maxv=b.max;
         if (b.min > b.max) { e_printf("Corruption detected!\n"); minv=v=min(p); maxv=max(p); return; } // this should only happen on malicious input files
         v=b.snapColor(v);
     }
-    void minmax(const int p, const prevPlanes &pp, ColorVal &minv, ColorVal &maxv) const {
+    void minmax(const int p, const prevPlanes &pp, ColorVal &minv, ColorVal &maxv) const override {
         const ColorBucket& b = bucket(p,pp);
         minv=b.min;
         maxv=b.max;
@@ -298,14 +304,20 @@ public:
 
 template <typename IO>
 class TransformCB : public Transform<IO> {
+public:
+    TransformCB()
+    : cb(0)
+    , really_used(false)
+    {
+    }
+    ~TransformCB() {if (!really_used) delete cb;}
 protected:
     ColorBuckets *cb;
     bool really_used;
 
-    ~TransformCB() {if (!really_used) delete cb;}
-    bool undo_redo_during_decode() { return false; }
+    bool undo_redo_during_decode() override { return false; }
 
-    const ColorRanges* meta(Images&, const ColorRanges *srcRanges) {
+    const ColorRanges* meta(Images&, const ColorRanges *srcRanges) override {
 //        cb->print();
         really_used = true;
 
@@ -339,7 +351,7 @@ protected:
 
         return new ColorRangesCB(srcRanges, cb);
     }
-    bool init(const ColorRanges *srcRanges) {
+    bool init(const ColorRanges *srcRanges) override {
         cb = NULL;
         really_used = false;
         if(srcRanges->numPlanes() < 3) return false;
@@ -416,7 +428,7 @@ protected:
         }
         return b;
     }
-    bool load(const ColorRanges *srcRanges, RacIn<IO> &rac) {
+    bool load(const ColorRanges *srcRanges, RacIn<IO> &rac) override {
         SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> coder(rac);
         prevPlanes pixelL, pixelU;
         cb->bucket0 = load_bucket(coder, srcRanges, 0, pixelL, pixelU);
@@ -477,7 +489,7 @@ protected:
            }
         }
     }
-    void save(const ColorRanges *srcRanges, RacOut<IO> &rac) const {
+    void save(const ColorRanges *srcRanges, RacOut<IO> &rac) const override {
         SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18> coder(rac);
 //        printf("Saving Y Color Bucket: ");
         prevPlanes pixelL, pixelU;
@@ -510,7 +522,7 @@ protected:
         }
     }
 
-    bool process(const ColorRanges *srcRanges, const Images &images) {
+    bool process(const ColorRanges *srcRanges, const Images &images) override {
             std::vector<ColorVal> pixel(images[0].numPlanes());
             // fill buckets
             for (const Image& image : images)

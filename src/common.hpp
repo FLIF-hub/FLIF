@@ -93,7 +93,7 @@ template<typename I> I inline median3(I a, I b, I c) {
     }
 }
 
-template <typename plane_t>
+template <typename plane_t, bool nobordercases>
 ColorVal predict_and_calcProps_scanlines_plane(Properties &properties, const ColorRanges *ranges, const Image &image, const plane_t &plane, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max, const ColorVal fallback) {
     ColorVal guess;
     int which = 0;
@@ -104,9 +104,9 @@ ColorVal predict_and_calcProps_scanlines_plane(Properties &properties, const Col
         }
         if (image.numPlanes()>3) properties[index++] = image(3,r,c);
     }
-    ColorVal left = (c>0 ? plane.get(r,c-1) : (r > 0 ? plane.get(r-1, c) : fallback));
-    ColorVal top = (r>0 ? plane.get(r-1,c) : left);
-    ColorVal topleft = (r>0 && c>0 ? plane.get(r-1,c-1) : (r > 0 ? top : left));
+    ColorVal left = (nobordercases || c>0 ? plane.get(r,c-1) : (r > 0 ? plane.get(r-1, c) : fallback));
+    ColorVal top = (nobordercases || r>0 ? plane.get(r-1,c) : left);
+    ColorVal topleft = (nobordercases || (r>0 && c>0) ? plane.get(r-1,c-1) : (r > 0 ? top : left));
     ColorVal gradientTL = left + top - topleft;
     guess = median3(gradientTL, left, top);
     ranges->snap(p,properties,min,max,guess);
@@ -121,14 +121,14 @@ ColorVal predict_and_calcProps_scanlines_plane(Properties &properties, const Col
     properties[index++] = guess;
     properties[index++] = which;
 
-    if (c > 0 && r > 0) { properties[index++] = left - topleft; properties[index++] = topleft - top; }
+    if (nobordercases || (c > 0 && r > 0)) { properties[index++] = left - topleft; properties[index++] = topleft - top; }
     else   { properties[index++] = 0; properties[index++] = 0;  }
 
-    if (c+1 < image.cols() && r > 0) properties[index++] = top - plane.get(r-1,c+1); // top - topright
+    if (nobordercases || (c+1 < image.cols() && r > 0)) properties[index++] = top - plane.get(r-1,c+1); // top - topright
     else   properties[index++] = 0;
-    if (r > 1) properties[index++] = plane.get(r-2,c)-top;    // toptop - top
+    if (nobordercases || r > 1) properties[index++] = plane.get(r-2,c)-top;    // toptop - top
     else properties[index++] = 0;
-    if (c > 1) properties[index++] = plane.get(r,c-2)-left;    // leftleft - left
+    if (nobordercases || c > 1) properties[index++] = plane.get(r,c-2)-left;    // leftleft - left
     else properties[index++] = 0;
     return guess;
 }
@@ -179,11 +179,17 @@ inline ColorVal predict(const Image &image, int z, int p, uint32_t r, uint32_t c
     }
 }
 
+#ifdef USE_SIMD_RC
+#define PIXEL(z,r,c) plane.get_fast((TwoNumbers){r,c})
+#else
+#define PIXEL(z,r,c) plane.get_fast(r,c)
+#endif
+
 // Actual prediction. Also sets properties. Property vector should already have the right size before calling this.
-template <typename plane_t>
-ColorVal predict_and_calcProps_plane(Properties &properties, const ColorRanges *ranges, const Image &image, const plane_t &plane, const int z, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) ATTRIBUTE_HOT;
-template <typename plane_t>
-ColorVal predict_and_calcProps_plane(Properties &properties, const ColorRanges *ranges, const Image &image, const plane_t &plane, const int z, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) {
+template <typename plane_t, bool horizontal, bool nobordercases, int p, typename ranges_t>
+ColorVal predict_and_calcProps_plane(Properties &properties, const ranges_t *ranges, const Image &image, const plane_t &plane, const int z, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) ATTRIBUTE_HOT;
+template <typename plane_t, bool horizontal, bool nobordercases, int p, typename ranges_t>
+ColorVal predict_and_calcProps_plane(Properties &properties, const ranges_t *ranges, const Image &image, const plane_t &plane, const int z, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) {
     ColorVal guess;
     int which = 0;
     int index = 0;
@@ -198,15 +204,15 @@ ColorVal predict_and_calcProps_plane(Properties &properties, const ColorRanges *
     ColorVal top;
     ColorVal topleft;
     ColorVal topright;
-    if (z%2 == 0) { // filling horizontal lines
-        top = plane.get(z,r-1,c);
-        left = (c>0 ? plane.get(z,r,c-1) : top);
-        topleft = (c>0 ? plane.get(z,r-1,c-1) : top);
-        topright = (c+1 < image.cols(z) ? plane.get(z,r-1,c+1) : top);
-        const ColorVal gradientTL = left + top - topleft;
+    if (horizontal) { // filling horizontal lines
+        top = PIXEL(z,r-1,c);
+        left = (nobordercases || c>0 ? PIXEL(z,r,c-1) : top);
+        topleft = (nobordercases || c>0 ? PIXEL(z,r-1,c-1) : top);
+        topright = (nobordercases || c+1 < image.cols(z) ? PIXEL(z,r-1,c+1) : top);
         const bool bottomPresent = r+1 < image.rows(z);
-        const ColorVal bottom = (bottomPresent ? plane.get(z,r+1,c) : left);
-        const ColorVal bottomleft = (bottomPresent && c>0 ? plane.get(z,r+1,c-1) : bottom);
+        const ColorVal bottom = (nobordercases || bottomPresent ? PIXEL(z,r+1,c) : left);
+        const ColorVal bottomleft = (nobordercases || (bottomPresent && c>0) ? PIXEL(z,r+1,c-1) : bottom);
+        const ColorVal gradientTL = left + top - topleft;
         const ColorVal gradientBL = left + bottom - bottomleft;
         const ColorVal avg = (top + bottom)>>1;
         guess = median3(gradientTL, gradientBL, avg);
@@ -216,12 +222,12 @@ ColorVal predict_and_calcProps_plane(Properties &properties, const ColorRanges *
         else if (guess == gradientBL) which = 2;
         properties[index++] = top-bottom;
     } else { // filling vertical lines
-        left = plane.get(z,r,c-1);
-        top = (r>0 ? plane.get(z,r-1,c) : left);
-        topleft = (r>0 ? plane.get(z,r-1,c-1) : left);
+        left = PIXEL(z,r,c-1);
+        top = (nobordercases || r>0 ? PIXEL(z,r-1,c) : left);
+        topleft = (nobordercases || r>0 ? PIXEL(z,r-1,c-1) : left);
         const bool rightPresent = c+1 < image.cols(z);
-        const ColorVal right = (rightPresent ? plane.get(z,r,c+1) : top);
-        topright = (r>0 && rightPresent ? plane.get(z,r-1,c+1) : right);
+        const ColorVal right = (nobordercases || rightPresent ? PIXEL(z,r,c+1) : top);
+        topright = (nobordercases || (r>0 && rightPresent) ? PIXEL(z,r-1,c+1) : right);
         const ColorVal gradientTL = left + top - topleft;
         const ColorVal gradientTR = right + top - topright;
         ColorVal avg = (left + right)>>1;
@@ -235,16 +241,17 @@ ColorVal predict_and_calcProps_plane(Properties &properties, const ColorRanges *
     properties[index++]=guess;
     properties[index++]=which;
 
-    if (c > 0 && r > 0) { properties[index++]=left - topleft; properties[index++]=topleft - top; }
-    else   { properties[index++]=0; properties[index++]=0; }
+    properties[index++]=left - topleft;
+    properties[index++]=topleft - top;
 
-    if (c+1 < image.cols(z) && r > 0) properties[index++]=top - topright;
+
+    if (nobordercases || (c+1 < image.cols(z) && r > 0)) properties[index++]=top - topright;
     else   properties[index++]=0;
 
-    if (p < 2 || p >= 3) {
-        if (r > 1) properties[index++]=plane.get(z,r-2,c)-top;    // toptop - top
+    if (p != 2) {
+        if (nobordercases || r > 1) properties[index++]=PIXEL(z,r-2,c)-top;    // toptop - top
         else properties[index++]=0;
-        if (c > 1) properties[index++]=plane.get(z,r,c-2)-left;    // leftleft - left
+        if (nobordercases || c > 1) properties[index++]=PIXEL(z,r,c-2)-left;    // leftleft - left
         else properties[index++]=0;
     }
     return guess;

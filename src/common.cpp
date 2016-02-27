@@ -59,7 +59,7 @@ void initPropRanges_scanlines(Ranges &propRanges, const ColorRanges &ranges, int
 }
 
 ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRanges *ranges, const Image &image, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max, const ColorVal fallback) {
-    return predict_and_calcProps_scanlines_plane(properties,ranges,image,image.getPlane(p),p,r,c,min,max, fallback);
+    return predict_and_calcProps_scanlines_plane<GeneralPlane,false>(properties,ranges,image,image.getPlane(p),p,r,c,min,max, fallback);
 }
 
 
@@ -91,9 +91,28 @@ void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p) {
 }
 
 // Actual prediction. Also sets properties. Property vector should already have the right size before calling this.
+// This is a fall-back function which should be replaced by direct calls to the specific predict_and_calcProps_plane function
 ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges, const Image &image, const int z, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) ATTRIBUTE_HOT;
 ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges, const Image &image, const int z, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) {
-    return predict_and_calcProps_plane(properties,ranges,image,image.getPlane(p),z,p,r,c,min,max);
+    image.getPlane(p).prepare_zoomlevel(z);
+    switch(p) {
+      case 0:
+        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,true,false,0,ColorRanges>(properties,ranges,image,image.getPlane(p),z,r,c,min,max);
+        else return predict_and_calcProps_plane<GeneralPlane,false,false,0,ColorRanges>(properties,ranges,image,image.getPlane(p),z,r,c,min,max);
+      case 1:
+        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,true,false,1,ColorRanges>(properties,ranges,image,image.getPlane(p),z,r,c,min,max);
+        else return predict_and_calcProps_plane<GeneralPlane,false,false,1,ColorRanges>(properties,ranges,image,image.getPlane(p),z,r,c,min,max);
+      case 2:
+        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,true,false,2,ColorRanges>(properties,ranges,image,image.getPlane(p),z,r,c,min,max);
+        else return predict_and_calcProps_plane<GeneralPlane,false,false,2,ColorRanges>(properties,ranges,image,image.getPlane(p),z,r,c,min,max);
+      case 3:
+        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,true,false,3,ColorRanges>(properties,ranges,image,image.getPlane(p),z,r,c,min,max);
+        else return predict_and_calcProps_plane<GeneralPlane,false,false,3,ColorRanges>(properties,ranges,image,image.getPlane(p),z,r,c,min,max);
+      default:
+        assert(p==4);
+        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,true,false,4,ColorRanges>(properties,ranges,image,image.getPlane(p),z,r,c,min,max);
+        else return predict_and_calcProps_plane<GeneralPlane,false,false,4,ColorRanges>(properties,ranges,image,image.getPlane(p),z,r,c,min,max);
+    }
 }
 
 int plane_zoomlevels(const Image &image, const int beginZL, const int endZL) {

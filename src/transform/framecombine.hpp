@@ -31,11 +31,11 @@ protected:
     const ColorRanges *ranges;
 public:
     ColorRangesFC(const ColorVal pf, const ColorVal amin, const ColorVal amax, const ColorRanges *rangesIn) : numPrevFrames(pf), alpha_min(amin), alpha_max(amax), ranges(rangesIn) {}
-    bool isStatic() const { return false; }
-    int numPlanes() const { return 5; }
-    ColorVal min(int p) const { if (p<3) return ranges->min(p); else if (p==3) return alpha_min; else return 0; }
-    ColorVal max(int p) const { if (p<3) return ranges->max(p); else if (p==3) return alpha_max; else return numPrevFrames; }
-    void minmax(const int p, const prevPlanes &pp, ColorVal &mi, ColorVal &ma) const {
+    bool isStatic() const override { return false; }
+    int numPlanes() const override { return 5; }
+    ColorVal min(int p) const override { if (p<3) return ranges->min(p); else if (p==3) return alpha_min; else return 0; }
+    ColorVal max(int p) const override { if (p<3) return ranges->max(p); else if (p==3) return alpha_max; else return numPrevFrames; }
+    void minmax(const int p, const prevPlanes &pp, ColorVal &mi, ColorVal &ma) const override {
         if (p >= 3) { mi=min(p); ma=max(p); }
         else ranges->minmax(p, pp, mi, ma);
     }
@@ -50,9 +50,9 @@ protected:
     int user_max_lookback;
     int nb_frames;
 
-    bool undo_redo_during_decode() { return true; }
+    bool undo_redo_during_decode() override { return true; }
 
-    const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) {
+    const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) override {
 //        if (max_lookback >= (int)images.size()) { e_printf("Bad value for FRA lookback\n"); exit(4);}
         assert(max_lookback < (int)images.size());
         was_grayscale = srcRanges->numPlanes() < 2;
@@ -66,7 +66,7 @@ protected:
         return new ColorRangesFC(lookback, (srcRanges->numPlanes() == 4 ? srcRanges->min(3) : 255), (srcRanges->numPlanes() == 4 ? srcRanges->max(3) : 255), srcRanges);
     }
 
-    bool load(const ColorRanges *, RacIn<IO> &rac) {
+    bool load(const ColorRanges *, RacIn<IO> &rac) override {
         SimpleSymbolCoder<SimpleBitChance, RacIn<IO>, 18> coder(rac);
         max_lookback = coder.read_int(1, nb_frames-1);
         v_printf(5,"[%i]",max_lookback);
@@ -74,13 +74,13 @@ protected:
     }
 
 #ifdef HAS_ENCODER
-    void save(const ColorRanges *, RacOut<IO> &rac) const {
+    void save(const ColorRanges *, RacOut<IO> &rac) const override {
         SimpleSymbolCoder<SimpleBitChance, RacOut<IO>, 18> coder(rac);
         coder.write_int(1,nb_frames-1,max_lookback);
     }
 
 // a heuristic to figure out if this is going to help (it won't help if we introduce more entropy than what is eliminated)
-    bool process(const ColorRanges *srcRanges, const Images &images) {
+    bool process(const ColorRanges *srcRanges, const Images &images) override {
         if (images.size() < 2) return false;
         int nump=images[0].numPlanes();
         nb_frames = images.size();
@@ -124,7 +124,7 @@ protected:
 
         return (found_pixels[0] * pixel_cost > new_pixels * (2 + max_lookback));
     };
-    void data(Images &images) const {
+    void data(Images &images) const override {
         for (int fr=1; fr < (int)images.size(); fr++) {
             uint32_t ipixels=0;
             Image& image = images[fr];
@@ -147,8 +147,8 @@ protected:
     }
 #endif
 
-    void configure(int setting) { user_max_lookback=nb_frames=setting; }
-    void invData(Images &images) const {
+    void configure(int setting) override { user_max_lookback=nb_frames=setting; }
+    void invData(Images &images) const override {
         // most work has to be done on the fly in the decoder, this is just some cleaning up
         for (Image& image : images) image.drop_frame_lookbacks();
         if (was_flat) for (Image& image : images) image.drop_alpha();

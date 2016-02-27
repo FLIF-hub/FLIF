@@ -29,12 +29,28 @@ limitations under the License.
 #include "../config.h"
 #include "../compiler-specific.hpp"
 
+#ifdef SUPPORT_HDR
 typedef int32_t ColorVal;  // used in computations
+#else
+typedef int16_t ColorVal;  // at most 9-bit numbers + sign
+#endif
 
 typedef uint8_t ColorVal_intern_8;
 typedef uint16_t ColorVal_intern_16u;
 typedef int16_t ColorVal_intern_16;
 typedef int32_t ColorVal_intern_32;
+
+#ifdef USE_SIMD
+#ifdef __clang__
+// clang does not support scalar/vector operations with vector_size syntax
+typedef ColorVal FourColorVals __attribute__ ((ext_vector_type (4)));
+typedef int16_t  EightColorVals __attribute__ ((ext_vector_type (8)));  // only for 8-bit images (or at most 14-bit I guess)
+#else
+typedef ColorVal FourColorVals __attribute__ ((vector_size (16)));
+typedef int16_t  EightColorVals __attribute__ ((vector_size (16)));  // only for 8-bit images (or at most 14-bit I guess)
+#endif
+#endif
+
 
 // It's a part of C++14. Following impl was taken from GotW#102
 // (http://herbsutter.com/gotw/_102/).
@@ -47,22 +63,37 @@ std::unique_ptr<T> make_unique(Args &&... args)
 
 struct PlaneVisitor;
 
+//static const uint32_t pixelsizes[]={1,1,2,2,4,4,8,8,16,16,32,32,64,64,128,128,256,256,512,512,1024,1024,2048,2048,4096,4096,8192,8192,1<<14,1<<14,1<<15,1<<15,1<<16,1<<16};
 
 class GeneralPlane {
 public:
     virtual void set(const uint32_t r, const uint32_t c, const ColorVal x) =0;
     virtual ColorVal get(const uint32_t r, const uint32_t c) const =0;
+#ifdef USE_SIMD
+    virtual FourColorVals get4(const uint32_t pos) const =0;
+    virtual void set4(const uint32_t pos, const FourColorVals x) =0;
+    virtual EightColorVals get8(const uint32_t pos) const =0;
+    virtual void set8(const uint32_t pos, const EightColorVals x) =0;
+#endif
+
+    virtual void prepare_zoomlevel(const int z) const =0;
+    virtual ColorVal get_fast(uint32_t r, uint32_t c) const =0;
+    virtual void set_fast(uint32_t r, uint32_t c, ColorVal x) =0;
+
     virtual bool is_constant() const { return false; }
     virtual ~GeneralPlane() { }
     virtual void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) =0;
     virtual ColorVal get(const int z, const uint32_t r, const uint32_t c) const =0;
     virtual void normalize_scale() {}
     virtual void accept_visitor(PlaneVisitor &v) =0;
+    virtual uint32_t compute_crc32(uint32_t previous_crc32) =0;
     // access pixel by zoomlevel coordinate
     uint32_t zoom_rowpixelsize(int zoomlevel) const {
+    //    return pixelsizes[zoomlevel+1];
         return 1<<((zoomlevel+1)/2);
     }
     uint32_t zoom_colpixelsize(int zoomlevel) const {
+    //    return pixelsizes[zoomlevel];
         return 1<<((zoomlevel)/2);
     }
 };
@@ -73,44 +104,120 @@ class ConstantPlane;
 struct PlaneVisitor {
     virtual void visit(Plane<ColorVal_intern_8>&) =0;
     virtual void visit(Plane<ColorVal_intern_16>&) =0;
+#ifdef SUPPORT_HDR
     virtual void visit(Plane<ColorVal_intern_16u>&) =0;
     virtual void visit(Plane<ColorVal_intern_32>&) =0;
-    virtual void visit(ConstantPlane&) =0;
+#endif
+//    virtual void visit(ConstantPlane&) =0;
     virtual ~PlaneVisitor() {}
 };
 
 #define SCALED(x) (((x-1)>>scale)+1)
+#ifdef USE_SIMD
+// pad to a multiple of 8
+#define PAD(x) ((x) + 8-((x)%8))
+#else
+#define PAD(x) (x)
+#endif
+
+
 template <typename pixel_t> class Plane final : public GeneralPlane {
     std::valarray<pixel_t> data;
     const uint32_t width, height;
     int s;
+    mutable uint32_t s_r, s_c;
+
 public:
-    Plane(uint32_t w, uint32_t h, ColorVal color=0, int scale = 0) : data(color, SCALED(w)*SCALED(h)), width(SCALED(w)), height(SCALED(h)), s(scale) { }
+    Plane(uint32_t w, uint32_t h, ColorVal color=0, int scale = 0) : data(color, PAD(SCALED(w)*SCALED(h))), width(SCALED(w)), height(SCALED(h)), s(scale) { }
     void clear() {
         data.clear();
     }
-    void set(const uint32_t r, const uint32_t c, const ColorVal x) {
-        const uint32_t sr = r>>s, sc = c>>s;
+    void set(const uint32_t r, const uint32_t c, const ColorVal x) override {
+//        const uint32_t sr = r>>s, sc = c>>s;
+        const uint32_t sr = r, sc = c;
+        assert(s==0);
         assert(sr<height); assert(sc<width);
         data[sr*width + sc] = x;
     }
-    ColorVal get(const uint32_t r, const uint32_t c) const ATTRIBUTE_HOT {
+    ColorVal get(const uint32_t r, const uint32_t c) const override ATTRIBUTE_HOT {
 //        if (r >= height || r < 0 || c >= width || c < 0) {printf("OUT OF RANGE!\n"); return 0;}
-        const uint32_t sr = r>>s, sc = c>>s;
+//        const uint32_t sr = r>>s, sc = c>>s;
+        const uint32_t sr = r, sc = c;
+        assert(s==0);
         assert(sr<height); assert(sc<width);
         return data[sr*width + sc];
     }
-
-    void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) {
-        set(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z),x);
+// get/set specialized for a particular zoomlevel
+    void prepare_zoomlevel(const int z) const override {
+        s_r = (zoom_rowpixelsize(z)>>s)*width;
+        s_c = (zoom_colpixelsize(z)>>s);
     }
-    ColorVal get(const int z, const uint32_t r, const uint32_t c) const {
-        return get(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z));
+    ColorVal get_fast(uint32_t r, uint32_t c) const override {
+        return data[r*s_r+c*s_c];
+    }
+    void set_fast(uint32_t r, uint32_t c, ColorVal x) override {
+        data[r*s_r+c*s_c] = x;
+    }
+#ifdef USE_SIMD
+// methods to just get all the values quickly
+    FourColorVals get4(const uint32_t pos) const ATTRIBUTE_HOT {
+        FourColorVals x {data[pos], data[pos+1], data[pos+2], data[pos+3]};
+        return x;
+    }
+    void set4(const uint32_t pos, const FourColorVals x) override {
+        data[pos]=x[0];
+        data[pos+1]=x[1];
+        data[pos+2]=x[2];
+        data[pos+3]=x[3];
+    }
+    EightColorVals get8(const uint32_t pos) const ATTRIBUTE_HOT {
+        EightColorVals x {(int16_t)data[pos], (int16_t)data[pos+1], (int16_t)data[pos+2], (int16_t)data[pos+3],
+                          (int16_t)data[pos+4], (int16_t)data[pos+5], (int16_t)data[pos+6], (int16_t)data[pos+7]};
+        return x;
+    }
+    void set8(const uint32_t pos, const EightColorVals x) override {
+        data[pos]=x[0];
+        data[pos+1]=x[1];
+        data[pos+2]=x[2];
+        data[pos+3]=x[3];
+        data[pos+4]=x[4];
+        data[pos+5]=x[5];
+        data[pos+6]=x[6];
+        data[pos+7]=x[7];
+    }
+#endif
+    void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) override {
+//        set(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z),x);
+         data[(r*zoom_rowpixelsize(z)>>s)*width + (c*zoom_colpixelsize(z)>>s)] = x;
+    }
+    ColorVal get(const int z, const uint32_t r, const uint32_t c) const override {
+//        return get(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z));
+        return data[(r*zoom_rowpixelsize(z)>>s)*width + (c*zoom_colpixelsize(z)>>s)];
     }
     void normalize_scale() { s = 0; }
 
-    void accept_visitor(PlaneVisitor &v) {
+    void accept_visitor(PlaneVisitor &v) override {
         v.visit(*this);
+    }
+    uint32_t compute_crc32(uint32_t previous_crc32) override {
+#if __BYTE_ORDER == __BIG_ENDIAN
+        // temporarily make the buffer little endian (TODO: avoid this by modifying the crc to take the swapped bytes into account directly)
+        if (sizeof(pixel_t) == 2) {
+            for (pixel_t& x : data) x = swap16(x);
+        } else if (sizeof(pixel_t) == 4) {
+            for (pixel_t& x : data) x = swap(x);
+        }
+#endif
+        uint32_t result = crc32_fast(&data[0], width*height*sizeof(pixel_t), previous_crc32);
+#if __BYTE_ORDER == __BIG_ENDIAN
+        // make the buffer big endian again
+        if (sizeof(pixel_t) == 2) {
+            for (pixel_t& x : data) x = swap16(x);
+        } else if (sizeof(pixel_t) == 4) {
+            for (pixel_t& x : data) x = swap(x);
+        }
+#endif
+        return result;
     }
 };
 
@@ -118,23 +225,60 @@ class ConstantPlane final : public GeneralPlane {
     ColorVal color;
 public:
     ConstantPlane(ColorVal c) : color(c) {}
-    void set(const uint32_t r, const uint32_t c, const ColorVal x) {
+    void set(const uint32_t r, const uint32_t c, const ColorVal x) override {
         assert(x == color);
     }
-    ColorVal get(const uint32_t r, const uint32_t c) const {
-        return color;
-    }
-    bool is_constant() const { return true; }
-
-    void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) {
-        assert(x == color);
-    }
-    ColorVal get(const int z, const uint32_t r, const uint32_t c) const {
+    ColorVal get(const uint32_t r, const uint32_t c) const override {
         return color;
     }
 
-    void accept_visitor(PlaneVisitor &v) {
-        v.visit(*this);
+    void prepare_zoomlevel(const int z) const override {}
+    ColorVal get_fast(uint32_t r, uint32_t c) const override { return color; }
+    void set_fast(uint32_t r, uint32_t c, ColorVal x) override { assert(x == color); }
+
+#ifdef USE_SIMD
+    FourColorVals get4(const uint32_t pos) const ATTRIBUTE_HOT {
+        FourColorVals x {color,color,color,color};
+        return x;
+    }
+    void set4(const uint32_t pos, const FourColorVals x) override {
+        assert(x[0] == color);
+        assert(x[1] == color);
+        assert(x[2] == color);
+        assert(x[3] == color);
+    }
+    EightColorVals get8(const uint32_t pos) const ATTRIBUTE_HOT {
+        int16_t c = color;
+        EightColorVals x {c,c,c,c,c,c,c,c};
+        return x;
+    }
+    void set8(const uint32_t pos, const EightColorVals x) override {
+        assert(x[0] == color);
+        assert(x[1] == color);
+        assert(x[2] == color);
+        assert(x[3] == color);
+        assert(x[4] == color);
+        assert(x[5] == color);
+        assert(x[6] == color);
+        assert(x[7] == color);
+    }
+#endif
+    bool is_constant() const override { return true; }
+
+    void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) override {
+        assert(x == color);
+    }
+    ColorVal get(const int z, const uint32_t r, const uint32_t c) const override {
+        return color;
+    }
+
+    void accept_visitor(PlaneVisitor &v) override {
+//        v.visit(*this);
+        assert(false); // there should never be a need to visit a constant plane
+    }
+    uint32_t compute_crc32(uint32_t previous_crc32) override {
+        uint16_t onepixel = color;
+        return crc32_fast(&onepixel, 2, previous_crc32);
     }
 };
 
@@ -183,6 +327,7 @@ class Image {
       col_begin = other.col_begin;
       col_end = other.col_end;
       seen_before = other.seen_before;
+      fully_decoded = other.fully_decoded;
       clear();
       {
       int p=num;
@@ -217,6 +362,7 @@ public:
     std::vector<uint32_t> col_begin;
     std::vector<uint32_t> col_end;
     int seen_before;
+    bool fully_decoded;
 
     Image(uint32_t width, uint32_t height, ColorVal min, ColorVal max, int planes, int s=0) : scale(s) {
         init(width, height, min, max, planes);
@@ -227,6 +373,7 @@ public:
       minval = maxval = 0;
       num = 0;
       frame_delay = 0;
+      fully_decoded = false;
 #ifdef SUPPORT_HDR
       depth = 0;
 #endif
@@ -247,6 +394,7 @@ public:
       maxval = other.maxval;
       num = other.num;
       scale = other.scale;
+      fully_decoded = other.fully_decoded;
       for (int p=0; p<num; p++) planes[p] = std::move(other.planes[p]);
       frame_delay = other.frame_delay;
 #ifdef SUPPORT_HDR
@@ -258,6 +406,7 @@ public:
       other.minval = other.maxval = 0;
       other.num = 0;
       other.frame_delay = 0;
+      other.fully_decoded = false;
 
       palette = other.palette;
       alpha_zero_special = other.alpha_zero_special;
@@ -293,6 +442,7 @@ public:
       assert(min == 0);
       assert(max < (1<<depth));
       assert(p <= 4);
+      fully_decoded=false;
 
       clear();
       try {
@@ -519,6 +669,11 @@ public:
     }
 
     uint32_t checksum() {
+          uint32_t crc = (width << 16) + height;
+          for(int p=0; p<num; p++)
+            crc = planes[p]->compute_crc32(crc);
+          return crc;
+/*
           uint_fast32_t crc=0;
           crc32k_transform(crc,width & 255);
           crc32k_transform(crc,width / 256);
@@ -534,6 +689,7 @@ public:
                }
 //          printf("Computed checksum: %X\n", (~crc & 0xFFFFFFFF));
           return (~crc & 0xFFFFFFFF);
+*/
     }
     void abort_decoding() {
         width = 0; // this is used to signal the decoder to stop

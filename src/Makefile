@@ -18,13 +18,13 @@ all: flif libflif_dec.so libflif.so viewflif
 lgpl: libflif_dec.so viewflif dflif
 
 # options to consider: -fvect-cost-model=unlimited -funroll-all-loops
-OPTIMIZATIONS := -DNDEBUG -O3 -ftree-vectorize
+OPTIMIZATIONS := -DNDEBUG -O2 -ftree-vectorize
 # there are often problems with clang and lto also it doesn't seem to know -fwhole-program
 ifeq ($(CXX), g++)
 	OPTIMIZATIONS := $(OPTIMIZATIONS) -flto -fwhole-program
 endif
 
-LIB_OPTIMIZATIONS := -DNDEBUG -O3
+LIB_OPTIMIZATIONS := -DNDEBUG -O2
 ifeq ($(CXX), g++)
 	LIB_OPTIMIZATIONS := $(LIB_OPTIMIZATIONS) -flto
 endif

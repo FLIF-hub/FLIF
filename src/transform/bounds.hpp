@@ -29,24 +29,26 @@ protected:
     const ColorRanges *ranges;
 public:
     ColorRangesBounds(const std::vector<std::pair<ColorVal, ColorVal> > &boundsIn, const ColorRanges *rangesIn) : bounds(boundsIn), ranges(rangesIn) {}
-    bool isStatic() const { return false; }
-    int numPlanes() const { return bounds.size(); }
-    ColorVal min(int p) const { assert(p<numPlanes()); return std::max(ranges->min(p), bounds[p].first); }
-    ColorVal max(int p) const { assert(p<numPlanes()); return std::min(ranges->max(p), bounds[p].second); }
-    void snap(const int p, const prevPlanes &pp, ColorVal &min, ColorVal &max, ColorVal &v) const {
+    bool isStatic() const override { return false; }
+    int numPlanes() const override { return bounds.size(); }
+    ColorVal min(int p) const override { assert(p<numPlanes()); return std::max(ranges->min(p), bounds[p].first); }
+    ColorVal max(int p) const override { assert(p<numPlanes()); return std::min(ranges->max(p), bounds[p].second); }
+    void snap(const int p, const prevPlanes &pp, ColorVal &min, ColorVal &max, ColorVal &v) const override {
         if (p==0 || p==3) { min=bounds[p].first; max=bounds[p].second; } // optimization for special case
-        else ranges->snap(p,pp,min,max,v);
-        if (min < bounds[p].first) min=bounds[p].first;
-        if (max > bounds[p].second) max=bounds[p].second;
-        if (min>max) {
+        else {
+          ranges->snap(p,pp,min,max,v);
+          if (min < bounds[p].first) min=bounds[p].first;
+          if (max > bounds[p].second) max=bounds[p].second;
+          if (min>max) {
            // should happen only if alpha=0 interpolation produces YI combination for which Q range from ColorRangesYIQ is outside bounds
            min=bounds[p].first;
            max=bounds[p].second;
+          }
         }
         if(v>max) v=max;
         if(v<min) v=min;
     }
-    void minmax(const int p, const prevPlanes &pp, ColorVal &min, ColorVal &max) const {
+    void minmax(const int p, const prevPlanes &pp, ColorVal &min, ColorVal &max) const override {
         assert(p<numPlanes());
         if (p==0 || p==3) { min=bounds[p].first; max=bounds[p].second; return; } // optimization for special case
         ranges->minmax(p, pp, min, max);
@@ -67,9 +69,9 @@ class TransformBounds : public Transform<IO> {
 protected:
     std::vector<std::pair<ColorVal, ColorVal> > bounds;
 
-    bool undo_redo_during_decode() { return false; }
+    bool undo_redo_during_decode() override { return false; }
 
-    const ColorRanges *meta(Images&, const ColorRanges *srcRanges) {
+    const ColorRanges *meta(Images&, const ColorRanges *srcRanges) override {
         if (srcRanges->isStatic()) {
             return new StaticColorRanges(bounds);
         } else {
@@ -77,7 +79,7 @@ protected:
         }
     }
 
-    bool load(const ColorRanges *srcRanges, RacIn<IO> &rac) {
+    bool load(const ColorRanges *srcRanges, RacIn<IO> &rac) override {
         SimpleSymbolCoder<SimpleBitChance, RacIn<IO>, 18> coder(rac);
         bounds.clear();
         for (int p=0; p<srcRanges->numPlanes(); p++) {
@@ -95,7 +97,7 @@ protected:
     }
 
 #ifdef HAS_ENCODER
-    void save(const ColorRanges *srcRanges, RacOut<IO> &rac) const {
+    void save(const ColorRanges *srcRanges, RacOut<IO> &rac) const override {
         SimpleSymbolCoder<SimpleBitChance, RacOut<IO>, 18> coder(rac);
         for (int p=0; p<srcRanges->numPlanes(); p++) {
             ColorVal min = bounds[p].first;
@@ -108,7 +110,7 @@ protected:
         }
     }
 
-    bool process(const ColorRanges *srcRanges, const Images &images) {
+    bool process(const ColorRanges *srcRanges, const Images &images) override {
         bounds.clear();
         bool trivialbounds=true;
         int nump=srcRanges->numPlanes();

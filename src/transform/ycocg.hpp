@@ -144,10 +144,10 @@ public:
             : par(parIn), ranges(rangesIn) {
     //        if (parIn != par) printf("OOPS: using YCoCg transform on something other than rgb888 ?\n");
     }
-    bool isStatic() const { return false; }
-    int numPlanes() const { return ranges->numPlanes(); }
+    bool isStatic() const override { return false; }
+    int numPlanes() const override { return ranges->numPlanes(); }
 
-    ColorVal min(int p) const {
+    ColorVal min(int p) const override {
       switch(p) {
         case 0: return 0;
         case 1: return -4*par+1;
@@ -155,7 +155,7 @@ public:
         default: return ranges->min(p);
       };
     }
-    ColorVal max(int p) const {
+    ColorVal max(int p) const override {
       switch(p) {
         case 0: return 4*par-1;
         case 1: return 4*par-1;
@@ -164,7 +164,7 @@ public:
       };
     }
 
-    void minmax(const int p, const prevPlanes &pp, ColorVal &minv, ColorVal &maxv) const {
+    void minmax(const int p, const prevPlanes &pp, ColorVal &minv, ColorVal &maxv) const override {
          if (p==1) { minv=get_min_co(par, pp[0]); maxv=get_max_co(par, pp[0]); return; }
          else if (p==2) { minv=get_min_cg(par, pp[0], pp[1]); maxv=get_max_cg(par, pp[0], pp[1]); return; }
          else if (p==0) { minv=0; maxv=get_max_y(par); return;}
@@ -180,7 +180,7 @@ protected:
     const ColorRanges *ranges;
 
 public:
-    bool virtual init(const ColorRanges *srcRanges) {
+    bool virtual init(const ColorRanges *srcRanges) override {
         if (srcRanges->numPlanes() < 3) return false;
         if (srcRanges->min(0) < 0 || srcRanges->min(1) < 0 || srcRanges->min(2) < 0) return false;
         if (srcRanges->min(0) == srcRanges->max(0) || srcRanges->min(1) == srcRanges->max(1) || srcRanges->min(2) == srcRanges->max(2)) return false;
@@ -190,12 +190,12 @@ public:
         return true;
     }
 
-    const ColorRanges *meta(Images&, const ColorRanges *srcRanges) {
+    const ColorRanges *meta(Images&, const ColorRanges *srcRanges) override {
         return new ColorRangesYCoCg(par, srcRanges);
     }
 
 #ifdef HAS_ENCODER
-    void data(Images& images) const {
+    void data(Images& images) const override {
 //        printf("TransformYCoCg::data: par=%i\n", par);
         ColorVal R,G,B,Y,Co,Cg;
         for (Image& image : images)
@@ -221,13 +221,36 @@ public:
         }
     }
 #endif
-    void invData(Images& images) const {
-        ColorVal R,G,B,Y,Co,Cg;
+    void invData(Images& images) const override {
         const ColorVal max[3] = {ranges->max(0), ranges->max(1), ranges->max(2)};
         for (Image& image : images) {
           image.undo_make_constant_plane(0);
           image.undo_make_constant_plane(1);
           image.undo_make_constant_plane(2);
+#ifdef USE_SIMD
+          // special case for 8-bit RGB decoding, full decode (so no clipping needed)
+          if (image.max(0) < 256 && image.fully_decoded) {
+            Plane<ColorVal_intern_8>&  p0 = static_cast<Plane<ColorVal_intern_8>&>(image.getPlane(0));
+            Plane<ColorVal_intern_16>& p1 = static_cast<Plane<ColorVal_intern_16>&>(image.getPlane(1));
+            Plane<ColorVal_intern_16>& p2 = static_cast<Plane<ColorVal_intern_16>&>(image.getPlane(2));
+            EightColorVals R,G,B,Y,Co,Cg;
+            for (uint32_t pos=0; pos < image.rows()*image.cols(); pos += 8) {
+                Y = p0.get8(pos);
+                Co = p1.get8(pos);
+                Cg = p2.get8(pos);
+                G = Y - ((-Cg)>>1);
+                B = Y + ((1-Cg)>>1) - (Co>>1);
+                R = Co + B;
+                // should clip to uint8 here, there is probably an instruction to do that (pack with saturation or something)
+                p0.set8(pos,R);
+                p1.set8(pos,G);
+                p2.set8(pos,B);
+            }
+          } else
+#endif
+          // general code, without SIMD
+          {
+          ColorVal R,G,B,Y,Co,Cg;
           for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
                 Y=image(0,r,c);
@@ -260,6 +283,7 @@ public:
                 image.set(1,r,c, G);
                 image.set(2,r,c, B);
             }
+          }
           }
         }
     }

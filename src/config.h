@@ -16,6 +16,17 @@
 #define CHECK_FOR_BROKENFILES 1
 
 
+/************************/
+/* COMPILATION OPTIONS  */
+/************************/
+
+// speed / binary size trade-off: 0, 1, 2  (higher number -> bigger and faster binary)
+#define LARGE_BINARY 2
+
+#ifndef __clang__
+#define USE_SIMD 1
+#endif
+
 
 /*************************************************/
 /* OPTIONS TO CHANGE DEFAULT ENCODING PARAMETERS */
