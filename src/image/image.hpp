@@ -41,15 +41,61 @@ typedef int16_t ColorVal_intern_16;
 typedef int32_t ColorVal_intern_32;
 
 #ifdef USE_SIMD
+#ifdef _MSC_VER
+//MSVC does not support vector_size or any equivalent vector type
+//using wrappers for x86 SSE2 intrinsics
+#include <emmintrin.h>
+#define VCALL __vectorcall //calling convention for passing arguments through registers
+struct FourColorVals {
+    __m128i vec;
+    VCALL FourColorVals(__m128i v) : vec(v) {}
+    FourColorVals(int v) : vec(_mm_set1_epi32(v)) {}
+    FourColorVals(int v1, int v2, int v3, int v4): vec(_mm_set_epi32(v1, v2, v3, v4)) {}
+    int operator[](int i) const{ return vec.m128i_i32[i]; }
+    FourColorVals VCALL operator+(FourColorVals b) { return FourColorVals(_mm_add_epi32(vec,b.vec)); }
+    FourColorVals VCALL operator-(FourColorVals b) { return FourColorVals(_mm_sub_epi32(vec,b.vec)); }    
+    FourColorVals VCALL operator-() { return FourColorVals(_mm_sub_epi32(_mm_setzero_si128(),vec)); }
+    FourColorVals VCALL operator>>(int n) { return FourColorVals(_mm_srai_epi32(vec,n)); }
+    operator __m128i() { return vec; }
+};
+FourColorVals VCALL operator-(int a, FourColorVals b) { return FourColorVals(_mm_sub_epi32(_mm_set1_epi32(a),b.vec)); }
+FourColorVals VCALL operator>(FourColorVals a, FourColorVals b) { return FourColorVals(_mm_cmpgt_epi32(a.vec,b.vec)); }
+struct EightColorVals {
+    __m128i vec;
+    VCALL EightColorVals(__m128i v) : vec(v) {}
+    EightColorVals(short v) : vec(_mm_set1_epi16(v)) {}
+    EightColorVals(short v1, short v2, short v3, short v4, short v5, short v6, short v7, short v8): vec(_mm_set_epi16(v1, v2, v3, v4, v5, v6, v7, v8)) {}
+    int operator[](int i) const{ return vec.m128i_i16[i]; }
+    EightColorVals VCALL operator+(EightColorVals b) { return EightColorVals(_mm_add_epi16(vec,b.vec)); }
+    EightColorVals VCALL operator-(EightColorVals b) { return EightColorVals(_mm_sub_epi16(vec,b.vec)); }
+    EightColorVals VCALL operator-() { return EightColorVals(_mm_sub_epi16(_mm_setzero_si128(),vec)); }
+    EightColorVals VCALL operator>>(int n) { return EightColorVals(_mm_srai_epi16(vec,n)); }
+    VCALL operator __m128i() { return vec; }
+};
+EightColorVals VCALL operator-(short a, EightColorVals b) { return EightColorVals(_mm_sub_epi16(_mm_set1_epi16(a),b.vec)); }
+EightColorVals VCALL operator>(EightColorVals a, EightColorVals b) { return EightColorVals(_mm_cmpgt_epi16(a.vec,b.vec)); }
+__m128i VCALL cond_op(__m128i a, __m128i b, __m128i cond) {
+    __m128i ma = _mm_and_si128(a,cond);
+    __m128i mb = _mm_and_si128(b,_mm_andnot_si128(_mm_setzero_si128(),cond));
+    return _mm_or_si128(ma,mb);
+}
+__m64 VCALL int16x8_to_int8x8(__m128i a) {
+    return _mm_movepi64_pi64(_mm_packs_epi16(a,a));
+}
+#else
+#define VCALL
 #ifdef __clang__
 // clang does not support scalar/vector operations with vector_size syntax
 typedef ColorVal FourColorVals __attribute__ ((ext_vector_type (4)));
 typedef int16_t  EightColorVals __attribute__ ((ext_vector_type (8)));  // only for 8-bit images (or at most 14-bit I guess)
+#elif defined(_MSC_VER)
+
 #else
 typedef ColorVal FourColorVals __attribute__ ((vector_size (16)));
 typedef int16_t  EightColorVals __attribute__ ((vector_size (16)));  // only for 8-bit images (or at most 14-bit I guess)
-#endif
-#endif
+#endif //__clang__
+#endif //_MSC_VER
+#endif //USE_SIMD
 
 
 // It's a part of C++14. Following impl was taken from GotW#102
@@ -161,7 +207,11 @@ public:
 #ifdef USE_SIMD
 // methods to just get all the values quickly
     FourColorVals get4(const uint32_t pos) const ATTRIBUTE_HOT {
+#ifdef _MSC_VER
+        FourColorVals x(data[pos], data[pos+1], data[pos+2], data[pos+3]);
+#else
         FourColorVals x {data[pos], data[pos+1], data[pos+2], data[pos+3]};
+#endif
         return x;
     }
     void set4(const uint32_t pos, const FourColorVals x) override {
@@ -171,8 +221,13 @@ public:
         data[pos+3]=x[3];
     }
     EightColorVals get8(const uint32_t pos) const ATTRIBUTE_HOT {
+#ifdef _MSC_VER
+        EightColorVals x((int16_t)data[pos], (int16_t)data[pos+1], (int16_t)data[pos+2], (int16_t)data[pos+3],
+            (int16_t)data[pos+4], (int16_t)data[pos+5], (int16_t)data[pos+6], (int16_t)data[pos+7]);
+#else
         EightColorVals x {(int16_t)data[pos], (int16_t)data[pos+1], (int16_t)data[pos+2], (int16_t)data[pos+3],
                           (int16_t)data[pos+4], (int16_t)data[pos+5], (int16_t)data[pos+6], (int16_t)data[pos+7]};
+#endif
         return x;
     }
     void set8(const uint32_t pos, const EightColorVals x) override {
