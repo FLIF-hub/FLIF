@@ -48,9 +48,36 @@ typedef int32_t ColorVal_intern_32;
 #define VCALL __vectorcall //calling convention for passing arguments through registers
 struct FourColorVals {
     __m128i vec;
-    VCALL FourColorVals(__m128i v) : vec(v) {}
+    FourColorVals() : vec() {}
+    FourColorVals(__m128i &v) : vec(v) {}
     FourColorVals(int v) : vec(_mm_set1_epi32(v)) {}
     FourColorVals(int v1, int v2, int v3, int v4): vec(_mm_set_epi32(v1, v2, v3, v4)) {}
+    FourColorVals(const int32_t *p) {
+        assert(((uintptr_t)p & 15) == 0);//assert aligned
+        vec = _mm_load_si128((__m128i*)p);
+    }    
+    FourColorVals(const uint16_t *p) {
+        assert(((uintptr_t)p & 7) == 0);//assert aligned
+        vec = _mm_unpacklo_epi16(_mm_loadl_epi64((__m128i*)p),_mm_setzero_si128());
+    }
+    void store(int32_t *p) {
+        assert(((uintptr_t)p & 15) == 0);//assert aligned
+        _mm_store_si128((__m128i*)p,vec);
+    }    
+    void store(uint16_t *p) {
+        assert(((uintptr_t)p & 7) == 0);//assert aligned
+        //_mm_packus_epi32 (pack with unsigned saturation) is not in SSE2 (2001) for some reason, requires SSE 4.1 (2007)
+        //_mm_storel_epi64((__m128i*)p,_mm_packus_epi32 (a,a));
+
+        //a:    AAAABBBBCCCCDDDD  input vector
+        //slli: AA__BB__CC__DD__  bitshift left by 16
+        //srli: __________AA__BB  byteshift right by 10
+        //_or_: AA__BB__CCAADDBB  OR together
+        //shuf: AA__BB__AABBCCDD  reshuffle low half: {[2], [0], [3], [1]} : 10 00 11 01 : 0x8D
+        //storel:       AABBCCDD  store low half
+        __m128i shifted = _mm_slli_epi32(vec,16);
+        _mm_storel_epi64((__m128i*)p,_mm_shufflelo_epi16(_mm_or_si128(shifted,_mm_srli_si128(shifted,10)),0x8D));
+    }
     int operator[](int i) const{ return vec.m128i_i32[i]; }
     FourColorVals VCALL operator+(FourColorVals b) { return FourColorVals(_mm_add_epi32(vec,b.vec)); }
     FourColorVals VCALL operator-(FourColorVals b) { return FourColorVals(_mm_sub_epi32(vec,b.vec)); }    
@@ -58,13 +85,30 @@ struct FourColorVals {
     FourColorVals VCALL operator>>(int n) { return FourColorVals(_mm_srai_epi32(vec,n)); }
     operator __m128i() { return vec; }
 };
-FourColorVals VCALL operator-(int a, FourColorVals b) { return FourColorVals(_mm_sub_epi32(_mm_set1_epi32(a),b.vec)); }
-FourColorVals VCALL operator>(FourColorVals a, FourColorVals b) { return FourColorVals(_mm_cmpgt_epi32(a.vec,b.vec)); }
+inline FourColorVals VCALL operator-(int a, FourColorVals b) { return FourColorVals(_mm_sub_epi32(_mm_set1_epi32(a),b.vec)); }
+inline FourColorVals VCALL operator>(FourColorVals a, FourColorVals b) { return FourColorVals(_mm_cmpgt_epi32(a.vec,b.vec)); }
 struct EightColorVals {
     __m128i vec;
-    VCALL EightColorVals(__m128i v) : vec(v) {}
+    EightColorVals() : vec() {}
+    EightColorVals(__m128i &v) : vec(v) {}
     EightColorVals(short v) : vec(_mm_set1_epi16(v)) {}
-    EightColorVals(short v1, short v2, short v3, short v4, short v5, short v6, short v7, short v8): vec(_mm_set_epi16(v1, v2, v3, v4, v5, v6, v7, v8)) {}
+    EightColorVals(short v8, short v7, short v6, short v5, short v4, short v3, short v2, short v1): vec(_mm_set_epi16(v1, v2, v3, v4, v5, v6, v7, v8)) {}
+    EightColorVals(int16_t *p) {
+        assert(((uintptr_t)p & 15) == 0);//assert aligned
+        vec = _mm_load_si128((__m128i*)p);
+    }
+    EightColorVals(uint8_t *p) {
+        assert(((uintptr_t)p & 7) == 0);//assert aligned
+        vec = _mm_unpacklo_epi8(_mm_loadl_epi64((__m128i*)p),_mm_setzero_si128());
+    }    
+    void store(int16_t *p) {
+        assert(((uintptr_t)p & 15) == 0);//assert aligned
+        _mm_store_si128((__m128i*)p,vec);
+    }    
+    void store(uint8_t *p) {
+        assert(((uintptr_t)p & 7) == 0);//assert aligned
+        _mm_storel_epi64((__m128i*)p,_mm_packus_epi16(vec,vec));
+    }
     int operator[](int i) const{ return vec.m128i_i16[i]; }
     EightColorVals VCALL operator+(EightColorVals b) { return EightColorVals(_mm_add_epi16(vec,b.vec)); }
     EightColorVals VCALL operator-(EightColorVals b) { return EightColorVals(_mm_sub_epi16(vec,b.vec)); }
@@ -72,15 +116,12 @@ struct EightColorVals {
     EightColorVals VCALL operator>>(int n) { return EightColorVals(_mm_srai_epi16(vec,n)); }
     VCALL operator __m128i() { return vec; }
 };
-EightColorVals VCALL operator-(short a, EightColorVals b) { return EightColorVals(_mm_sub_epi16(_mm_set1_epi16(a),b.vec)); }
-EightColorVals VCALL operator>(EightColorVals a, EightColorVals b) { return EightColorVals(_mm_cmpgt_epi16(a.vec,b.vec)); }
-__m128i VCALL cond_op(__m128i a, __m128i b, __m128i cond) {
+inline EightColorVals VCALL operator-(short a, EightColorVals b) { return EightColorVals(_mm_sub_epi16(_mm_set1_epi16(a),b.vec)); }
+inline EightColorVals VCALL operator>(EightColorVals a, EightColorVals b) { return EightColorVals(_mm_cmpgt_epi16(a.vec,b.vec)); }
+inline __m128i VCALL cond_op(__m128i a, __m128i b, __m128i cond) {
     __m128i ma = _mm_and_si128(a,cond);
     __m128i mb = _mm_and_si128(b,_mm_andnot_si128(_mm_setzero_si128(),cond));
     return _mm_or_si128(ma,mb);
-}
-__m64 VCALL int16x8_to_int8x8(__m128i a) {
-    return _mm_movepi64_pi64(_mm_packs_epi16(a,a));
 }
 #else
 #define VCALL
@@ -88,8 +129,6 @@ __m64 VCALL int16x8_to_int8x8(__m128i a) {
 // clang does not support scalar/vector operations with vector_size syntax
 typedef ColorVal FourColorVals __attribute__ ((ext_vector_type (4)));
 typedef int16_t  EightColorVals __attribute__ ((ext_vector_type (8)));  // only for 8-bit images (or at most 14-bit I guess)
-#elif defined(_MSC_VER)
-
 #else
 typedef ColorVal FourColorVals __attribute__ ((vector_size (16)));
 typedef int16_t  EightColorVals __attribute__ ((vector_size (16)));  // only for 8-bit images (or at most 14-bit I guess)
@@ -117,9 +156,9 @@ public:
     virtual ColorVal get(const uint32_t r, const uint32_t c) const =0;
 #ifdef USE_SIMD
     virtual FourColorVals get4(const uint32_t pos) const =0;
-    virtual void set4(const uint32_t pos, const FourColorVals x) =0;
+    virtual void VCALL set4(const uint32_t pos, const FourColorVals x) =0;
     virtual EightColorVals get8(const uint32_t pos) const =0;
-    virtual void set8(const uint32_t pos, const EightColorVals x) =0;
+    virtual void VCALL set8(const uint32_t pos, const EightColorVals x) =0;
 #endif
 
     virtual void prepare_zoomlevel(const int z) const =0;
@@ -214,7 +253,7 @@ public:
 #endif
         return x;
     }
-    void set4(const uint32_t pos, const FourColorVals x) override {
+    void VCALL set4(const uint32_t pos, const FourColorVals x) override {
         data[pos]=x[0];
         data[pos+1]=x[1];
         data[pos+2]=x[2];
@@ -230,7 +269,7 @@ public:
 #endif
         return x;
     }
-    void set8(const uint32_t pos, const EightColorVals x) override {
+    void VCALL set8(const uint32_t pos, const EightColorVals x) override {
         data[pos]=x[0];
         data[pos+1]=x[1];
         data[pos+2]=x[2];
@@ -296,7 +335,7 @@ public:
         FourColorVals x {color,color,color,color};
         return x;
     }
-    void set4(const uint32_t pos, const FourColorVals x) override {
+    void VCALL set4(const uint32_t pos, const FourColorVals x) override {
         assert(x[0] == color);
         assert(x[1] == color);
         assert(x[2] == color);
@@ -307,7 +346,7 @@ public:
         EightColorVals x {c,c,c,c,c,c,c,c};
         return x;
     }
-    void set8(const uint32_t pos, const EightColorVals x) override {
+    void VCALL set8(const uint32_t pos, const EightColorVals x) override {
         assert(x[0] == color);
         assert(x[1] == color);
         assert(x[2] == color);
