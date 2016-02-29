@@ -208,7 +208,7 @@ struct PlaneVisitor {
 #define SCALED(x) (((x-1)>>scale)+1)
 #ifdef USE_SIMD
 // pad to a multiple of 8, leaving room for alignment
-#define PAD(x) ((x) + 8)
+#define PAD(x) ((x) + 16)
 #else
 #define PAD(x) (x)
 #endif
@@ -225,7 +225,10 @@ public:
     Plane(uint32_t w, uint32_t h, ColorVal color=0, int scale = 0) : data_vec(PAD(SCALED(w)*SCALED(h)), color), width(SCALED(w)), height(SCALED(h)), s(scale) {
         size_t space = data_vec.size()*sizeof(pixel_t);
         void *ptr = data_vec.data();
-        data = static_cast<pixel_t*>(std::align(16,16,ptr,space));
+        //std::align (C++11) is not in GCC or Clang (the versions used by Travis-CI at least) for some stupid reason
+        //data = static_cast<pixel_t*>(std::align(16,16,ptr,space));
+        uintptr_t diff = (uintptr_t)ptr % 16;
+        data = static_cast<pixel_t*>((diff == 0) ? ptr : (void*)ptr + (16-diff));
         assert(data != nullptr);
     }
     void clear() {
