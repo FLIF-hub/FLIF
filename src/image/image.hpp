@@ -21,7 +21,7 @@ limitations under the License.
 #include <vector>
 #include <assert.h>
 #include <stdint.h>
-#include <valarray>
+#include <vector>
 #include <memory>
 #include "crc32k.hpp"
 
@@ -60,11 +60,13 @@ struct FourColorVals {
         assert(((uintptr_t)p & 7) == 0);//assert aligned
         vec = _mm_unpacklo_epi16(_mm_loadl_epi64((__m128i*)p),_mm_setzero_si128());
     }
-    void store(int32_t *p) {
+    FourColorVals(const uint8_t *p) : vec() {}
+    FourColorVals(const int16_t *p) : vec() {}
+    void store(int32_t *p) const{
         assert(((uintptr_t)p & 15) == 0);//assert aligned
         _mm_store_si128((__m128i*)p,vec);
     }    
-    void store(uint16_t *p) {
+    void store(uint16_t *p) const{
         assert(((uintptr_t)p & 7) == 0);//assert aligned
         //_mm_packus_epi32 (pack with unsigned saturation) is not in SSE2 (2001) for some reason, requires SSE 4.1 (2007)
         //_mm_storel_epi64((__m128i*)p,_mm_packus_epi32 (a,a));
@@ -73,11 +75,13 @@ struct FourColorVals {
         //slli: AA__BB__CC__DD__  bitshift left by 16
         //srli: __________AA__BB  byteshift right by 10
         //_or_: AA__BB__CCAADDBB  OR together
-        //shuf: AA__BB__AABBCCDD  reshuffle low half: {[2], [0], [3], [1]} : 10 00 11 01 : 0x8D
+        //shuf: AA__BB__AABBCCDD  reshuffle low half: {[2], [0], [3], [1]} : 10 00 11 01 : 0x8D (I may have gotten this wrong)
         //storel:       AABBCCDD  store low half
         __m128i shifted = _mm_slli_epi32(vec,16);
         _mm_storel_epi64((__m128i*)p,_mm_shufflelo_epi16(_mm_or_si128(shifted,_mm_srli_si128(shifted,10)),0x8D));
     }
+    void store(int16_t *p) const {}
+    void store(uint8_t *p) const {}
     int operator[](int i) const{ return vec.m128i_i32[i]; }
     FourColorVals VCALL operator+(FourColorVals b) { return FourColorVals(_mm_add_epi32(vec,b.vec)); }
     FourColorVals VCALL operator-(FourColorVals b) { return FourColorVals(_mm_sub_epi32(vec,b.vec)); }    
@@ -93,22 +97,26 @@ struct EightColorVals {
     EightColorVals(__m128i &v) : vec(v) {}
     EightColorVals(short v) : vec(_mm_set1_epi16(v)) {}
     EightColorVals(short v8, short v7, short v6, short v5, short v4, short v3, short v2, short v1): vec(_mm_set_epi16(v1, v2, v3, v4, v5, v6, v7, v8)) {}
-    EightColorVals(int16_t *p) {
+    EightColorVals(const int16_t *p) {
         assert(((uintptr_t)p & 15) == 0);//assert aligned
         vec = _mm_load_si128((__m128i*)p);
     }
-    EightColorVals(uint8_t *p) {
+    EightColorVals(const uint8_t *p) {
         assert(((uintptr_t)p & 7) == 0);//assert aligned
         vec = _mm_unpacklo_epi8(_mm_loadl_epi64((__m128i*)p),_mm_setzero_si128());
-    }    
-    void store(int16_t *p) {
+    }
+    EightColorVals(const uint16_t *p) : vec() {}
+    EightColorVals(const int32_t *p) : vec() {}
+    void store(int16_t *p) const{
         assert(((uintptr_t)p & 15) == 0);//assert aligned
         _mm_store_si128((__m128i*)p,vec);
     }    
-    void store(uint8_t *p) {
+    void store(uint8_t *p) const{
         assert(((uintptr_t)p & 7) == 0);//assert aligned
         _mm_storel_epi64((__m128i*)p,_mm_packus_epi16(vec,vec));
     }
+    void store(int32_t *p) const {}
+    void store(uint16_t *p) const {}
     int operator[](int i) const{ return vec.m128i_i16[i]; }
     EightColorVals VCALL operator+(EightColorVals b) { return EightColorVals(_mm_add_epi16(vec,b.vec)); }
     EightColorVals VCALL operator-(EightColorVals b) { return EightColorVals(_mm_sub_epi16(vec,b.vec)); }
@@ -199,23 +207,29 @@ struct PlaneVisitor {
 
 #define SCALED(x) (((x-1)>>scale)+1)
 #ifdef USE_SIMD
-// pad to a multiple of 8
-#define PAD(x) ((x) + 8-((x)%8))
+// pad to a multiple of 8, leaving room for alignment
+#define PAD(x) ((x) + 8)
 #else
 #define PAD(x) (x)
 #endif
 
 
 template <typename pixel_t> class Plane final : public GeneralPlane {
-    std::valarray<pixel_t> data;
+    std::vector<pixel_t> data_vec;
+    pixel_t* data;
     const uint32_t width, height;
     int s;
     mutable uint32_t s_r, s_c;
 
 public:
-    Plane(uint32_t w, uint32_t h, ColorVal color=0, int scale = 0) : data(color, PAD(SCALED(w)*SCALED(h))), width(SCALED(w)), height(SCALED(h)), s(scale) { }
+    Plane(uint32_t w, uint32_t h, ColorVal color=0, int scale = 0) : data_vec(PAD(SCALED(w)*SCALED(h)), color), width(SCALED(w)), height(SCALED(h)), s(scale) {
+        size_t space = data_vec.size()*sizeof(pixel_t);
+        void *ptr = data_vec.data();
+        data = static_cast<pixel_t*>(std::align(16,16,ptr,space));
+        assert(data != nullptr);
+    }
     void clear() {
-        data.clear();
+        data_vec.clear();
     }
     void set(const uint32_t r, const uint32_t c, const ColorVal x) override {
 //        const uint32_t sr = r>>s, sc = c>>s;
@@ -247,22 +261,28 @@ public:
 // methods to just get all the values quickly
     FourColorVals get4(const uint32_t pos) const ATTRIBUTE_HOT {
 #ifdef _MSC_VER
-        FourColorVals x(data[pos], data[pos+1], data[pos+2], data[pos+3]);
+        assert(pos % 4 == 0);
+        FourColorVals x(data + pos);
 #else
         FourColorVals x {data[pos], data[pos+1], data[pos+2], data[pos+3]};
 #endif
         return x;
     }
     void VCALL set4(const uint32_t pos, const FourColorVals x) override {
+#ifdef _MSC_VER
+        assert(pos % 4 == 0);
+        x.store(data + pos);
+#else
         data[pos]=x[0];
         data[pos+1]=x[1];
         data[pos+2]=x[2];
         data[pos+3]=x[3];
+#endif
     }
     EightColorVals get8(const uint32_t pos) const ATTRIBUTE_HOT {
 #ifdef _MSC_VER
-        EightColorVals x((int16_t)data[pos], (int16_t)data[pos+1], (int16_t)data[pos+2], (int16_t)data[pos+3],
-            (int16_t)data[pos+4], (int16_t)data[pos+5], (int16_t)data[pos+6], (int16_t)data[pos+7]);
+        assert(pos % 8 == 0);
+        EightColorVals x(data + pos);
 #else
         EightColorVals x {(int16_t)data[pos], (int16_t)data[pos+1], (int16_t)data[pos+2], (int16_t)data[pos+3],
                           (int16_t)data[pos+4], (int16_t)data[pos+5], (int16_t)data[pos+6], (int16_t)data[pos+7]};
@@ -270,6 +290,10 @@ public:
         return x;
     }
     void VCALL set8(const uint32_t pos, const EightColorVals x) override {
+#ifdef _MSC_VER
+        assert(pos % 8 == 0);
+        x.store(data + pos);
+#else
         data[pos]=x[0];
         data[pos+1]=x[1];
         data[pos+2]=x[2];
@@ -278,15 +302,16 @@ public:
         data[pos+5]=x[5];
         data[pos+6]=x[6];
         data[pos+7]=x[7];
+#endif
     }
 #endif
     void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) override {
 //        set(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z),x);
-         data[(r*zoom_rowpixelsize(z)>>s)*width + (c*zoom_colpixelsize(z)>>s)] = x;
+         data_vec[(r*zoom_rowpixelsize(z)>>s)*width + (c*zoom_colpixelsize(z)>>s)] = x;
     }
     ColorVal get(const int z, const uint32_t r, const uint32_t c) const override {
 //        return get(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z));
-        return data[(r*zoom_rowpixelsize(z)>>s)*width + (c*zoom_colpixelsize(z)>>s)];
+        return data_vec[(r*zoom_rowpixelsize(z)>>s)*width + (c*zoom_colpixelsize(z)>>s)];
     }
     void normalize_scale() { s = 0; }
 
@@ -302,7 +327,7 @@ public:
             for (pixel_t& x : data) x = swap(x);
         }
 #endif
-        uint32_t result = crc32_fast(&data[0], width*height*sizeof(pixel_t), previous_crc32);
+        uint32_t result = crc32_fast(&data_vec[0], width*height*sizeof(pixel_t), previous_crc32);
 #if __BYTE_ORDER == __BIG_ENDIAN
         // make the buffer big endian again
         if (sizeof(pixel_t) == 2) {
