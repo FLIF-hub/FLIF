@@ -228,7 +228,7 @@ public:
         //std::align (C++11) is not in GCC or Clang (the versions used by Travis-CI at least) for some stupid reason
         //data = static_cast<pixel_t*>(std::align(16,16,ptr,space));
         uintptr_t diff = (uintptr_t)ptr % 16;
-        data = static_cast<pixel_t*>((diff == 0) ? ptr : (void*)ptr + (16-diff));
+        data = static_cast<pixel_t*>((diff == 0) ? ptr : ((char*)ptr) + (16-diff));
         assert(data != nullptr);
     }
     void clear() {
