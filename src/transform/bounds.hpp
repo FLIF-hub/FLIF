@@ -19,6 +19,7 @@ limitations under the License.
 #pragma once
 
 #include <vector>
+#include <algorithm>
 
 #include "transform.hpp"
 #include "../maniac/symbol.hpp"

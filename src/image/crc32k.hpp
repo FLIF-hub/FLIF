@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdlib.h>
+#include <cinttypes>
 
 // define endianess and some integer data types
 #if defined(_MSC_VER) || defined(__MINGW32__)
@@ -49,7 +50,7 @@ static inline uint32_t swap(uint32_t x)
 }
 
 /// swap endianess
-static inline uint16_t swap16(uint16_t x)
+inline uint16_t swap16(uint16_t x)
 {
 #if defined(__GNUC__) || defined(__clang__)
   return __builtin_bswap16(x);
