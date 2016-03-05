@@ -82,7 +82,7 @@ template <int bits, typename SymbolCoder> void writer(SymbolCoder& coder, int mi
         // if exponent >i is impossible, we are done
         if ((1 << (i+1)) > amax) break;
         // if exponent i is possible, output the exponent bit
-        coder.write(i==e, BIT_EXP, i);
+        coder.write(i==e, BIT_EXP, (i<<1) + sign);
         if (i==e) break;
         i++;
     }

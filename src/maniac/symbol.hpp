@@ -93,7 +93,7 @@ extern SymbolChanceStats global_symbol_stats;
 template <typename BitChance, int bits> class SymbolChance {
     BitChance bit_zero;
     BitChance bit_sign;
-    BitChance bit_exp[bits-1];
+    BitChance bit_exp[(bits-1) * 2];
     BitChance bit_mant[bits];
 
 public:
@@ -135,7 +135,8 @@ public:
         bitSign().set_12bit(SIGN_CHANCE);
 //        printf("bits: %i\n",bits);
         for (int i=0; i<bits-1; i++) {
-            bitExp(i).set_12bit(EXP_CHANCES[i]);
+            bitExp(2*i).set_12bit(EXP_CHANCES[i]);
+            bitExp(2*i+1).set_12bit(EXP_CHANCES[i]);
         }
         for (int i=0; i<bits; i++) {
             bitMant(i).set_12bit(MANT_CHANCES[i]);
@@ -203,7 +204,7 @@ template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min
         // if exponent >e is impossible, we are done
         // actually that cannot happen
         //if ((1 << (e+1)) > amax) break;
-        if (coder.read(BIT_EXP,e)) break;
+        if (coder.read(BIT_EXP,(e<<1)+sign)) break;
     }
 
     int have = (1 << e);
