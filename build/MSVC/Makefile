@@ -59,7 +59,7 @@ test: flif.exe test-interface.exe
 	flif output.flif output.png
 	@if exist "viewflif.exe" viewflif.exe output.flif
 	@if not exist "..\tmp-test\" mkdir ..\tmp-test
-	if exist "test-interface.exe" test-interface.exe
+	if exist "test-interface.exe" test-interface.exe ..\tmp-test\dummy.flif
 	start output.png
 
 test-interface.exe: libflif.dll

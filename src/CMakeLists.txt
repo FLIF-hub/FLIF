@@ -1,11 +1,10 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(flif)
 
-option(FLIF_SHARED "Build shared lib" OFF)
-
 find_package(PNG REQUIRED)
+include_directories(${PNG_INCLUDE_DIRS})
 
-set(IMAGE_SOURCES
+set(COMMON_SOURCES
     image/color_range.cpp
     image/crc32k.cpp
     image/image-pam.cpp
@@ -13,55 +12,72 @@ set(IMAGE_SOURCES
     image/image-pnm.cpp
     image/image-rggb.cpp
     image/image.cpp
-)
-
-set(MANIAC_SOURCES
+    maniac/bit.cpp
     maniac/chance.cpp
     maniac/symbol.cpp
-)
-
-set(TRANSFORM_SOURCES
     transform/factory.cpp
+    io.cpp
+    common.cpp
+    flif-dec.cpp
 )
 
-if(FLIF_SHARED)
-    set(INTERFACE_SOURCES
-        library/flif-interface.cpp
-    )
-else()
-    set(EXE_SOURCES
-        flif.cpp
-    )
+if(WIN32)
+    set(STATIC_LINKED_LIBS ${ZLIB_LIBRARY})
 endif()
 
-# Use cmake -DCMAKE_CXX_FLAGS=-pg to support other build types.
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra")
-set(CMAKE_CXX_FLAGS_DEBUG "-ggdb3")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+if(CMAKE_COMPILER_IS_GNUCXX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra")
+    set(CMAKE_CXX_FLAGS_DEBUG "-ggdb3")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+endif()
 
 if(USE_ASAN)
     message(STATUS "Using ASAN")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 endif()
 
-set(PROJECT_SOURCES
-    ${IMAGE_SOURCES}
-    ${MANIAC_SOURCES}
-    ${TRANSFORM_SOURCES}
-    ${INTERFACE_SOURCES}
-    io.cpp
-    common.cpp
-    flif-dec.cpp
-    flif-enc.cpp
-    ${EXE_SOURCES}
-)
+# executable
 
-if(FLIF_SHARED)
-    add_library(${PROJECT_NAME} SHARED ${PROJECT_SOURCES})
-else()
-    add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
+if(WIN32)
+    set(WINDOWS_EXE_SOURCE
+        ../build/MSVC/getopt/getopt.c
+    )
 endif()
 
-target_link_libraries(${PROJECT_NAME}
-    ${PNG_LIBRARY}
-)
+add_executable(flif_exe ${COMMON_SOURCES} ${WINDOWS_EXE_SOURCE} flif-enc.cpp flif.cpp)
+target_link_libraries(flif_exe ${PNG_LIBRARY} ${STATIC_LINKED_LIBS})
+set_target_properties(flif_exe PROPERTIES OUTPUT_NAME flif)
+
+if(WIN32)
+    target_include_directories(flif_exe PRIVATE "../build/MSVC/getopt")
+    target_compile_definitions(flif_exe PRIVATE STATIC_GETOPT) # prevents dllexporting symbols for getopt
+endif()
+
+# library
+
+add_library(flif_lib SHARED ${COMMON_SOURCES} flif-enc.cpp library/flif-interface.cpp)
+add_library(flif_lib_dec SHARED ${COMMON_SOURCES} library/flif-interface_dec.cpp)
+
+target_link_libraries(flif_lib ${PNG_LIBRARY} ${STATIC_LINKED_LIBS})
+target_link_libraries(flif_lib_dec ${PNG_LIBRARY} ${STATIC_LINKED_LIBS})
+
+set_target_properties(flif_lib PROPERTIES OUTPUT_NAME flif)
+set_target_properties(flif_lib_dec PROPERTIES OUTPUT_NAME flif_dec)
+
+target_compile_definitions(flif_lib PRIVATE FLIF_BUILD_DLL)
+target_compile_definitions(flif_lib_dec PRIVATE FLIF_BUILD_DLL DECODER_ONLY)
+
+# test
+
+add_executable(libtest ../tools/test.c)
+target_link_libraries(libtest flif_lib)
+target_include_directories(libtest PRIVATE "library")
+target_compile_definitions(libtest PRIVATE FLIF_USE_DLL)
+
+enable_testing()
+add_test(NAME libtest COMMAND libtest dummy.flif)
+if(UNIX)
+    add_test(NAME roundtrip1 COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-roundtrip.sh ${CMAKE_CURRENT_SOURCE_DIR}/../tools/2_webp_ll.png 2_webp_ll.flif decoded_2_webp_ll.png)
+    add_test(NAME roundtrip2 COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-roundtrip.sh ${CMAKE_CURRENT_SOURCE_DIR}/../tools/kodim01.png kodim01.flif decoded_kodim01.png)
+    add_test(NAME roundtrip3 COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-roundtrip_anim.sh ${CMAKE_CURRENT_SOURCE_DIR}/../tools/endless_war.gif endless_war.flif)
+endif()

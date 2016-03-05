@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include <SDL.h>
 
-
 // comment out to not decode progressively
 #define PROGRESSIVE_DECODING
 
@@ -119,8 +118,8 @@ uint32_t progressive_render(int32_t quality, int64_t bytes_read) {
     }
 
     // allocate enough room for the texture pointers and frame delays
-    if (!image_frame) image_frame = calloc(flif_decoder_num_images(d), sizeof(FLIF_IMAGE*));
-    if (!frame_delay) frame_delay = calloc(flif_decoder_num_images(d), sizeof(int));
+    if (!image_frame) image_frame = (SDL_Texture**) calloc(flif_decoder_num_images(d), sizeof(FLIF_IMAGE*));
+    if (!frame_delay) frame_delay = (int*) calloc(flif_decoder_num_images(d), sizeof(int));
 
     // produce one SDL_Texture per frame
     for (int f = 0; f < flif_decoder_num_images(d); f++) {

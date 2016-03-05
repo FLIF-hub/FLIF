@@ -17,12 +17,10 @@ env:
     - BUILDTYPE=GNUMAKE
 
 script:
-  - cd src
   - if [[ "$CXX" == "g++" ]]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
-  - if [[ "$BUILDTYPE" == "GNUMAKE" ]]; then make && make test ;  fi
-  - if [[ "$BUILDTYPE" == "ASAN" ]]; then cmake -DUSE_ASAN=ON . && make ; fi
-  - if [[ "$BUILDTYPE" == "CMAKE" ]]; then cmake . && make ; fi
-  - if [[ "$BUILDTYPE" == "SHARED" ]] ; then cmake -DFLIF_SHARED=ON . &&  make ; fi 
+  - if [[ "$BUILDTYPE" == "GNUMAKE" ]]; then cd src && make && make test ;  fi
+  - if [[ "$BUILDTYPE" == "ASAN" ]]; then mkdir build_cmake && cd build_cmake && cmake ../src -DMAKE_BUILD_TYPE=Release -DUSE_ASAN=ON && make && make test ; fi
+  - if [[ "$BUILDTYPE" == "CMAKE" ]]; then mkdir build_cmake && cd build_cmake && cmake ../src -DMAKE_BUILD_TYPE=Release && make && make test ; fi
 
 notifications:
   webhooks:

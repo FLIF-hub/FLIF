@@ -99,7 +99,7 @@ test-interface: libflif.dbg.so ../tools/test.c
 
 test: flif test-interface
 	mkdir -p ../tmp-test
-	./test-interface
+	./test-interface ../tmp-test/dummy.flif
 	../tools/test-roundtrip.sh ../tools/2_webp_ll.png ../tmp-test/2_webp_ll.flif ../tmp-test/decoded_2_webp_ll.png
 	../tools/test-roundtrip.sh ../tools/kodim01.png ../tmp-test/kodim01.flif ../tmp-test/decoded_kodim01.png
 	../tools/test-roundtrip_anim.sh ../tools/endless_war.gif ../tmp-test/endless_war.flif
