@@ -145,13 +145,19 @@ int compare_file_and_blob(const void* blob, size_t blob_size, const char* filena
     return result;
 }
 
-int main()
+int main(int argc, char** argv)
 {
+    if (argc < 2)
+    {
+        printf("first argument must be a file path for the test image");
+        return 1;
+    }
+
     int result = 0;
 
     const size_t WIDTH = 256;
     const size_t HEIGHT = 256;
-    const char* dummy_file = "../tmp-test/dummy.flif";
+    const char* dummy_file = argv[1];
 
     FLIF_IMAGE* im = flif_create_image(WIDTH, HEIGHT);
     if(im == 0)
