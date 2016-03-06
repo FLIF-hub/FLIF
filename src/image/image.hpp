@@ -316,7 +316,7 @@ public:
 //        return get(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z));
         return data_vec[(r*zoom_rowpixelsize(z)>>s)*width + (c*zoom_colpixelsize(z)>>s)];
     }
-    void normalize_scale() { s = 0; }
+    void normalize_scale() override { s = 0; }
 
     void accept_visitor(PlaneVisitor &v) override {
         v.visit(*this);
