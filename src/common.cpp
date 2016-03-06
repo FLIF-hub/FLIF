@@ -63,8 +63,8 @@ ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRang
 }
 
 
-const int NB_PROPERTIES[] = {8,9,8,8,8};
-const int NB_PROPERTIESA[] = {9,10,9,8,8};
+const int NB_PROPERTIES[] = {8,8,7,8,8};
+const int NB_PROPERTIESA[] = {9,9,8,8,8};
 
 void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p) {
     propRanges.clear();
@@ -79,7 +79,7 @@ void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p) {
     }
     propRanges.push_back(std::make_pair(mind,maxd)); // neighbor A - neighbor B   (top-bottom or left-right)
     propRanges.push_back(std::make_pair(min,max));   // guess (median of 3)
-    propRanges.push_back(std::make_pair(0,2));       // which predictor was it
+    if (p<1 || p>2) propRanges.push_back(std::make_pair(0,2));       // which predictor was it
     propRanges.push_back(std::make_pair(mind,maxd));
     propRanges.push_back(std::make_pair(mind,maxd));
     propRanges.push_back(std::make_pair(mind,maxd));

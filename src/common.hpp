@@ -211,15 +211,21 @@ ColorVal predict_and_calcProps_plane(Properties &properties, const ranges_t *ran
         topright = (nobordercases || c+1 < image.cols(z) ? PIXEL(z,r-1,c+1) : top);
         const bool bottomPresent = r+1 < image.rows(z);
         const ColorVal bottom = (nobordercases || bottomPresent ? PIXEL(z,r+1,c) : left);
-        const ColorVal bottomleft = (nobordercases || (bottomPresent && c>0) ? PIXEL(z,r+1,c-1) : bottom);
-        const ColorVal gradientTL = left + top - topleft;
-        const ColorVal gradientBL = left + bottom - bottomleft;
         const ColorVal avg = (top + bottom)>>1;
-        guess = median3(gradientTL, gradientBL, avg);
-        ranges->snap(p,properties,min,max,guess);
-        if (guess == avg) which = 0;
-        else if (guess == gradientTL) which = 1;
-        else if (guess == gradientBL) which = 2;
+        if (p == 1 || p == 2) {
+          guess = avg;
+          ranges->snap(p,properties,min,max,guess);
+        } else {
+          const ColorVal bottomleft = (nobordercases || (bottomPresent && c>0) ? PIXEL(z,r+1,c-1) : bottom);
+          const ColorVal gradientTL = left + top - topleft;
+          const ColorVal gradientBL = left + bottom - bottomleft;
+          const ColorVal avg = (top + bottom)>>1;
+          guess = median3(gradientTL, gradientBL, avg);
+          ranges->snap(p,properties,min,max,guess);
+          if (guess == avg) which = 0;
+          else if (guess == gradientTL) which = 1;
+          else if (guess == gradientBL) which = 2;
+        }
         properties[index++] = top-bottom;
     } else { // filling vertical lines
         left = PIXEL(z,r,c-1);
@@ -227,19 +233,24 @@ ColorVal predict_and_calcProps_plane(Properties &properties, const ranges_t *ran
         topleft = (nobordercases || r>0 ? PIXEL(z,r-1,c-1) : left);
         const bool rightPresent = c+1 < image.cols(z);
         const ColorVal right = (nobordercases || rightPresent ? PIXEL(z,r,c+1) : top);
-        topright = (nobordercases || (r>0 && rightPresent) ? PIXEL(z,r-1,c+1) : right);
-        const ColorVal gradientTL = left + top - topleft;
-        const ColorVal gradientTR = right + top - topright;
         ColorVal avg = (left + right)>>1;
-        guess = median3(gradientTL, gradientTR, avg);
-        ranges->snap(p,properties,min,max,guess);
-        if (guess == avg) which = 0;
-        else if (guess == gradientTL) which = 1;
-        else if (guess == gradientTR) which = 2;
+        topright = (nobordercases || (r>0 && rightPresent) ? PIXEL(z,r-1,c+1) : right);
+        if (p == 1 || p == 2) {
+          guess = avg;
+          ranges->snap(p,properties,min,max,guess);
+        } else {
+          const ColorVal gradientTL = left + top - topleft;
+          const ColorVal gradientTR = right + top - topright;
+          guess = median3(gradientTL, gradientTR, avg);
+          ranges->snap(p,properties,min,max,guess);
+          if (guess == avg) which = 0;
+          else if (guess == gradientTL) which = 1;
+          else if (guess == gradientTR) which = 2;
+        }
         properties[index++] = left-right;
     }
     properties[index++]=guess;
-    properties[index++]=which;
+    if (p < 1 || p > 2) properties[index++]=which;
 
     properties[index++]=left - topleft;
     properties[index++]=topleft - top;
