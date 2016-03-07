@@ -63,8 +63,8 @@ ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRang
 }
 
 
-const int NB_PROPERTIES[] = {8,8,7,8,8};
-const int NB_PROPERTIESA[] = {9,9,8,8,8};
+const int NB_PROPERTIES[] = {7,9,8,7,7};
+const int NB_PROPERTIESA[] = {8,10,9,7,7};
 
 void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p) {
     propRanges.clear();
@@ -77,16 +77,18 @@ void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p) {
       }
       if (ranges.numPlanes()>3) propRanges.push_back(std::make_pair(ranges.min(3), ranges.max(3)));  // pixel on alpha plane
     }
+    if (p==1 || p==2) propRanges.push_back(std::make_pair(ranges.min(0)-ranges.max(0),ranges.max(0)-ranges.min(0))); // luma prediction miss
     propRanges.push_back(std::make_pair(mind,maxd)); // neighbor A - neighbor B   (top-bottom or left-right)
-    propRanges.push_back(std::make_pair(min,max));   // guess (median of 3)
-    if (p<1 || p>2) propRanges.push_back(std::make_pair(0,2));       // which predictor was it
-    propRanges.push_back(std::make_pair(mind,maxd));
-    propRanges.push_back(std::make_pair(mind,maxd));
-    propRanges.push_back(std::make_pair(mind,maxd));
+    propRanges.push_back(std::make_pair(mind,maxd)); // previous pixel (left or top) prediction miss
+    propRanges.push_back(std::make_pair(min,max));   // guess
+    //if (p<1 || p>2) propRanges.push_back(std::make_pair(0,2));       // which predictor was it
+    propRanges.push_back(std::make_pair(mind,maxd));  // left - topleft
+    propRanges.push_back(std::make_pair(mind,maxd));  // topleft - top
+    //propRanges.push_back(std::make_pair(mind,maxd));
 
-    if (p < 2 || p >= 3) {
-      propRanges.push_back(std::make_pair(mind,maxd));
-      propRanges.push_back(std::make_pair(mind,maxd));
+    if (p != 2) {
+      propRanges.push_back(std::make_pair(mind,maxd)); // toptop - top
+      propRanges.push_back(std::make_pair(mind,maxd)); // leftleft - left
     }
 }
 
@@ -94,24 +96,25 @@ void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p) {
 // This is a fall-back function which should be replaced by direct calls to the specific predict_and_calcProps_plane function
 ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges, const Image &image, const int z, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) ATTRIBUTE_HOT;
 ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges, const Image &image, const int z, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) {
+    image.getPlane(0).prepare_zoomlevel(z);
     image.getPlane(p).prepare_zoomlevel(z);
     switch(p) {
       case 0:
-        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,true,false,0,ColorRanges>(properties,ranges,image,image.getPlane(p),z,r,c,min,max);
-        else return predict_and_calcProps_plane<GeneralPlane,false,false,0,ColorRanges>(properties,ranges,image,image.getPlane(p),z,r,c,min,max);
+        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,true,false,0,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max);
+        else return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,false,false,0,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max);
       case 1:
-        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,true,false,1,ColorRanges>(properties,ranges,image,image.getPlane(p),z,r,c,min,max);
-        else return predict_and_calcProps_plane<GeneralPlane,false,false,1,ColorRanges>(properties,ranges,image,image.getPlane(p),z,r,c,min,max);
+        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,true,false,1,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max);
+        else return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,false,false,1,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max);
       case 2:
-        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,true,false,2,ColorRanges>(properties,ranges,image,image.getPlane(p),z,r,c,min,max);
-        else return predict_and_calcProps_plane<GeneralPlane,false,false,2,ColorRanges>(properties,ranges,image,image.getPlane(p),z,r,c,min,max);
+        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,true,false,2,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max);
+        else return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,false,false,2,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max);
       case 3:
-        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,true,false,3,ColorRanges>(properties,ranges,image,image.getPlane(p),z,r,c,min,max);
-        else return predict_and_calcProps_plane<GeneralPlane,false,false,3,ColorRanges>(properties,ranges,image,image.getPlane(p),z,r,c,min,max);
+        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,true,false,3,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max);
+        else return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,false,false,3,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max);
       default:
         assert(p==4);
-        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,true,false,4,ColorRanges>(properties,ranges,image,image.getPlane(p),z,r,c,min,max);
-        else return predict_and_calcProps_plane<GeneralPlane,false,false,4,ColorRanges>(properties,ranges,image,image.getPlane(p),z,r,c,min,max);
+        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,true,false,4,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max);
+        else return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,false,false,4,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max);
     }
 }
 

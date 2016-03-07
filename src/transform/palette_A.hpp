@@ -77,7 +77,10 @@ public:
     }
 
     const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) override {
-        for (Image& image : images) image.palette=true;
+        for (Image& image : images) {
+            image.palette=true;
+            image.alpha_zero_special = false; // even if A=0 was special, it now no longer is
+        }
         return new ColorRangesPaletteA(srcRanges, Palette_vector.size());
     }
 

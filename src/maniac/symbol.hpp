@@ -109,7 +109,7 @@ public:
     // all exp bits 0         -> int(log2(val)) == 0  [ val == 1 ]
     // exp bits up to i are 1 -> int(log2(val)) == i+1
     BitChance inline &bitExp(int i)  {
-        assert(i >= 0 && i < bits-1);
+        assert(i >= 0 && i < 2*(bits-1));
         return bit_exp[i];
     }
     BitChance inline &bitMant(int i) {
