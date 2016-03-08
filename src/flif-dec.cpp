@@ -275,7 +275,9 @@ void flif_decode_plane_zoomlevel_horizontal(plane_t &plane, Coder &coder, Images
     const int z, const int fr, const uint32_t r,  const bool alphazero, const bool FRA) {
     ColorVal min,max;
     Image& image = images[fr];
-    if (image.seen_before >= 0) { copy_row_range(plane,images[image.seen_before].getPlane(p),r,0,image.cols(z),image.zoom_colpixelsize(z)); return; }
+    if (image.seen_before >= 0) {
+        const uint32_t cs = image.zoom_colpixelsize(z), rs = image.zoom_rowpixelsize(z);
+        copy_row_range(plane,images[image.seen_before].getPlane(p),rs*r,0,cs*image.cols(z),cs); return; }
     uint32_t begin=image.col_begin[r*image.zoom_rowpixelsize(z)]/image.zoom_colpixelsize(z), end=1+(image.col_end[r*image.zoom_rowpixelsize(z)]-1)/image.zoom_colpixelsize(z);
     if (fr>0) {
         if (alphazero && p < 3) {
@@ -334,7 +336,9 @@ void flif_decode_plane_zoomlevel_vertical(plane_t &plane, Coder &coder, Images &
     const int z, const int fr, const uint32_t r,  const bool alphazero, const bool FRA) {
     ColorVal min,max;
     Image& image = images[fr];
-    if (image.seen_before >= 0) { copy_row_range(plane, images[image.seen_before].getPlane(p),r,1,image.cols(z),image.zoom_colpixelsize(z)*2); }
+    if (image.seen_before >= 0) {
+        const uint32_t cs = image.zoom_colpixelsize(z), rs = image.zoom_rowpixelsize(z);
+        copy_row_range(plane, images[image.seen_before].getPlane(p),rs*r,cs*1,cs*image.cols(z),cs*2); return; }
     uint32_t begin=(image.col_begin[r*image.zoom_rowpixelsize(z)]/image.zoom_colpixelsize(z)),
         end=(1+(image.col_end[r*image.zoom_rowpixelsize(z)]-1)/image.zoom_colpixelsize(z))|1;
     if (begin>1 && ((begin&1) ==0)) begin--;
