@@ -934,6 +934,11 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     }
     // Y plane shouldn't be constant, even if it is (because we want to avoid special-casing fast Y plane access)
     for (int fr = 0; fr < numFrames; fr++) images[fr].undo_make_constant_plane(0);
+
+    // Alpha plane is never special if it is never zero
+    if (ranges->numPlanes()>3 && ranges->min(3) > 0)
+      for (int fr = 0; fr < numFrames; fr++) images[fr].alpha_zero_special = false;
+
     int mbits = 0;
     for (int p = 0; p < ranges->numPlanes(); p++) {
         if (ranges->max(p) > ranges->min(p)) {
