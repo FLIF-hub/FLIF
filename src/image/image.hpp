@@ -322,7 +322,7 @@ public:
         v.visit(*this);
     }
     uint32_t compute_crc32(uint32_t previous_crc32) override {
-#if __BYTE_ORDER == __BIG_ENDIAN
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
         // temporarily make the buffer little endian (TODO: avoid this by modifying the crc to take the swapped bytes into account directly)
         if (sizeof(pixel_t) == 2) {
             for (pixel_t& x : data) x = swap16(x);
@@ -331,7 +331,7 @@ public:
         }
 #endif
         uint32_t result = crc32_fast(&data_vec[0], width*height*sizeof(pixel_t), previous_crc32);
-#if __BYTE_ORDER == __BIG_ENDIAN
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
         // make the buffer big endian again
         if (sizeof(pixel_t) == 2) {
             for (pixel_t& x : data) x = swap16(x);
