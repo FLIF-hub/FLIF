@@ -60,6 +60,7 @@ void flif_decode_scanline_plane(plane_t &plane, Coder &coder, Images &images, co
         if (alphazero && p < 3) {
             for (uint32_t c = 0; c < begin; c++)
                 if (alpha.get(r,c) == 0) plane.set(r,c,predictScanlines_plane(plane,r,c, grey));
+                else image.set(p,r,c,images[fr-1](p,r,c));
         }
         else if(p!=4) {
             copy_row_range(plane,images[fr - 1].getPlane(p), r, 0, begin);
@@ -107,6 +108,7 @@ void flif_decode_scanline_plane(plane_t &plane, Coder &coder, Images &images, co
         if (alphazero && p < 3) {
             for (uint32_t c = end; c < image.cols(); c++)
                 if (alpha.get(r,c) == 0) plane.set(r,c,predictScanlines_plane(plane,r,c, grey));
+                else image.set(p,r,c,images[fr-1](p,r,c));
         }
         else if(p!=4) { 
             copy_row_range(plane,images[fr - 1].getPlane(p), r, end, image.cols());
