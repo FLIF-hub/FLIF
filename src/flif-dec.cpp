@@ -967,9 +967,11 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     else
       v_printf(2,"\rDecoding done, %li bytes for %i frames of %ux%u pixels (%.4fbpp)   \n",io.ftell(), numFrames, images[0].cols()/scale, images[0].rows()/scale, 8.0*io.ftell()/numFrames/images[0].rows()*scale*scale/images[0].cols());
 
+    bool contains_checksum = metaCoder.read_int(0,1);
+
     for (Image& i : images) {
         i.normalize_scale();
-        if (fully_decoded && quality>=100 && scale==1) i.fully_decoded=true;
+        if (fully_decoded && quality>=100 && scale==1 && contains_checksum) i.fully_decoded=true;
     }
 
     for (int i=(int)transforms.size()-1; i>=0; i--) {
@@ -984,7 +986,6 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     if (!crc_check) {
       v_printf(3,"Not checking checksum, as requested.\n");
     } else if (quality>=100 && scale==1 && fully_decoded) {
-      bool contains_checksum = metaCoder.read_int(0,1);
       if (contains_checksum) {
         const uint32_t checksum = images[0].checksum();
         v_printf(8,"Computed checksum: %X\n", checksum);

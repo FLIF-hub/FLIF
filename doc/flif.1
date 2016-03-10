@@ -1,4 +1,4 @@
-.TH FLIF 1 "Dec 15, 2015" "Free Lossless Image Format" "User Commands"
+.TH FLIF 1 "Mar 10, 2016" "Free Lossless Image Format" "User Commands"
 .SH NAME
 flif \- convert a image files from or to FLIF
 .SH SYNOPSIS
@@ -124,7 +124,12 @@ Force the resulting image to be non-interlaced (also known as 'scanlines'). By d
 produce interlaced files. Non-interlaced files tend to be (slightly) smaller for most image types, but
 they cannot be decoded progressively.
 .TP
-\fB\-A\fR, \fB\-\-keep\-invisible\-rgb\fR
+\fB\-Q\fR, \fB\-\-lossy\fR=\fIQUALITY\fR
+FLIF is a lossless format, but if you want to, you can use this option to modify the image before encoding it,
+in such a way that it compresses better. The parameter \fIQUALITY\fR indicates the desired quality, where
+100 is lossless and 0 is very lossy.
+.TP
+\fB\-K\fR, \fB\-\-keep\-invisible\-rgb\fR
 By default, pixels that are fully transparent have undefined RGB values in a FLIF image, since those values
 are irrelevant for nearly all purposes. If you insist on storing the RGB values hidden behind A=0, use this
 option. In rare cases this can lead to better compression.
@@ -169,8 +174,9 @@ of dummy-encoding in order to learn image-adapted MANIAC trees.
 More iterations will result in larger and better MANIAC trees, resulting in better compression.
 However, since the trees themselves are part of the compressed file, too many iterations will result
 in worse overall compression. Also, larger MANIAC trees do have a (slight) negative impact on decode speed.
-The default value \fB\-R\fR\fI3\fR tends to be at or near the optimum, but sometimes
-\fB\-R\fR\fI2\fR, \fB\-R\fR\fI4\fR or \fB\-R\fR\fI5\fR produces a slightly smaller compressed file.
+The default value \fB\-R\fR\fI2\fR tends to be near the optimum, but usually
+\fB\-R\fR\fI3\fR, \fB\-R\fR\fI4\fR or \fB\-R\fR\fI5\fR produces a slightly smaller compressed file
+(at the cost of a longer encode time). For fast encoding without MANIAC trees, use \fB\-R\fR\fI0\fR.
 .TP
 \fB\-T\fR, \fB\-\-maniac_threshold\fR=\fIBITS\fR
 While constructing a MANIAC tree, a leaf node turns into a decision node (i.e. it splits into two new leaf nodes)
