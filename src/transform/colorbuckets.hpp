@@ -87,7 +87,11 @@ public:
                    break;
                 }
           }
-          if (values.size() == 0) return false; // only happens on corrupt input
+          if (values.size() == 0) {
+            min = 10000;
+            max = -10000;
+            return true;
+          }
           assert(values.size() > 0);
           if (c==min) min = values[0];
           if (c==max) max = values[values.size()-1];
