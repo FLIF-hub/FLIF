@@ -66,7 +66,8 @@ protected:
         return new ColorRangesFC(lookback, (srcRanges->numPlanes() == 4 ? srcRanges->min(3) : 255), (srcRanges->numPlanes() == 4 ? srcRanges->max(3) : 255), srcRanges);
     }
 
-    bool load(const ColorRanges *, RacIn<IO> &rac) override {
+    bool load(const ColorRanges *srcRanges, RacIn<IO> &rac) override {
+        if (srcRanges->numPlanes() > 4) return false; // something wrong we already have FRA when loading
         SimpleSymbolCoder<SimpleBitChance, RacIn<IO>, 18> coder(rac);
         max_lookback = coder.read_int(1, nb_frames-1);
         v_printf(5,"[%i]",max_lookback);

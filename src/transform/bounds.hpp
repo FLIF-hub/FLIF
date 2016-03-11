@@ -81,6 +81,7 @@ protected:
     }
 
     bool load(const ColorRanges *srcRanges, RacIn<IO> &rac) override {
+        if (srcRanges->numPlanes() > 4) return false; // something wrong if Bounds is done on FRA
         SimpleSymbolCoder<SimpleBitChance, RacIn<IO>, 18> coder(rac);
         bounds.clear();
         for (int p=0; p<srcRanges->numPlanes(); p++) {
