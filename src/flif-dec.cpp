@@ -36,9 +36,9 @@ limitations under the License.
 
 using namespace maniac::util;
 
-template<typename RAC> std::string static read_name(RAC& rac) {
+template<typename RAC> std::string static read_name(RAC& rac, int &nb) {
     UniformSymbolCoder<RAC> coder(rac);
-    int nb = coder.read_int(0, MAX_TRANSFORM);
+    nb = coder.read_int(0, MAX_TRANSFORM);
     if (nb>MAX_TRANSFORM) nb=MAX_TRANSFORM;
     return transforms[nb];
 }
@@ -873,9 +873,14 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     rangesList.push_back(std::unique_ptr<const ColorRanges>(getRanges(images[0])));
     v_printf(4,"Transforms: ");
     int tcount=0;
-
+    int tnb=0, tpnb=-1;
     while (rac.read_bit()) {
-        std::string desc = read_name(rac);
+        std::string desc = read_name(rac,tnb);
+        if (tnb <= tpnb) {
+            e_printf("\nTransformation '%s' is invalid given the previous transformations.\nCorrupt file? Or try upgrading your FLIF decoder?\n", desc.c_str());
+            return false;
+        }
+        tpnb = tnb;
         auto trans = create_transform<IO>(desc);
         auto previous_range = rangesList.back().get();
         if (!trans) {
