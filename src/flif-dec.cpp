@@ -849,6 +849,12 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
 
     int scale_shift = ilog2(scale);
     if (scale_shift>0) v_printf(3,"Decoding downscaled image at scale 1:%i (%ix%i -> %ix%i)\n", scale, width, height, ((width-1)/scale)+1, ((height-1)/scale)+1);
+    int bytesperpixel = (maxmax > 255 ? 2 : 1) * (numPlanes + (numPlanes > 1 ? 2 : 0));
+    uint64_t estimated_buffer_size = (((width-1)/scale)+1) * (((height-1)/scale)+1) * numFrames * numPlanes * bytesperpixel;
+    if (estimated_buffer_size > MAX_IMAGE_BUFFER_SIZE) {
+        e_printf("This is going to take too much memory. Aborting.\nCompile with a higher MAX_IMAGE_BUFFER_SIZE if you really want to do this.\n"); return false;
+    }
+
     for (int i=0; i<numFrames; i++) {
       images.push_back(Image(scale_shift));
       if (!images[i].init(width,height,0,maxmax,numPlanes)) return false;
