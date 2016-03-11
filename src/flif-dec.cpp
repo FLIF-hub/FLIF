@@ -902,6 +902,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
         if (desc == "Palette_Alpha") { trans->configure(images[0].alpha_zero_special); }
         if (!trans->load(previous_range, rac)) return false;
         rangesList.push_back(std::unique_ptr<const ColorRanges>(trans->meta(images, previous_range)));
+        if (!rangesList.back().get()) return false;
         transforms.push_back(std::move(trans));
     }
 
