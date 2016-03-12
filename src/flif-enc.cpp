@@ -649,11 +649,11 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
       switch(encoding) {
         case flifEncoding::nonInterlaced:
             flif_make_lossy_scanlines(images,ranges,loss);
-            flif_encode_scanlines_interpol_zero_alpha(images, ranges);
+            if (alphazero && ranges->numPlanes() > 3 && ranges->min(3) <= 0) flif_encode_scanlines_interpol_zero_alpha(images, ranges);
             break;
         case flifEncoding::interlaced:
             flif_make_lossy_interlaced(images,ranges,loss);
-            flif_encode_FLIF2_interpol_zero_alpha(images, ranges, image.zooms(), 0);
+            if (alphazero && ranges->numPlanes() > 3 && ranges->min(3) <= 0) flif_encode_FLIF2_interpol_zero_alpha(images, ranges, image.zooms(), 0);
             break;
       }
     }
