@@ -226,8 +226,8 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
     uint64_t nb_pixels = (uint64_t)images[0].rows() * images[0].cols();
     std::vector<std::string> desc;
     if (nb_pixels > 2) {         // no point in doing anything for 1- or 2-pixel images
-      if (plc) {
-        desc.push_back("Channel_Compact");  // compactify channels
+      if (plc && !loss) {
+        desc.push_back("Channel_Compact");  // compactify channels (not if lossy, because then loss gets magnified!)
       }
       if (yiq) {
         desc.push_back("YCoCg");  // convert RGB(A) to YCoCg(A)
@@ -235,7 +235,7 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
       desc.push_back("Bounds");  // get the bounds of the color spaces
     }
     if (!loss) {
-    // only use palette if we're lossless, because lossy and palette don't go well together...
+    // only use palette/CB if we're lossless, because lossy and palette don't go well together...
     if (palette_size == -1) {
         palette_size = 1024;
         if (nb_pixels * images.size() / 2 < 1024) {
@@ -248,15 +248,14 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
     if (palette_size != 0) {
         desc.push_back("Palette");  // try palette (without alpha)
     }
-    }
-
     if (acb == -1) {
       // not specified if ACB should be used
-      if (nb_pixels * images.size() > 10000 && !loss) {
+      if (nb_pixels * images.size() > 10000) {
         desc.push_back("Color_Buckets");  // try auto color buckets on large images
       }
     } else if (acb) {
       desc.push_back("Color_Buckets");  // try auto color buckets if forced
+    }
     }
     if (method.o == Optional::undefined) {
         // no method specified, pick one heuristically
@@ -265,8 +264,10 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
     }
     if (images.size() > 1) {
         desc.push_back("Duplicate_Frame");  // find duplicate frames
-        if (frs) desc.push_back("Frame_Shape");  // get the shapes of the frames
-        if (lookback) desc.push_back("Frame_Lookback");  // make a "deep" alpha channel (negative values are transparent to some previous frame)
+        if (!loss) { // only if lossless
+          if (frs) desc.push_back("Frame_Shape");  // get the shapes of the frames
+          if (lookback) desc.push_back("Frame_Lookback");  // make a "deep" alpha channel (negative values are transparent to some previous frame)
+        }
     }
     if (learn_repeats < 0) {
         // no number of repeats specified, pick a number heuristically
@@ -445,7 +446,7 @@ int main(int argc, char **argv)
                   while(optarg != 0) {
                     int d=strtol(optarg,&optarg,10);
                     if (d==0) break;
-                    if (*optarg == ',' || *optarg == '+') optarg++;
+                    if (*optarg == ',' || *optarg == '+' || *optarg == ' ') optarg++;
                     frame_delay.push_back(d);
                     if (d < 0 || d > 60000) {e_printf("Not a sensible number for option -F: %i\n",d); return 1; }
                   }

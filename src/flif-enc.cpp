@@ -269,14 +269,17 @@ void flif_encode_scanlines_interpol_zero_alpha(Images &images, const ColorRanges
 // Make value (which is a difference from prediction) lossy by rounding small values to zero
 // and (for larger values) by setting least significant mantissa bits to one
 ColorVal flif_make_lossy(int min, int max, ColorVal value, int loss) {
+    if (loss <= 0) return value;
+
     if (min == max) return min;
     if (value == 0) return 0;
 
+    int zloss = (loss+2)/3;
     if (min <= 0 && max >= 0) {
-        if (value < loss && value > -loss) return 0;
+        if (value <= zloss && value >= -zloss) return 0;
     } else {
-        if (min > 0 && value-min < loss) return min;
-        if (max < 0 && value-max > -loss) return max;
+        if (min > 0 && value-min <= zloss) return min;
+        if (max < 0 && value-max >= -zloss) return max;
     }
 
     int sign = (value > 0 ? 1 : 0);
@@ -297,10 +300,10 @@ ColorVal flif_make_lossy(int min, int max, ColorVal value, int loss) {
         if (minabs1 > amax) { // 1-bit is impossible
             bit = 0;
         } else if (maxabs0 >= amin) { // 0-bit and 1-bit are both possible
-            if (pos >= loss/3)
+            if (pos >= maniac::util::ilog2(loss))
                 bit = (a >> pos) & 1;
             else
-                bit = 1;
+                bit = 0;
         }
         have |= (bit << pos);
     }
@@ -313,7 +316,7 @@ void flif_make_lossy_scanlines(Images &images, const ColorRanges *ranges, int lo
     const bool alphazero = (nump>3 && images[0].alpha_zero_special);
     const bool FRA = (nump == 5);
     if (nump>4) nump=4; // let's not be lossy on the FRA plane
-    int lossp[] = {loss/9, loss/5, loss/4, loss/9, 0};  // less loss on Y, more on Co and Cg
+    int lossp[] = {loss/3, loss*2/3, (loss*2+1)/3, loss/3, 0};  // less loss on Y, more on Co and Cg
     for (int k=0,i=0; k < 5; k++) {
         int p=PLANE_ORDERING[k];
         if (p>=nump) continue;
@@ -348,7 +351,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
     const bool FRA = (nump == 5);
     int beginZL = images[0].zooms();
     int endZL = 0;
-    int lossp[] = {loss/9, loss/5, loss/4, loss/9, 0};  // less loss on Y, more on Co and Cg
+    int lossp[] = {loss/3, loss*2/3, (loss*2+1)/3, loss/3, 0};  // less loss on Y, more on Co and Cg
     for (int i = 0; i < plane_zoomlevels(images[0], beginZL, endZL); i++) {
       std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i);
       int p = pzl.first;
@@ -369,7 +372,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
                     ColorVal curr = image(p,z,r,c);
                     if (FRA && p==4 && max > fr) max = fr;
-                    ColorVal diff = flif_make_lossy(min - guess, max - guess, curr - guess, lossp[p]);
+                    ColorVal diff = flif_make_lossy(min - guess, max - guess, curr - guess, lossp[p]-z); // less error in the early steps
                     ColorVal lossyval = guess+diff;
                     ranges->snap(p,properties,min,max,lossyval);
                     image.set(p,z,r,c, lossyval);
@@ -392,7 +395,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
                     ColorVal curr = image(p,z,r,c);
                     if (FRA && p==4 && max > fr) max = fr;
-                    ColorVal diff = flif_make_lossy(min - guess, max - guess, curr - guess, lossp[p]);
+                    ColorVal diff = flif_make_lossy(min - guess, max - guess, curr - guess, lossp[p]-z);
                     ColorVal lossyval = guess+diff;
                     ranges->snap(p,properties,min,max,lossyval);
                     image.set(p,z,r,c, lossyval);
@@ -644,8 +647,14 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
 
     if (loss > 0) {
       switch(encoding) {
-        case flifEncoding::nonInterlaced: flif_make_lossy_scanlines(images,ranges,loss); break;
-        case flifEncoding::interlaced: flif_make_lossy_interlaced(images,ranges,loss); break;
+        case flifEncoding::nonInterlaced:
+            flif_make_lossy_scanlines(images,ranges,loss);
+            flif_encode_scanlines_interpol_zero_alpha(images, ranges);
+            break;
+        case flifEncoding::interlaced:
+            flif_make_lossy_interlaced(images,ranges,loss);
+            flif_encode_FLIF2_interpol_zero_alpha(images, ranges, image.zooms(), 0);
+            break;
       }
     }
 
