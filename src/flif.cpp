@@ -132,9 +132,14 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  ____ _(_)____\n");
-    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc10 [10 Mar 2016]\n");
-    v_printf(3,"  (__ | |_| __)    ");v_printf(2,"Copyright (C) 2016 Jon Sneyers and Pieter Wuille\n");
-    v_printf(3,"    (_|___|_)      ");v_printf(2,"License LGPLv3+: GNU LGPL version 3 or later\n");
+    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc10 [13 Mar 2016]\n");
+    v_printf(3,"  (__ | |_| __)    ");v_printf(3,"Copyright (C) 2016 Jon Sneyers and Pieter Wuille\n");
+    v_printf(3,"    (_|___|_)      ");
+#ifdef HAS_ENCODER
+    v_printf(3,"License LGPLv3+: GNU LGPL version 3 or later\n");
+#else
+    v_printf(3,"License Apache 2.0 (compiled with decoder only)\n");
+#endif
     v_printf(3,"\n");
     v_printf(4,"This is free software: you are free to change and redistribute it.\n");
     v_printf(4,"There is NO WARRANTY, to the extent permitted by law.\n");
@@ -476,7 +481,7 @@ int main(int argc, char **argv)
                   if (alpha < 2 || alpha > 128) {e_printf("Not a sensible number for option -Z (try something between 2 and 128)\n"); return 1; }
                   break;
         case 'Q': loss=100-atoi(optarg);
-                  if (loss < 0 || loss > 100) {e_printf("Not a sensible number for option -Q (try something between 0 and 100)\n"); return 1; }
+                  if (loss < 0 || loss > 1000) {e_printf("Not a sensible number for option -Q (try something between 0 and 100)\n"); return 1; }
                   break;
 #endif
         case 'h': showhelp=true; break;
