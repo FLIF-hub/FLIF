@@ -951,6 +951,12 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     if (ranges->numPlanes()>3 && ranges->min(3) > 0)
       for (int fr = 0; fr < numFrames; fr++) images[fr].alpha_zero_special = false;
 
+    // Alpha plane is never special if it is always zero
+    // (on correct input, all other planes should be constant if alpha is always zero and alpha_zero_special holds, so it doesn't really matter.
+    //  on malicious input, we have to check this)
+    if (ranges->numPlanes()>3 && ranges->max(3) == 0)
+      for (int fr = 0; fr < numFrames; fr++) images[fr].alpha_zero_special = false;
+
     int mbits = 0;
     for (int p = 0; p < ranges->numPlanes(); p++) {
         if (ranges->max(p) > ranges->min(p)) {
