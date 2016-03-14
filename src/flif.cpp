@@ -100,6 +100,7 @@ void show_help(int mode) {
     v_printf(3,"   -M, --maniac-min-size=N     MANIAC post-pruning threshold; default: -M%i\n",CONTEXT_TREE_MIN_SUBTREE_SIZE);
     v_printf(3,"   -X, --chance-cutoff=N       minimum chance (N/4096); default: -X2\n");
     v_printf(3,"   -Z, --chance-alpha=N        chance decay factor; default: -Z19\n");
+    v_printf(2,"   -U, --adaptive              adaptive lossy, second input image is saliency map\n");
     }
 #endif
     if (mode != 0) {
@@ -132,7 +133,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  ____ _(_)____\n");
-    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc10 [13 Mar 2016]\n");
+    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc10 [14 Mar 2016]\n");
     v_printf(3,"  (__ | |_| __)    ");v_printf(3,"Copyright (C) 2016 Jon Sneyers and Pieter Wuille\n");
     v_printf(3,"    (_|___|_)      ");
 #ifdef HAS_ENCODER
@@ -365,6 +366,7 @@ int main(int argc, char **argv)
     int alpha=19;
     int cutoff=2;
     int loss=0;
+    bool adaptive=false;
 #else
     int mode = 1;
 #endif
@@ -408,12 +410,13 @@ int main(int argc, char **argv)
         {"chance-cutoff", 1, NULL, 'X'},
         {"chance-alpha", 1, NULL, 'Z'},
         {"lossy", 1, NULL, 'Q'},
+        {"adaptive", 0, NULL, 'U'},
 #endif
         {0, 0, 0, 0}
     };
     int i,c;
 #ifdef HAS_ENCODER
-    while ((c = getopt_long (argc, argv, "hdvciVq:s:r:etINnF:KP:ABYCL:SR:D:M:T:X:Z:Q:", optlist, &i)) != -1) {
+    while ((c = getopt_long (argc, argv, "hdvciVq:s:r:etINnF:KP:ABYCL:SR:D:M:T:X:Z:Q:U", optlist, &i)) != -1) {
 #else
     while ((c = getopt_long (argc, argv, "hdvciVq:s:r:", optlist, &i)) != -1) {
 #endif
@@ -483,6 +486,7 @@ int main(int argc, char **argv)
         case 'Q': loss=100-atoi(optarg);
                   if (loss < 0 || loss > 1000) {e_printf("Not a sensible number for option -Q (try something between 0 and 100)\n"); return 1; }
                   break;
+        case 'U': adaptive=true; break;
 #endif
         case 'h': showhelp=true; break;
         default: show_help(mode); return 0;
@@ -541,6 +545,7 @@ int main(int argc, char **argv)
     }
 
 #ifdef HAS_ENCODER
+    if (adaptive) loss = -loss; // use negative loss to indicate we want to do adaptive lossy encoding
     if (mode == 0) {
         if (!handle_encode(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, alpha_zero_special, frs, cutoff, alpha, crc_check, loss)) return 2;
     } else if (mode == 1) {

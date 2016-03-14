@@ -129,6 +129,18 @@ FLIF is a lossless format, but if you want to, you can use this option to modify
 in such a way that it compresses better. The parameter \fIQUALITY\fR indicates the desired quality, where
 100 is lossless and 0 is very lossy.
 .TP
+\fB\-U\fR, \fB\-\-adaptive\fR
+By default, \fB-Q\fP treats every pixel the same (the same amount of loss is allowed). This option can be used
+for adaptive lossy encoding. You have to create a saliency map that indicates the regions of interest that should
+be stored with less loss. The saliency map has to be a grayscale image of the same dimensions as the input image:
+black means lossy (maximum loss depends on \fB-Q\fP), white means lossless, and intermediate values are intermediate
+levels of lossiness.
+To create the saliency map, you can use external tools like SaliencyDetector (https://github.com/technopagan/mss-saliency).
+In practice, you may want to darken the saliency map to avoid fully lossless storage.
+Here is an example:
+.br
+\fBflif -Q50 -U input-image.png saliency-map.png output.flif\fR
+.TP
 \fB\-K\fR, \fB\-\-keep\-invisible\-rgb\fR
 By default, pixels that are fully transparent have undefined RGB values in a FLIF image, since those values
 are irrelevant for nearly all purposes. If you insist on storing the RGB values hidden behind A=0, use this

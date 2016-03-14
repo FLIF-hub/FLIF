@@ -194,7 +194,7 @@ public:
     void write_int(const Properties &properties, int nbits, int val);
 #endif
 
-    static void simplify(int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE) {}
+    static void simplify(int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int plane=0) {}
 };
 
 

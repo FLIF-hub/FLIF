@@ -109,7 +109,7 @@ void flif_encode_scanlines_pass(IO& io, Rac &rac, const Images &images, const Co
     }
 
     for (int p = 0; p < ranges->numPlanes(); p++) {
-        coders[p].simplify(divisor, min_size);
+        coders[p].simplify(divisor, min_size, p);
     }
 }
 
@@ -207,7 +207,7 @@ void flif_encode_FLIF2_pass(IO& io, Rac &rac, const Images &images, const ColorR
      flif_encode_FLIF2_inner<IO,Rac,Coder>(io, rac, coders, images, ranges, beginZL, endZL);
     }
     for (int p = 0; p < images[0].numPlanes(); p++) {
-        coders[p].simplify(divisor, min_size);
+        coders[p].simplify(divisor, min_size, p);
     }
 }
 
@@ -311,7 +311,7 @@ ColorVal flif_make_lossy(int min, int max, ColorVal value, int loss) {
 
 }
 
-void flif_make_lossy_scanlines(Images &images, const ColorRanges *ranges, int loss){
+void flif_make_lossy_scanlines(Images &images, const ColorRanges *ranges, int loss, bool adaptive, Image &map){
     int nump = images[0].numPlanes();
     const bool alphazero = (nump>3 && images[0].alpha_zero_special);
     const bool FRA = (nump == 5);
@@ -335,7 +335,8 @@ void flif_make_lossy_scanlines(Images &images, const ColorRanges *ranges, int lo
                 ColorVal guess = predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max, minP);
                 ColorVal curr = image(p,r,c);
                 if (FRA && p==4 && max > fr) max = fr;
-                ColorVal diff = flif_make_lossy(min - guess, max - guess, curr - guess, lossp[p]);
+                ColorVal diff = flif_make_lossy(min - guess, max - guess, curr - guess,
+                                        (adaptive? 255-map(0,r,c) : 255) * lossp[p] / 255);
                 ColorVal lossyval = guess+diff;
                 ranges->snap(p,properties,min,max,lossyval);
                 image.set(p,r,c, lossyval);
@@ -344,7 +345,7 @@ void flif_make_lossy_scanlines(Images &images, const ColorRanges *ranges, int lo
         }
     }
 }
-void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int loss) {
+void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int loss, bool adaptive, Image &map) {
     ColorVal min,max;
     int nump = images[0].numPlanes();
     const bool alphazero = (nump>3 && images[0].alpha_zero_special);
@@ -372,7 +373,9 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
                     ColorVal curr = image(p,z,r,c);
                     if (FRA && p==4 && max > fr) max = fr;
-                    ColorVal diff = flif_make_lossy(min - guess, max - guess, curr - guess, lossp[p]-z); // less error in the early steps
+                    // less error in the early steps (so minus z)
+                    ColorVal diff = flif_make_lossy(min - guess, max - guess, curr - guess,
+                                        (adaptive? 255-map(0,z,r,c) : 255) * (lossp[p]-z) / 255);
                     ColorVal lossyval = guess+diff;
                     ranges->snap(p,properties,min,max,lossyval);
                     image.set(p,z,r,c, lossyval);
@@ -395,7 +398,8 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
                     ColorVal curr = image(p,z,r,c);
                     if (FRA && p==4 && max > fr) max = fr;
-                    ColorVal diff = flif_make_lossy(min - guess, max - guess, curr - guess, lossp[p]-z);
+                    ColorVal diff = flif_make_lossy(min - guess, max - guess, curr - guess,
+                                        (adaptive? 255-map(0,z,r,c) : 255) * (lossp[p]-z) / 255);
                     ColorVal lossyval = guess+diff;
                     ranges->snap(p,properties,min,max,lossyval);
                     image.set(p,z,r,c, lossyval);
@@ -485,6 +489,15 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     io.fputs("FLIF");  // bytes 1-4 are fixed magic
     int numPlanes = images[0].numPlanes();
     int numFrames = images.size();
+    bool adaptive = (loss<0);
+    Image adaptive_map;
+    if (adaptive) { // images[0] is the still image to be encoded, images[1] is the saliency map for adaptive lossy
+        loss = -loss;
+        if (numFrames != 2) { e_printf("Expected two input images: [IMAGE] [ADAPTIVE-MAP]\n"); return false; }
+        adaptive_map = images[1].clone();
+        numFrames = 1;
+        images.pop_back();
+    }
 
     // byte 5 encodes color type, interlacing, animation
     // 128 64 32 16 8 4 2 1
@@ -648,11 +661,11 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     if (loss > 0) {
       switch(encoding) {
         case flifEncoding::nonInterlaced:
-            flif_make_lossy_scanlines(images,ranges,loss);
+            flif_make_lossy_scanlines(images,ranges,loss,adaptive,adaptive_map);
             if (alphazero && ranges->numPlanes() > 3 && ranges->min(3) <= 0) flif_encode_scanlines_interpol_zero_alpha(images, ranges);
             break;
         case flifEncoding::interlaced:
-            flif_make_lossy_interlaced(images,ranges,loss);
+            flif_make_lossy_interlaced(images,ranges,loss,adaptive,adaptive_map);
             if (alphazero && ranges->numPlanes() > 3 && ranges->min(3) <= 0) flif_encode_FLIF2_interpol_zero_alpha(images, ranges, image.zooms(), 0);
             break;
       }

@@ -296,7 +296,7 @@ public:
     }
 
     // destructive simplification procedure, prunes subtrees with too low counts
-    long long int simplify_subtree(int pos, int divisor, int min_size, int indent) {
+    long long int simplify_subtree(int pos, int divisor, int min_size, int indent, int plane) {
         PropertyDecisionNode &n = inner_node[pos];
         if (n.property == -1) {
             for (int i=0;i<indent;i++) v_printf(10,"  ");
@@ -305,10 +305,10 @@ public:
             return leaf_node[n.leafID].count;
         } else {
             for (int i=0;i<indent;i++) v_printf(10,"  ");
-            v_printf(10,"* test: property %i, value > %i ?  (after %lli steps)\n", n.property, n.splitval, (long long int)n.count);
+            v_printf(10,"* test: plane %i, property %i, value > %i ?  (after %lli steps)\n", plane, n.property, n.splitval, (long long int)n.count);
             long long int subtree_size = 0;
-            subtree_size += simplify_subtree(n.childID, divisor, min_size, indent+1);
-            subtree_size += simplify_subtree(n.childID+1, divisor, min_size, indent+1);
+            subtree_size += simplify_subtree(n.childID, divisor, min_size, indent+1, plane);
+            subtree_size += simplify_subtree(n.childID+1, divisor, min_size, indent+1, plane);
             n.count /= divisor;
             if (n.count > CONTEXT_TREE_MAX_COUNT) {
                n.count = CONTEXT_TREE_MAX_COUNT;
@@ -323,9 +323,9 @@ public:
             return subtree_size;
         }
     }
-    void simplify(int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE) {
-        v_printf(10,"TREE BEFORE SIMPLIFICATION:\n");
-        simplify_subtree(0, divisor, min_size, 0);
+    void simplify(int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int plane=0) {
+        v_printf(10,"PLANE %i: TREE BEFORE SIMPLIFICATION:\n",plane);
+        simplify_subtree(0, divisor, min_size, 0, plane);
     }
 };
 
