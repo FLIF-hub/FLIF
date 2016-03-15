@@ -79,11 +79,13 @@ void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p) {
     }
     if (p==1 || p==2) propRanges.push_back(std::make_pair(ranges.min(0)-ranges.max(0),ranges.max(0)-ranges.min(0))); // luma prediction miss
     propRanges.push_back(std::make_pair(mind,maxd)); // neighbor A - neighbor B   (top-bottom or left-right)
-    propRanges.push_back(std::make_pair(mind,maxd)); // previous pixel (left or top) prediction miss
+    propRanges.push_back(std::make_pair(mind,maxd)); // top/left prediction miss (previous pixel)
+    propRanges.push_back(std::make_pair(mind,maxd)); // left/top prediction miss (other direction)
+    propRanges.push_back(std::make_pair(mind,maxd)); // bottom/right prediction miss
     propRanges.push_back(std::make_pair(min,max));   // guess
     //if (p<1 || p>2) propRanges.push_back(std::make_pair(0,2));       // which predictor was it
-    propRanges.push_back(std::make_pair(mind,maxd));  // left - topleft
-    propRanges.push_back(std::make_pair(mind,maxd));  // topleft - top
+//    propRanges.push_back(std::make_pair(mind,maxd));  // left - topleft
+//    propRanges.push_back(std::make_pair(mind,maxd));  // topleft - top
     //propRanges.push_back(std::make_pair(mind,maxd));
 
     if (p != 2) {

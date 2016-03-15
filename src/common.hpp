@@ -201,63 +201,54 @@ ColorVal predict_and_calcProps_plane(Properties &properties, const ranges_t *ran
     ColorVal top;
     ColorVal topleft;
 
+    const bool bottomPresent = r+1 < image.rows(z);
+    const bool rightPresent = c+1 < image.cols(z);
+    ColorVal topright;
+    ColorVal bottomleft;
+
     if (horizontal) { // filling horizontal lines
         top = PIXEL(z,r-1,c);
         left = (nobordercases || c>0 ? PIXEL(z,r,c-1) : top);
         topleft = (nobordercases || c>0 ? PIXEL(z,r-1,c-1) : top);
-        const bool bottomPresent = r+1 < image.rows(z);
+        topright = (nobordercases || (rightPresent) ? PIXEL(z,r-1,c+1) : top);
+        bottomleft = (nobordercases || (bottomPresent && c>0) ? PIXEL(z,r+1,c-1) : left);
         const ColorVal bottom = (nobordercases || bottomPresent ? PIXEL(z,r+1,c) : left);
         const ColorVal avg = (top + bottom)>>1;
-        const ColorVal bottomleft = (nobordercases || (bottomPresent && c>0) ? PIXEL(z,r+1,c-1) : bottom);
         if (p == 1 || p == 2) {
           properties[index++] = PIXELY(z,r,c) - ((PIXELY(z,r-1,c)+PIXELY(z,(nobordercases || bottomPresent ? r+1 : r-1),c))>>1);
         }
-          guess = avg;
-          ranges->snap(p,properties,min,max,guess);
-/*        } else {
-          const ColorVal gradientTL = left + top - topleft;
-          const ColorVal gradientBL = left + bottom - bottomleft;
-          guess = median3(gradientTL, gradientBL, avg);
-          ranges->snap(p,properties,min,max,guess);
-          if (guess == avg) which = 0;
-          else if (guess == gradientTL) which = 1;
-          else if (guess == gradientBL) which = 2;
-        }
-*/
+        guess = avg;
+        ranges->snap(p,properties,min,max,guess);
         properties[index++] = top-bottom;
-        properties[index++] = left-((topleft+bottomleft)>>1);
+        properties[index++]=top-((topleft+topright)>>1);
+        properties[index++]=left-((bottomleft+topleft)>>1);
+        const ColorVal bottomright = (nobordercases || (rightPresent && bottomPresent) ? PIXEL(z,r+1,c+1) : bottom);
+        properties[index++]=bottom-((bottomleft+bottomright)>>1);
     } else { // filling vertical lines
         left = PIXEL(z,r,c-1);
         top = (nobordercases || r>0 ? PIXEL(z,r-1,c) : left);
         topleft = (nobordercases || r>0 ? PIXEL(z,r-1,c-1) : left);
-        const bool rightPresent = c+1 < image.cols(z);
+        topright = (nobordercases || (r>0 && rightPresent) ? PIXEL(z,r-1,c+1) : top);
+        bottomleft = (nobordercases || (bottomPresent) ? PIXEL(z,r+1,c-1) : left);
         const ColorVal right = (nobordercases || rightPresent ? PIXEL(z,r,c+1) : top);
-        const ColorVal topright = (nobordercases || (r>0 && rightPresent) ? PIXEL(z,r-1,c+1) : right);
         ColorVal avg = (left + right)>>1;
         if (p == 1 || p == 2) {
           properties[index++] = PIXELY(z,r,c) - ((PIXELY(z,r,c-1)+PIXELY(z,r,(nobordercases || rightPresent ? c+1 : c-1)))>>1);
         }
-          guess = avg;
-          ranges->snap(p,properties,min,max,guess);
-/*
-        } else {
-          const ColorVal gradientTL = left + top - topleft;
-          const ColorVal gradientTR = right + top - topright;
-          guess = median3(gradientTL, gradientTR, avg);
-          ranges->snap(p,properties,min,max,guess);
-          if (guess == avg) which = 0;
-          else if (guess == gradientTL) which = 1;
-          else if (guess == gradientTR) which = 2;
-        }
-*/
+        guess = avg;
+        ranges->snap(p,properties,min,max,guess);
         properties[index++] = left-right;
-        properties[index++] = top-((topleft+topright)>>1);
+        properties[index++]=left-((bottomleft+topleft)>>1);
+        properties[index++]=top-((topleft+topright)>>1);
+        const ColorVal bottomright = (nobordercases || (rightPresent && bottomPresent) ? PIXEL(z,r+1,c+1) : right);
+        properties[index++]=right-((bottomright+topright)>>1);
     }
     properties[index++]=guess;
 //    if (p < 1 || p > 2) properties[index++]=which;
 
-    properties[index++]=left - topleft;
-    properties[index++]=topleft - top;
+
+//    properties[index++]=left - topleft;
+//    properties[index++]=topleft - top;
 
     if (p != 2) {
         if (nobordercases || r > 1) properties[index++]=PIXEL(z,r-2,c)-top;    // toptop - top
