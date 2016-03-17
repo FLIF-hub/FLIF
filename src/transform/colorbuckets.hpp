@@ -78,7 +78,7 @@ public:
         }
     }
 
-    void removeColor(const ColorVal c) {
+    bool removeColor(const ColorVal c) {
         if (discrete) {
           unsigned int pos=0;
           for(; pos < values.size(); pos++) {
@@ -87,19 +87,26 @@ public:
                    break;
                 }
           }
+          if (values.size() == 0) {
+            min = 10000;
+            max = -10000;
+            return true;
+          }
+          assert(values.size() > 0);
           if (c==min) min = values[0];
           if (c==max) max = values[values.size()-1];
         } else {
           if (c==min) min++;
           if (c==max) max--;
-          if (c>max) return;
-          if (c<min) return;
+          if (c>max) return true;
+          if (c<min) return true;
           discrete=true;
           values.clear();
           for (ColorVal x=min; x <= max; x++) {
             if (x != c) values.push_back(x);
           }
         }
+        return true;
     }
 
     bool empty() const {
@@ -319,7 +326,6 @@ protected:
 
     const ColorRanges* meta(Images&, const ColorRanges *srcRanges) override {
 //        cb->print();
-        really_used = true;
 
         // in the I buckets, some discrete buckets may have become continuous to keep the colorbucket info small
         // this means some Q buckets are empty, which means that some values from the I buckets can be eliminated
@@ -335,8 +341,8 @@ protected:
                 for (auto b : bv) {
                         if (b.empty()) {
                                 for (ColorVal c=pixelL[1]; c<=pixelU[1]; c++) {
-                                  cb->findBucket(1,pixelL).removeColor(c);
-                                  cb->findBucket(1,pixelU).removeColor(c);
+                                  if (!cb->findBucket(1,pixelL).removeColor(c)) return NULL;
+                                  if (!cb->findBucket(1,pixelU).removeColor(c)) return NULL;
                                 }
                         }
                         pixelL[1] += CB1; pixelU[1] += CB1;
@@ -349,6 +355,7 @@ protected:
         for (auto& b : cb->bucket1) b.prepare_snapvalues();
         for (auto& bv : cb->bucket2) for (auto& b : bv) b.prepare_snapvalues();
 
+        really_used = true;
         return new ColorRangesCB(srcRanges, cb);
     }
     bool init(const ColorRanges *srcRanges) override {

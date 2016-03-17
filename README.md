@@ -17,7 +17,7 @@ For more information on FLIF, visit http://flif.info
 
 * * *
 
-### License
+## License
 
 FLIF is copylefted free/libre software: you can redistribute it and/or modify it, provided that you share back.
 
@@ -30,21 +30,35 @@ The example code in `viewflif.c` is in the public domain (Creative Commons CC0 1
 
 * * *
 
-### Build Instructions
+## Build Instructions
 
-**GNU/Linux**
+### GNU/Linux
 
-* Install the dependencies:
+#### Install the dependencies
+
+On Debian:
+
   * for the encoder/decoder: `sudo apt-get install libpng-dev`
   * for the viewer: `sudo apt-get install libsdl2-dev`
-* Navigate to the FLIF/src directory and run `make` to compile everything, or
-  * `make flif` to build just the `flif` command line tool
-  * `make libflif.so` to build the GPL'ed shared library
-  * `make libflif_dec.so` to build the LGPL'ed decode-only shared library
-  * `make viewflif` to build the example viewer (it depends on the decode library)
+
+On Fedora:
+
+  * for the encoder/decoder: `sudo dnf install libpng-devel`
+  * for the viewer: `sudo dnf install SDL-devel`
+
+#### Compile
+
+  * Navigate to the FLIF/src directory and run `make` to compile everything, or
+    * `make flif` to build just the `flif` command line tool
+    * `make libflif.so` to build the GPL'ed shared library
+    * `make libflif_dec.so` to build the LGPL'ed decode-only shared library
+    * `make viewflif` to build the example viewer (it depends on the decode library)
+
+#### Install
+
 * `sudo make install` if you want to install it globally
 
-**Windows**
+### Windows
 
 * Install Visual Studio
   ([VS Community 2015](https://www.visualstudio.com/en-us/products/free-developer-offers-vs.aspx)
@@ -55,7 +69,7 @@ The example code in `viewflif.c` is in the public domain (Creative Commons CC0 1
   * `nmake libflif.dll` to build the shared library
   * `nmake viewflif.exe` to build the example viewer
 
-**OS X**
+### OS X
 
 * Install [homebrew](http://brew.sh)
 * Install the dependencies: `brew install pkg-config libpng sdl2`
@@ -64,7 +78,7 @@ The example code in `viewflif.c` is in the public domain (Creative Commons CC0 1
 
 * * *
 
-### Pre-Built Binaries
+## Pre-Built Binaries
 
 These will be available on the Release page
 
@@ -72,7 +86,7 @@ These will be available on the Release page
 
 * * *
 
-### Related Projects
+## Related Projects
 
 * **[Poly FLIF](https://github.com/UprootLabs/poly-flif)** - A javascript polyfill that allows you to use FLIF files in the browser. ([Demo](https://uprootlabs.github.io/poly-flif))
 * **[UGUI: FLIF](http://flif.info/UGUI_FLIF)** - A GUI that allows you to convert and view FLIF files.

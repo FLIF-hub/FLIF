@@ -61,15 +61,6 @@
 // 3    Alpha (transparency)
 // 4    frame lookbacks ("deep alpha", only for animations)
 
-/******************************************/
-/*   scanlines encoding/decoding          */
-/******************************************/
-
-
-
-/******************************************/
-/*   FLIF2 encoding/decoding              */
-/******************************************/
 void show_help(int mode) {
     // mode = 0: only encode options
     // mode = 1: only decode options
@@ -91,6 +82,7 @@ void show_help(int mode) {
     v_printf(1,"Encode options: (-e, --encode)\n");
     v_printf(1,"   -I, --interlace             interlacing (default, except for tiny images)\n");
     v_printf(1,"   -N, --no-interlace          force no interlacing\n");
+    v_printf(1,"   -Q, --lossy=N               lossy compression; default: -Q100 (lossless)\n");
     v_printf(1,"   -K, --keep-invisible-rgb    store original RGB values behind A=0\n");
     v_printf(1,"   -F, --frame-delay=N[,N,..]  delay between animation frames in ms; default: -F100\n");
 //    v_printf(1,"Multiple input images (for animated FLIF) must have the same dimensions.\n");
@@ -108,6 +100,7 @@ void show_help(int mode) {
     v_printf(3,"   -M, --maniac-min-size=N     MANIAC post-pruning threshold; default: -M%i\n",CONTEXT_TREE_MIN_SUBTREE_SIZE);
     v_printf(3,"   -X, --chance-cutoff=N       minimum chance (N/4096); default: -X2\n");
     v_printf(3,"   -Z, --chance-alpha=N        chance decay factor; default: -Z19\n");
+    v_printf(2,"   -U, --adaptive              adaptive lossy, second input image is saliency map\n");
     }
 #endif
     if (mode != 0) {
@@ -140,9 +133,14 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  ____ _(_)____\n");
-    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc7 [26 Feb 2016]\n");
-    v_printf(3,"  (__ | |_| __)    ");v_printf(2,"Copyright (C) 2016 Jon Sneyers and Pieter Wuille\n");
-    v_printf(3,"    (_|___|_)      ");v_printf(2,"License LGPLv3+: GNU LGPL version 3 or later\n");
+    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc11 [15 Mar 2016]\n");
+    v_printf(3,"  (__ | |_| __)    ");v_printf(3,"Copyright (C) 2016 Jon Sneyers and Pieter Wuille\n");
+    v_printf(3,"    (_|___|_)      ");
+#ifdef HAS_ENCODER
+    v_printf(3,"License LGPLv3+: GNU LGPL version 3 or later\n");
+#else
+    v_printf(3,"License Apache 2.0 (compiled with decoder only)\n");
+#endif
     v_printf(3,"\n");
     v_printf(4,"This is free software: you are free to change and redistribute it.\n");
     v_printf(4,"There is NO WARRANTY, to the extent permitted by law.\n");
@@ -216,7 +214,7 @@ bool encode_load_input_images(int argc, char **argv, Images &images) {
 }
 bool encode_flif(int argc, char **argv, Images &images, int palette_size, int acb, flifEncodingOptional method, int lookback,
                  int learn_repeats, std::vector<int> &frame_delay, int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE,
-                 int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int yiq=1, int plc=1, int frs=1, int cutoff=2, int alpha=19, int crc_check=-1) {
+                 int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int yiq=1, int plc=1, int frs=1, int cutoff=2, int alpha=19, int crc_check=-1, int loss=0) {
     bool flat=true;
     unsigned int framenb=0;
     for (Image& i : images) { i.frame_delay = frame_delay[framenb]; if (framenb+1 < frame_delay.size()) framenb++; }
@@ -234,14 +232,16 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
     uint64_t nb_pixels = (uint64_t)images[0].rows() * images[0].cols();
     std::vector<std::string> desc;
     if (nb_pixels > 2) {         // no point in doing anything for 1- or 2-pixel images
-      if (plc) {
-        desc.push_back("Channel_Compact");  // compactify channels
+      if (plc && !loss) {
+        desc.push_back("Channel_Compact");  // compactify channels (not if lossy, because then loss gets magnified!)
       }
       if (yiq) {
         desc.push_back("YCoCg");  // convert RGB(A) to YCoCg(A)
       }
       desc.push_back("Bounds");  // get the bounds of the color spaces
     }
+    if (!loss) {
+    // only use palette/CB if we're lossless, because lossy and palette don't go well together...
     if (palette_size == -1) {
         palette_size = 1024;
         if (nb_pixels * images.size() / 2 < 1024) {
@@ -254,7 +254,6 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
     if (palette_size != 0) {
         desc.push_back("Palette");  // try palette (without alpha)
     }
-
     if (acb == -1) {
       // not specified if ACB should be used
       if (nb_pixels * images.size() > 10000) {
@@ -263,6 +262,7 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
     } else if (acb) {
       desc.push_back("Color_Buckets");  // try auto color buckets if forced
     }
+    }
     if (method.o == Optional::undefined) {
         // no method specified, pick one heuristically
         if (nb_pixels * images.size() < 10000) method.encoding=flifEncoding::nonInterlaced; // if the image is small, not much point in doing interlacing
@@ -270,8 +270,10 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
     }
     if (images.size() > 1) {
         desc.push_back("Duplicate_Frame");  // find duplicate frames
-        if (frs) desc.push_back("Frame_Shape");  // get the shapes of the frames
-        if (lookback) desc.push_back("Frame_Lookback");  // make a "deep" alpha channel (negative values are transparent to some previous frame)
+        if (!loss) { // only if lossless
+          if (frs) desc.push_back("Frame_Shape");  // get the shapes of the frames
+          if (lookback) desc.push_back("Frame_Lookback");  // make a "deep" alpha channel (negative values are transparent to some previous frame)
+        }
     }
     if (learn_repeats < 0) {
         // no number of repeats specified, pick a number heuristically
@@ -283,18 +285,18 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
     if (!file)
         return false;
     FileIO fio(file, argv[0]);
-    return flif_encode(fio, images, desc, method.encoding, learn_repeats, acb, palette_size, lookback, divisor, min_size, split_threshold, cutoff, alpha, crc_check);
+    return flif_encode(fio, images, desc, method.encoding, learn_repeats, acb, palette_size, lookback, divisor, min_size, split_threshold, cutoff, alpha, crc_check, loss);
 }
 
 bool handle_encode(int argc, char **argv, Images &images, int palette_size, int acb, flifEncodingOptional method,
                    int lookback, int learn_repeats, std::vector<int> &frame_delay, int divisor=CONTEXT_TREE_COUNT_DIV,
                    int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD,
-                   int yiq=1, int plc=1, bool alpha_zero_special=true, int frs=1, int cutoff=2, int alpha=19, int crc_check=-1) {
+                   int yiq=1, int plc=1, bool alpha_zero_special=true, int frs=1, int cutoff=2, int alpha=19, int crc_check=-1, int loss=0) {
     if (!encode_load_input_images(argc,argv,images)) return false;
     if (!alpha_zero_special) for (Image& i : images) i.alpha_zero_special = false;
     argv += (argc-1);
     argc = 1;
-    return encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, frs, cutoff, alpha, crc_check);
+    return encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, frs, cutoff, alpha, crc_check, loss);
 }
 #endif
 
@@ -363,6 +365,8 @@ int main(int argc, char **argv)
     bool alpha_zero_special = true;
     int alpha=19;
     int cutoff=2;
+    int loss=0;
+    bool adaptive=false;
 #else
     int mode = 1;
 #endif
@@ -405,12 +409,14 @@ int main(int argc, char **argv)
         {"maniac-threshold", 1, NULL, 'T'},
         {"chance-cutoff", 1, NULL, 'X'},
         {"chance-alpha", 1, NULL, 'Z'},
+        {"lossy", 1, NULL, 'Q'},
+        {"adaptive", 0, NULL, 'U'},
 #endif
         {0, 0, 0, 0}
     };
     int i,c;
 #ifdef HAS_ENCODER
-    while ((c = getopt_long (argc, argv, "hdvciVq:s:r:etINnF:KP:ABYCL:SR:D:M:T:X:Z:", optlist, &i)) != -1) {
+    while ((c = getopt_long (argc, argv, "hdvciVq:s:r:etINnF:KP:ABYCL:SR:D:M:T:X:Z:Q:U", optlist, &i)) != -1) {
 #else
     while ((c = getopt_long (argc, argv, "hdvciVq:s:r:", optlist, &i)) != -1) {
 #endif
@@ -448,7 +454,7 @@ int main(int argc, char **argv)
                   while(optarg != 0) {
                     int d=strtol(optarg,&optarg,10);
                     if (d==0) break;
-                    if (*optarg == ',' || *optarg == '+') optarg++;
+                    if (*optarg == ',' || *optarg == '+' || *optarg == ' ') optarg++;
                     frame_delay.push_back(d);
                     if (d < 0 || d > 60000) {e_printf("Not a sensible number for option -F: %i\n",d); return 1; }
                   }
@@ -477,6 +483,10 @@ int main(int argc, char **argv)
         case 'Z': alpha=atoi(optarg);
                   if (alpha < 2 || alpha > 128) {e_printf("Not a sensible number for option -Z (try something between 2 and 128)\n"); return 1; }
                   break;
+        case 'Q': loss=100-atoi(optarg);
+                  if (loss < 0 || loss > 1000) {e_printf("Not a sensible number for option -Q (try something between 0 and 100)\n"); return 1; }
+                  break;
+        case 'U': adaptive=true; break;
 #endif
         case 'h': showhelp=true; break;
         default: show_help(mode); return 0;
@@ -535,8 +545,9 @@ int main(int argc, char **argv)
     }
 
 #ifdef HAS_ENCODER
+    if (adaptive) loss = -loss; // use negative loss to indicate we want to do adaptive lossy encoding
     if (mode == 0) {
-        if (!handle_encode(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, alpha_zero_special, frs, cutoff, alpha, crc_check)) return 2;
+        if (!handle_encode(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, alpha_zero_special, frs, cutoff, alpha, crc_check, loss)) return 2;
     } else if (mode == 1) {
 #endif
         return handle_decode(argc, argv, images, quality, scale, resize_width, resize_height, crc_check);
@@ -545,7 +556,7 @@ int main(int argc, char **argv)
 //        if (scale > 1) {e_printf("Not yet supported: transcoding downscaled image; use decode + encode!\n");}
         if (!decode_flif(argv, images, quality, scale, resize_width, resize_height, crc_check)) return 2;
         argc--; argv++;
-        if (!encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, frs, cutoff, alpha, crc_check)) return 2;
+        if (!encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, frs, cutoff, alpha, crc_check, loss)) return 2;
     }
 #endif
     return 0;

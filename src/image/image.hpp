@@ -135,10 +135,10 @@ inline __m128i VCALL cond_op(__m128i a, __m128i b, __m128i cond) {
 #define VCALL
 #ifdef __clang__
 // clang does not support scalar/vector operations with vector_size syntax
-typedef ColorVal FourColorVals __attribute__ ((ext_vector_type (4)));
+typedef int32_t  FourColorVals __attribute__ ((ext_vector_type (4)));
 typedef int16_t  EightColorVals __attribute__ ((ext_vector_type (8)));  // only for 8-bit images (or at most 14-bit I guess)
 #else
-typedef ColorVal FourColorVals __attribute__ ((vector_size (16)));
+typedef int32_t  FourColorVals __attribute__ ((vector_size (16)));
 typedef int16_t  EightColorVals __attribute__ ((vector_size (16)));  // only for 8-bit images (or at most 14-bit I guess)
 #endif //__clang__
 #endif //_MSC_VER
@@ -223,7 +223,7 @@ template <typename pixel_t> class Plane final : public GeneralPlane {
 
 public:
     Plane(uint32_t w, uint32_t h, ColorVal color=0, int scale = 0) : data_vec(PAD(SCALED(w)*SCALED(h)), color), width(SCALED(w)), height(SCALED(h)), s(scale) {
-        size_t space = data_vec.size()*sizeof(pixel_t);
+        //size_t space = data_vec.size()*sizeof(pixel_t);
         void *ptr = data_vec.data();
         //std::align (C++11) is not in GCC or Clang (the versions used by Travis-CI at least) for some stupid reason
         //data = static_cast<pixel_t*>(std::align(16,16,ptr,space));
@@ -316,13 +316,13 @@ public:
 //        return get(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z));
         return data_vec[(r*zoom_rowpixelsize(z)>>s)*width + (c*zoom_colpixelsize(z)>>s)];
     }
-    void normalize_scale() { s = 0; }
+    void normalize_scale() override { s = 0; }
 
     void accept_visitor(PlaneVisitor &v) override {
         v.visit(*this);
     }
     uint32_t compute_crc32(uint32_t previous_crc32) override {
-#if __BYTE_ORDER == __BIG_ENDIAN
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
         // temporarily make the buffer little endian (TODO: avoid this by modifying the crc to take the swapped bytes into account directly)
         if (sizeof(pixel_t) == 2) {
             for (pixel_t& x : data) x = swap16(x);
@@ -331,7 +331,7 @@ public:
         }
 #endif
         uint32_t result = crc32_fast(&data_vec[0], width*height*sizeof(pixel_t), previous_crc32);
-#if __BYTE_ORDER == __BIG_ENDIAN
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
         // make the buffer big endian again
         if (sizeof(pixel_t) == 2) {
             for (pixel_t& x : data) x = swap16(x);

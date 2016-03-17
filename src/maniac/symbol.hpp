@@ -93,7 +93,7 @@ extern SymbolChanceStats global_symbol_stats;
 template <typename BitChance, int bits> class SymbolChance {
     BitChance bit_zero;
     BitChance bit_sign;
-    BitChance bit_exp[bits-1];
+    BitChance bit_exp[(bits-1) * 2];
     BitChance bit_mant[bits];
 
 public:
@@ -109,7 +109,7 @@ public:
     // all exp bits 0         -> int(log2(val)) == 0  [ val == 1 ]
     // exp bits up to i are 1 -> int(log2(val)) == i+1
     BitChance inline &bitExp(int i)  {
-        assert(i >= 0 && i < bits-1);
+        assert(i >= 0 && i < 2*(bits-1));
         return bit_exp[i];
     }
     BitChance inline &bitMant(int i) {
@@ -135,7 +135,8 @@ public:
         bitSign().set_12bit(SIGN_CHANCE);
 //        printf("bits: %i\n",bits);
         for (int i=0; i<bits-1; i++) {
-            bitExp(i).set_12bit(EXP_CHANCES[i]);
+            bitExp(2*i).set_12bit(EXP_CHANCES[i]);
+            bitExp(2*i+1).set_12bit(EXP_CHANCES[i]);
         }
         for (int i=0; i<bits; i++) {
             bitMant(i).set_12bit(MANT_CHANCES[i]);
@@ -178,7 +179,8 @@ template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min
     if (min == max) return min;
 
     bool sign;
-    if (max >= 0 && min <= 0) {
+    assert(min <= 0 && max >= 0); // should always be the case, because guess should always be in valid range
+//    if (max >= 0 && min <= 0) {
       if (coder.read(BIT_ZERO)) return 0;
       if (min < 0) {
         if (max > 0) {
@@ -186,11 +188,11 @@ template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min
                 if (sign) min = 1; else max = -1;
         } else {sign = false; max=-1;}
       } else {sign = true; min=1;}
-    } else {
+//    } else {
         // max < 0 || min > 0
-        if (min<0) sign = false;
-        else sign = true;
-    }
+//        if (min<0) sign = false;
+//        else sign = true;
+//    }
 
     const int amin = (sign? min : -max);
     const int amax = (sign? max : -min);
@@ -203,7 +205,7 @@ template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min
         // if exponent >e is impossible, we are done
         // actually that cannot happen
         //if ((1 << (e+1)) > amax) break;
-        if (coder.read(BIT_EXP,e)) break;
+        if (coder.read(BIT_EXP,(e<<1)+sign)) break;
     }
 
     int have = (1 << e);

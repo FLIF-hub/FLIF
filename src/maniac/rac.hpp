@@ -30,7 +30,7 @@ limitations under the License.
 /* RAC configuration for 24-bit RAC */
 class RacConfig24 {
 public:
-    typedef uint32_t data_t;
+    typedef uint_fast32_t data_t;
     static const data_t MAX_RANGE_BITS = 24;
     static const data_t MIN_RANGE_BITS = 16;
     static const data_t MIN_RANGE = (1UL << MIN_RANGE_BITS);
@@ -39,10 +39,12 @@ public:
     static inline data_t chance_12bit_chance(int b12, data_t range) {
         assert(b12 > 0);
         assert((b12 >> 12) == 0);
-        // We want to compute (range * b12 + 0x800) >> 12.
-        // Unfortunately, this can overflow the 32-bit data type, so split range
+        // We want to compute (range * b12 + 0x800) >> 12. On 64-bit architectures this is no problem
+        if (sizeof(data_t) > 4) return (range * b12 + 0x800) >> 12;
+        // Unfortunately, this can overflow the 32-bit data type on 32-bit architectures, so split range
         // in its lower and upper 12 bits, and compute separately.
-        return ((((range & 0xFFF) * b12 + 0x800) >> 12) + ((range >> 12) * b12));
+        else return ((((range & 0xFFF) * b12 + 0x800) >> 12) + ((range >> 12) * b12));
+        // (no worries, the compiler eliminates this branching)
     }
 };
 
@@ -58,9 +60,10 @@ private:
     rac_t range;
     rac_t low;
 private:
-    int read_catch_eof() {
-        int c = io.getc();
-        if(c == io.EOS) return 0;
+    rac_t read_catch_eof() {
+        rac_t c = io.getc();
+        // no reason to branch here to catch end-of-stream, just return garbage (0xFF I guess) if a premature EOS happens
+        //if(c == io.EOS) return 0;
         return c;
     }
     void inline input() {
@@ -81,15 +84,15 @@ private:
 #endif
         assert(chance > 0);
         assert(chance < range);
-        if (low >= range - chance) {
-            low -= range - chance;
+        if (low >= range-chance) {
+            low -= range-chance;
             range = chance;
             input();
-            return 1;
+            return true;
         } else {
             range -= chance;
             input();
-            return 0;
+            return false;
         }
     }
 public:

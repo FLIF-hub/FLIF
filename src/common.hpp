@@ -179,74 +179,76 @@ inline ColorVal predict(const Image &image, int z, int p, uint32_t r, uint32_t c
     }
 }
 
-#ifdef USE_SIMD_RC
-#define PIXEL(z,r,c) plane.get_fast((TwoNumbers){r,c})
-#else
 #define PIXEL(z,r,c) plane.get_fast(r,c)
-#endif
+#define PIXELY(z,r,c) planeY.get_fast(r,c)
+
 
 // Actual prediction. Also sets properties. Property vector should already have the right size before calling this.
-template <typename plane_t, bool horizontal, bool nobordercases, int p, typename ranges_t>
-ColorVal predict_and_calcProps_plane(Properties &properties, const ranges_t *ranges, const Image &image, const plane_t &plane, const int z, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) ATTRIBUTE_HOT;
-template <typename plane_t, bool horizontal, bool nobordercases, int p, typename ranges_t>
-ColorVal predict_and_calcProps_plane(Properties &properties, const ranges_t *ranges, const Image &image, const plane_t &plane, const int z, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) {
+template <typename plane_t, typename plane_tY, bool horizontal, bool nobordercases, int p, typename ranges_t>
+ColorVal predict_and_calcProps_plane(Properties &properties, const ranges_t *ranges, const Image &image, const plane_t &plane, const plane_tY &planeY, const int z, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) ATTRIBUTE_HOT;
+template <typename plane_t, typename plane_tY, bool horizontal, bool nobordercases, int p, typename ranges_t>
+ColorVal predict_and_calcProps_plane(Properties &properties, const ranges_t *ranges, const Image &image, const plane_t &plane, const plane_tY &planeY, const int z, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) {
     ColorVal guess;
-    int which = 0;
+    //int which = 0;
     int index = 0;
 
     if (p < 3) {
-        for (int pp = 0; pp < p; pp++) {
-            properties[index++] = image(pp,z,r,c);
-        }
+        if (p>0) properties[index++] = PIXELY(z,r,c);
+        if (p>1) properties[index++] = image(1,z,r,c);
         if (image.numPlanes()>3) properties[index++] = image(3,z,r,c);
     }
     ColorVal left;
     ColorVal top;
     ColorVal topleft;
+
+    const bool bottomPresent = r+1 < image.rows(z);
+    const bool rightPresent = c+1 < image.cols(z);
     ColorVal topright;
+    ColorVal bottomleft;
+
     if (horizontal) { // filling horizontal lines
         top = PIXEL(z,r-1,c);
         left = (nobordercases || c>0 ? PIXEL(z,r,c-1) : top);
         topleft = (nobordercases || c>0 ? PIXEL(z,r-1,c-1) : top);
-        topright = (nobordercases || c+1 < image.cols(z) ? PIXEL(z,r-1,c+1) : top);
-        const bool bottomPresent = r+1 < image.rows(z);
+        topright = (nobordercases || (rightPresent) ? PIXEL(z,r-1,c+1) : top);
+        bottomleft = (nobordercases || (bottomPresent && c>0) ? PIXEL(z,r+1,c-1) : left);
         const ColorVal bottom = (nobordercases || bottomPresent ? PIXEL(z,r+1,c) : left);
-        const ColorVal bottomleft = (nobordercases || (bottomPresent && c>0) ? PIXEL(z,r+1,c-1) : bottom);
-        const ColorVal gradientTL = left + top - topleft;
-        const ColorVal gradientBL = left + bottom - bottomleft;
         const ColorVal avg = (top + bottom)>>1;
-        guess = median3(gradientTL, gradientBL, avg);
+        if (p == 1 || p == 2) {
+          properties[index++] = PIXELY(z,r,c) - ((PIXELY(z,r-1,c)+PIXELY(z,(nobordercases || bottomPresent ? r+1 : r-1),c))>>1);
+        }
+        guess = avg;
         ranges->snap(p,properties,min,max,guess);
-        if (guess == avg) which = 0;
-        else if (guess == gradientTL) which = 1;
-        else if (guess == gradientBL) which = 2;
         properties[index++] = top-bottom;
+        properties[index++]=top-((topleft+topright)>>1);
+        properties[index++]=left-((bottomleft+topleft)>>1);
+        const ColorVal bottomright = (nobordercases || (rightPresent && bottomPresent) ? PIXEL(z,r+1,c+1) : bottom);
+        properties[index++]=bottom-((bottomleft+bottomright)>>1);
     } else { // filling vertical lines
         left = PIXEL(z,r,c-1);
         top = (nobordercases || r>0 ? PIXEL(z,r-1,c) : left);
         topleft = (nobordercases || r>0 ? PIXEL(z,r-1,c-1) : left);
-        const bool rightPresent = c+1 < image.cols(z);
+        topright = (nobordercases || (r>0 && rightPresent) ? PIXEL(z,r-1,c+1) : top);
+        bottomleft = (nobordercases || (bottomPresent) ? PIXEL(z,r+1,c-1) : left);
         const ColorVal right = (nobordercases || rightPresent ? PIXEL(z,r,c+1) : top);
-        topright = (nobordercases || (r>0 && rightPresent) ? PIXEL(z,r-1,c+1) : right);
-        const ColorVal gradientTL = left + top - topleft;
-        const ColorVal gradientTR = right + top - topright;
         ColorVal avg = (left + right)>>1;
-        guess = median3(gradientTL, gradientTR, avg);
+        if (p == 1 || p == 2) {
+          properties[index++] = PIXELY(z,r,c) - ((PIXELY(z,r,c-1)+PIXELY(z,r,(nobordercases || rightPresent ? c+1 : c-1)))>>1);
+        }
+        guess = avg;
         ranges->snap(p,properties,min,max,guess);
-        if (guess == avg) which = 0;
-        else if (guess == gradientTL) which = 1;
-        else if (guess == gradientTR) which = 2;
         properties[index++] = left-right;
+        properties[index++]=left-((bottomleft+topleft)>>1);
+        properties[index++]=top-((topleft+topright)>>1);
+        const ColorVal bottomright = (nobordercases || (rightPresent && bottomPresent) ? PIXEL(z,r+1,c+1) : right);
+        properties[index++]=right-((bottomright+topright)>>1);
     }
     properties[index++]=guess;
-    properties[index++]=which;
-
-    properties[index++]=left - topleft;
-    properties[index++]=topleft - top;
+//    if (p < 1 || p > 2) properties[index++]=which;
 
 
-    if (nobordercases || (c+1 < image.cols(z) && r > 0)) properties[index++]=top - topright;
-    else   properties[index++]=0;
+//    properties[index++]=left - topleft;
+//    properties[index++]=topleft - top;
 
     if (p != 2) {
         if (nobordercases || r > 1) properties[index++]=PIXEL(z,r-2,c)-top;    // toptop - top

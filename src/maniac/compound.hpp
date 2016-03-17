@@ -41,6 +41,9 @@ public:
     PropertyVal splitval;
     uint32_t childID;
     uint32_t leafID;
+    // probably safe to use only uint16
+    //uint16_t childID;
+    //uint16_t leafID;
     PropertyDecisionNode(int p=-1, int s=0, int c=0) : property(p), count(0), splitval(s), childID(c), leafID(0) {}
 };
 
@@ -191,7 +194,7 @@ public:
     void write_int(const Properties &properties, int nbits, int val);
 #endif
 
-    static void simplify(int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE) {}
+    static void simplify(int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int plane=0) {}
 };
 
 
@@ -255,7 +258,11 @@ public:
           Ranges rootrange(range);
           tree.clear();
           tree.push_back(PropertyDecisionNode());
-          return read_subtree(0, rootrange, tree);
+          if (read_subtree(0, rootrange, tree)) {
+            v_printf(6,"Read MANIAC tree with %u inner nodes.\n",(unsigned int) tree.size());
+            return true;
+          } else return false;
+          //return read_subtree(0, rootrange, tree);
     }
 };
 

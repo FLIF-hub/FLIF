@@ -109,7 +109,7 @@ void flif_encode_scanlines_pass(IO& io, Rac &rac, const Images &images, const Co
     }
 
     for (int p = 0; p < ranges->numPlanes(); p++) {
-        coders[p].simplify(divisor, min_size);
+        coders[p].simplify(divisor, min_size, p);
     }
 }
 
@@ -207,7 +207,7 @@ void flif_encode_FLIF2_pass(IO& io, Rac &rac, const Images &images, const ColorR
      flif_encode_FLIF2_inner<IO,Rac,Coder>(io, rac, coders, images, ranges, beginZL, endZL);
     }
     for (int p = 0; p < images[0].numPlanes(); p++) {
-        coders[p].simplify(divisor, min_size);
+        coders[p].simplify(divisor, min_size, p);
     }
 }
 
@@ -263,6 +263,154 @@ void flif_encode_scanlines_interpol_zero_alpha(Images &images, const ColorRanges
                 }
             }
         }
+    }
+}
+
+// Make value (which is a difference from prediction) lossy by rounding small values to zero
+// and (for larger values) by setting least significant mantissa bits to zero
+ColorVal flif_make_lossy(int min, int max, ColorVal value, int loss) {
+    if (loss <= 0) return value;
+
+    if (min == max) return min;
+    if (value == 0) return 0;
+
+    if (value <= loss && value >= -loss) return 0;
+
+    int sign = (value > 0 ? 1 : 0);
+    if (sign && min <= 0) min = 1;
+    if (!sign && max >= 0) max = -1;
+    const int a = abs(value);
+    const int e = maniac::util::ilog2(a);
+    int amin = sign ? abs(min) : abs(max);
+    int amax = sign ? abs(max) : abs(min);
+
+    int have = (1 << e);
+    int left = have-1;
+    for (int pos = e; pos>0;) {
+        int bit = 1;
+        left ^= (1 << (--pos));
+        int minabs1 = have | (1<<pos);
+        int maxabs0 = have | left;
+        if (minabs1 > amax) { // 1-bit is impossible
+            bit = 0;
+        } else if (maxabs0 >= amin) { // 0-bit and 1-bit are both possible
+            if (pos > maniac::util::ilog2(loss))
+                bit = (a >> pos) & 1;
+            else
+                bit = 0;
+        }
+        have |= (bit << pos);
+    }
+    return (sign ? have : -have);
+
+}
+
+void flif_make_lossy_scanlines(Images &images, const ColorRanges *ranges, int loss, bool adaptive, Image &map){
+    int nump = images[0].numPlanes();
+    const bool alphazero = (nump>3 && images[0].alpha_zero_special);
+    const bool FRA = (nump == 5);
+    if (nump>4) nump=4; // let's not be lossy on the FRA plane
+    int lossp[] = {(loss+6)/10, (loss+3)/5, (loss+3)/4, loss/10, 0};  // less loss on Y, more on Co and Cg
+    for (int k=0,i=0; k < 5; k++) {
+        int p=PLANE_ORDERING[k];
+        if (p>=nump) continue;
+        i++;
+        if (ranges->min(p) >= ranges->max(p)) continue;
+        const ColorVal minP = ranges->min(p);
+        ColorVal min, max;
+        Properties properties((nump>3?NB_PROPERTIES_scanlinesA[p]:NB_PROPERTIES_scanlines[p]));
+        for (uint32_t r = 0; r < images[0].rows(); r++) {
+            for (int fr=0; fr< (int)images.size(); fr++) {
+              Image& image = images[fr];
+              uint32_t begin=image.col_begin[r], end=image.col_end[r];
+              for (uint32_t c = begin; c < end; c++) {
+                if (alphazero && p<3 && image(3,r,c) == 0) continue;
+                if (FRA && p<4 && image(4,r,c) > 0) continue;
+                ColorVal guess = predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max, minP);
+                ColorVal curr = image(p,r,c);
+                if (FRA && p==4 && max > fr) max = fr;
+                ColorVal diff = flif_make_lossy(min - guess, max - guess, curr - guess,
+                                        (adaptive? 255-map(0,r,c) : 255) * lossp[p] / 255);
+                ColorVal lossyval = guess+diff;
+                ranges->snap(p,properties,min,max,lossyval);
+                image.set(p,r,c, lossyval);
+              }
+            }
+        }
+    }
+}
+inline int luma_alpha_compensate(int p, ColorVal Y, ColorVal X, ColorVal A) {
+//    return 255;
+//    if (p==0) return 128+A/2; // divide by 128 at low alpha (so double loss), 255 at high alpha (normal loss)
+    if (p==4) return 255;
+    return 128+A/2;
+    // p is a chroma plane, assuming Y in [0,255] and X in [-255,255]
+        // more loss if more transparent
+        // more loss if closer to black
+//    return 128 + A/2 + Y/4 - 48;
+}
+void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int loss, bool adaptive, Image &map) {
+    ColorVal min,max;
+    int nump = images[0].numPlanes();
+    const bool alphazero = (nump>3 && images[0].alpha_zero_special);
+    const bool FRA = (nump == 5);
+    int beginZL = images[0].zooms();
+    int endZL = 0;
+    int lossp[] = {(loss+6)/10, (loss+3)/5, (loss+3)/4, loss/10, 0};  // less loss on Y, more on Co and Cg
+    for (int i = 0; i < plane_zoomlevels(images[0], beginZL, endZL); i++) {
+      std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i);
+      int p = pzl.first;
+      int z = pzl.second;
+      if (ranges->min(p) >= ranges->max(p)) continue;
+      Properties properties((nump>3?NB_PROPERTIESA[p]:NB_PROPERTIES[p]));
+      if (z % 2 == 0) {
+        // horizontal: scan the odd rows, output pixel values
+          for (uint32_t r = 1; r < images[0].rows(z); r += 2) {
+            for (int fr=0; fr<(int)images.size(); fr++) {
+              Image& image = images[fr];
+              if (image.seen_before >= 0) { continue; }
+              uint32_t begin=(image.col_begin[r*image.zoom_rowpixelsize(z)]/image.zoom_colpixelsize(z)),
+                         end=(1+(image.col_end[r*image.zoom_rowpixelsize(z)]-1)/image.zoom_colpixelsize(z));
+              for (uint32_t c = begin; c < end; c++) {
+                    if (alphazero && p<3 && image(3,z,r,c) == 0) continue;
+                    if (FRA && p<4 && image(4,z,r,c) > 0) continue;
+                    ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
+                    ColorVal curr = image(p,z,r,c);
+                    if (FRA && p==4 && max > fr) max = fr;
+                    // less error in the early steps (so minus z)
+                    ColorVal diff = flif_make_lossy(min - guess, max - guess, curr - guess,
+                                        (adaptive? 255-map(0,z,r,c) : 255) * (lossp[p]-(z*(3+lossp[p])/beginZL)) / luma_alpha_compensate(p,image(0,z,r,c),image(p,z,r,c),(nump>3?image(3,z,r,c):255)));
+                    ColorVal lossyval = guess+diff;
+                    ranges->snap(p,properties,min,max,lossyval);
+                    image.set(p,z,r,c, lossyval);
+              }
+            }
+          }
+      } else {
+        // vertical: scan the odd columns
+          for (uint32_t r = 0; r < images[0].rows(z); r++) {
+            for (int fr=0; fr<(int)images.size(); fr++) {
+              Image& image = images[fr];
+              if (image.seen_before >= 0) { continue; }
+              uint32_t begin=(image.col_begin[r*image.zoom_rowpixelsize(z)]/image.zoom_colpixelsize(z)),
+                         end=(1+(image.col_end[r*image.zoom_rowpixelsize(z)]-1)/image.zoom_colpixelsize(z))|1;
+              if (begin>1 && ((begin&1) ==0)) begin--;
+              if (begin==0) begin=1;
+              for (uint32_t c = begin; c < end; c+=2) {
+                    if (alphazero && p<3 && image(3,z,r,c) == 0) continue;
+                    if (FRA && p<4 && image(4,z,r,c) > 0) continue;
+                    ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
+                    ColorVal curr = image(p,z,r,c);
+                    if (FRA && p==4 && max > fr) max = fr;
+                    ColorVal diff = flif_make_lossy(min - guess, max - guess, curr - guess,
+                                        (adaptive? 255-map(0,z,r,c) : 255) * (lossp[p]-(z*(3+lossp[p])/beginZL)) / luma_alpha_compensate(p,image(0,z,r,c),image(p,z,r,c),(nump>3?image(3,z,r,c):255)));
+                    ColorVal lossyval = guess+diff;
+                    ranges->snap(p,properties,min,max,lossyval);
+                    image.set(p,z,r,c, lossyval);
+              }
+            }
+          }
+      }
     }
 }
 
@@ -339,11 +487,21 @@ void flif_encode_main(RacOut<IO>& rac, IO& io, Images &images, flifEncoding enco
 template <typename IO>
 bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding,
                  int learn_repeats, int acb, int palette_size, int lookback,
-                 int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int cutoff=2, int alpha=19, int crc_check=-1) {
+                 int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD,
+                 int cutoff=2, int alpha=19, int crc_check=-1, int loss=0) {
 
     io.fputs("FLIF");  // bytes 1-4 are fixed magic
     int numPlanes = images[0].numPlanes();
     int numFrames = images.size();
+    bool adaptive = (loss<0);
+    Image adaptive_map;
+    if (adaptive) { // images[0] is the still image to be encoded, images[1] is the saliency map for adaptive lossy
+        loss = -loss;
+        if (numFrames != 2) { e_printf("Expected two input images: [IMAGE] [ADAPTIVE-MAP]\n"); return false; }
+        adaptive_map = images[1].clone();
+        numFrames = 1;
+        images.pop_back();
+    }
 
     // byte 5 encodes color type, interlacing, animation
     // 128 64 32 16 8 4 2 1
@@ -436,7 +594,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     alpha = 0xFFFFFFFF/alpha;
 
     uint32_t checksum = 0;
-    if (crc_check) {
+    if (crc_check && !loss) {
       if (alphazero) for (Image& i : images) i.make_invisible_rgb_black();
       checksum = image.checksum(); // if there are multiple frames, the checksum is based only on the first frame.
     }
@@ -504,6 +662,18 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
         }
     }
 
+    if (loss > 0) {
+      switch(encoding) {
+        case flifEncoding::nonInterlaced:
+            flif_make_lossy_scanlines(images,ranges,loss,adaptive,adaptive_map);
+            if (alphazero && ranges->numPlanes() > 3 && ranges->min(3) <= 0) flif_encode_scanlines_interpol_zero_alpha(images, ranges);
+            break;
+        case flifEncoding::interlaced:
+            flif_make_lossy_interlaced(images,ranges,loss,adaptive,adaptive_map);
+            if (alphazero && ranges->numPlanes() > 3 && ranges->min(3) <= 0) flif_encode_FLIF2_interpol_zero_alpha(images, ranges, image.zooms(), 0);
+            break;
+      }
+    }
 
     if (bits ==10) {
       flif_encode_main<10>(rac, io, images, encoding, learn_repeats, ranges, divisor, min_size, split_threshold, cutoff, alpha);
@@ -513,7 +683,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
 #endif
     }
 
-    if (crc_check && (crc_check>0 || io.ftell() > 100)) {
+    if (crc_check && !loss && (crc_check>0 || io.ftell() > 100)) {
       //v_printf(2,"Writing checksum: %X\n", checksum);
       metaCoder.write_int(0,1,1);
       metaCoder.write_int(16, (checksum >> 16) & 0xFFFF);
@@ -535,7 +705,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
 }
 
 
-template bool flif_encode(FileIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int palette_size, int lookback, int divisor, int min_size, int split_threshold, int cutoff, int alpha, int crc_check);
-template bool flif_encode(BlobIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int palette_size, int lookback, int divisor, int min_size, int split_threshold, int cutoff, int alpha, int crc_check);
+template bool flif_encode(FileIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int palette_size, int lookback, int divisor, int min_size, int split_threshold, int cutoff, int alpha, int crc_check, int loss);
+template bool flif_encode(BlobIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int palette_size, int lookback, int divisor, int min_size, int split_threshold, int cutoff, int alpha, int crc_check, int loss);
 
 #endif

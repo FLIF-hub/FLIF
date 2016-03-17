@@ -50,7 +50,8 @@ protected:
     std::vector<ColorVal> CPalette_inv_vector[4];
 
 public:
-    bool init(const ColorRanges *) override {
+    bool init(const ColorRanges *srcRanges) override {
+        if (srcRanges->numPlanes()>4) return false; // FRA should always be done after CC, this is just to catch bad input
         return true;
     }
 

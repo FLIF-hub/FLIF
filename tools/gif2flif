@@ -37,5 +37,5 @@ fi
 echo "Decoding $IN ..."
 FRAME_DELAY="$($CONVERT -identify -format "%T0," -coalesce "$IN" $TMP_PREFIX%04d.$TMP_FORMAT)"
 echo "Encoding $OUT ..."
-$FLIF -F$FRAME_DELAY $@ $TMP_PREFIX*.$TMP_FORMAT "$OUT"
+$FLIF -F "$FRAME_DELAY" $@ $TMP_PREFIX*.$TMP_FORMAT "$OUT"
 rm $TMP_PREFIX*.$TMP_FORMAT
