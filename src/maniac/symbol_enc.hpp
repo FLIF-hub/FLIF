@@ -61,15 +61,18 @@ template <int bits, typename SymbolCoder> void writer(SymbolCoder& coder, int mi
         return;
     }
 
+    assert(min <= 0 && max >= 0); // should always be the case, because guess should always be in valid range
+
     // only output zero bit if value could also have been zero
-    if (max >= 0 && min <= 0) coder.write(false,BIT_ZERO);
+    //if (max >= 0 && min <= 0) 
+    coder.write(false,BIT_ZERO);
     int sign = (value > 0 ? 1 : 0);
     if (max > 0 && min < 0) {
         // only output sign bit if value can be both pos and neg
-        if (min < 0 && max > 0) coder.write(sign,BIT_SIGN);
+        coder.write(sign,BIT_SIGN);
     }
-    if (sign && min <= 0) min = 1;
-    if (!sign && max >= 0) max = -1;
+    if (sign) min = 1;
+    if (!sign) max = -1;
     const int a = abs(value);
     const int e = maniac::util::ilog2(a);
     int amin = sign ? abs(min) : abs(max);

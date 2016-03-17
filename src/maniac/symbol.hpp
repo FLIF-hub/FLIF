@@ -179,7 +179,8 @@ template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min
     if (min == max) return min;
 
     bool sign;
-    if (max >= 0 && min <= 0) {
+    assert(min <= 0 && max >= 0); // should always be the case, because guess should always be in valid range
+//    if (max >= 0 && min <= 0) {
       if (coder.read(BIT_ZERO)) return 0;
       if (min < 0) {
         if (max > 0) {
@@ -187,11 +188,11 @@ template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min
                 if (sign) min = 1; else max = -1;
         } else {sign = false; max=-1;}
       } else {sign = true; min=1;}
-    } else {
+//    } else {
         // max < 0 || min > 0
-        if (min<0) sign = false;
-        else sign = true;
-    }
+//        if (min<0) sign = false;
+//        else sign = true;
+//    }
 
     const int amin = (sign? min : -max);
     const int amax = (sign? max : -min);
