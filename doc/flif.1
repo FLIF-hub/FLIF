@@ -217,6 +217,9 @@ The default setting is \fB\-M\fR\fI50\fR, which roughly means that subtrees are 
 The entropy coding ultimately outputs bits according to some adaptive chance. Chances are represented as 12-bit numbers which represent
 a rational number of the form \fIx\fR/4096. The lowest possible chance is set at \fICUTOFF\fR/4096, the highest possible chance
 is (4096-\fICUTOFF\fR)/4096. The default value is \fB\-X\fR\fI2\fR.
+If you have an input image that is extremely predictable, you may want to try \fB\-X\fR\fI1\fR, which allows chances to converge to
+more extreme values, resulting in even better compression. If however the input is rather noisy, you could use a higher value like \fB\-X\fR\fI20\fR
+to limit the cost of bad prediction. (If the input is very noisy, it may be better to not try to compress it in the first place.)
 .TP
 \fB\-Z\fR, \fB\-\-chance-alpha\fR=\fIALPHA\fR
 The chance adaptation in the entropy coding uses this parameter to control how rapidly the chance is allowed to change.
