@@ -180,21 +180,15 @@ template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min
 
     bool sign;
     assert(min <= 0 && max >= 0); // should always be the case, because guess should always be in valid range
-//    if (max >= 0 && min <= 0) {
+
       if (coder.read(BIT_ZERO)) return 0;
       if (min < 0) {
         if (max > 0) {
-                sign = coder.read(BIT_SIGN);
-                if (sign) min = 1; else max = -1;
-        } else {sign = false; max=-1;}
-      } else {sign = true; min=1;}
-//    } else {
-        // max < 0 || min > 0
-//        if (min<0) sign = false;
-//        else sign = true;
-//    }
+          sign = coder.read(BIT_SIGN);
+        } else {sign = false; }
+      } else {sign = true; }
 
-    const int amin = (sign? min : -max);
+    const int amin = 1;
     const int amax = (sign? max : -min);
 
     const int emax = maniac::util::ilog2(amax);
