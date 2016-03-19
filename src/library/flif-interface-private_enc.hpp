@@ -39,6 +39,13 @@ struct FLIF_ENCODER
     int32_t min_size;
     int32_t split_threshold;
     int32_t alpha_zero_special;
+    uint32_t crc_check;
+    uint32_t channel_compact;
+    uint32_t ycocg;
+    uint32_t frame_shape;
+    int32_t loss;
+    int32_t chance_cutoff;
+    int32_t chance_alpha;
 
 private:
     std::vector<FLIF_IMAGE*> images;
