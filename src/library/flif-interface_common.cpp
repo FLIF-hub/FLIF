@@ -25,6 +25,9 @@ FLIF_IMAGE::FLIF_IMAGE() { }
 struct FLIF_RGBA {
     uint8_t r,g,b,a;
 };
+struct FLIF_RGBA16 {
+    uint16_t r,g,b,a;
+};
 #pragma pack(pop)
 
 void FLIF_IMAGE::write_row_RGBA8(uint32_t row, const void* buffer, size_t buffer_size_bytes) {
@@ -84,6 +87,63 @@ void FLIF_IMAGE::read_row_RGBA8(uint32_t row, void* buffer, size_t buffer_size_b
     }
 }
 
+void FLIF_IMAGE::write_row_RGBA16(uint32_t row, const void* buffer, size_t buffer_size_bytes) {
+    if(buffer_size_bytes < image.cols() * sizeof(FLIF_RGBA16))
+        return;
+
+    const FLIF_RGBA16* buffer_rgba = reinterpret_cast<const FLIF_RGBA16*>(buffer);
+
+    if(image.numPlanes() >= 3) {
+        for (size_t c = 0; c < (size_t) image.cols(); c++) {
+            image.set(0, row, c, buffer_rgba[c].r);
+            image.set(1, row, c, buffer_rgba[c].g);
+            image.set(2, row, c, buffer_rgba[c].b);
+        }
+    }
+    if(image.numPlanes() >= 4) {
+        for (size_t c = 0; c < (size_t) image.cols(); c++) {
+            image.set(3, row, c, buffer_rgba[c].a);
+        }
+    }
+}
+
+void FLIF_IMAGE::read_row_RGBA16(uint32_t row, void* buffer, size_t buffer_size_bytes) {
+    if(buffer_size_bytes < image.cols() * sizeof(FLIF_RGBA16))
+        return;
+
+    FLIF_RGBA16* buffer_rgba = reinterpret_cast<FLIF_RGBA16*>(buffer);
+    int rshift = 0;
+    int lshift = 1;
+    ColorVal m=image.max(0);
+    while (m > 65535) { rshift++; m = m >> 1; } // in case the image has bit depth higher than 16
+    while (m * ((1 << lshift)-1) < 65535) { lshift++; } // in case the image has bit depth lower than 16
+
+    if(image.numPlanes() >= 3) {
+        // color
+        for (size_t c = 0; c < (size_t) image.cols(); c++) {
+            buffer_rgba[c].r = ((image(0, row, c) >> rshift) * ((1<<lshift)-1)) & 0xFFFF;
+            buffer_rgba[c].g = ((image(1, row, c) >> rshift) * ((1<<lshift)-1)) & 0xFFFF;
+            buffer_rgba[c].b = ((image(2, row, c) >> rshift) * ((1<<lshift)-1)) & 0xFFFF;
+        }
+    } else {
+        // grayscale
+        for (size_t c = 0; c < (size_t) image.cols(); c++) {
+            buffer_rgba[c].r =
+            buffer_rgba[c].g =
+            buffer_rgba[c].b = ((image(0, row, c) >> rshift) * ((1<<lshift)-1)) & 0xFFFF;
+        }
+    }
+    if(image.numPlanes() >= 4) {
+        for (size_t c = 0; c < (size_t) image.cols(); c++) {
+            buffer_rgba[c].a = ((image(3, row, c) >> rshift) * ((1<<lshift)-1)) & 0xFFFF;
+        }
+    } else {
+        for (size_t c = 0; c < (size_t) image.cols(); c++) {
+            buffer_rgba[c].a = 0xFFFF;  // fully opaque
+        }
+    }
+}
+
 //=============================================================================
 
 /*!
@@ -106,6 +166,21 @@ FLIF_DLLEXPORT FLIF_IMAGE* FLIF_API flif_create_image(uint32_t width, uint32_t h
     {
         std::unique_ptr<FLIF_IMAGE> image(new FLIF_IMAGE());
         image->image.init(width, height, 0, 255, 4);
+        return image.release();
+    }
+    catch(...) {}
+    return 0;
+}
+
+FLIF_DLLEXPORT FLIF_IMAGE* FLIF_API flif_create_image_HDR(uint32_t width, uint32_t height) {
+    try
+    {
+        std::unique_ptr<FLIF_IMAGE> image(new FLIF_IMAGE());
+#ifdef SUPPORT_HDR
+        image->image.init(width, height, 0, 65535, 4);
+#else
+        image->image.init(width, height, 0, 255, 4);
+#endif
         return image.release();
     }
     catch(...) {}
@@ -155,6 +230,14 @@ FLIF_DLLEXPORT uint32_t FLIF_API flif_image_get_frame_delay(FLIF_IMAGE* image) {
     return 0;
 }
 
+FLIF_DLLEXPORT void FLIF_API flif_image_set_frame_delay(FLIF_IMAGE* image, uint32_t delay) {
+    try
+    {
+        image->image.frame_delay = delay;
+    }
+    catch(...) {}
+}
+
 FLIF_DLLEXPORT void FLIF_API flif_image_write_row_RGBA8(FLIF_IMAGE* image, uint32_t row, const void* buffer, size_t buffer_size_bytes) {
     try
     {
@@ -167,6 +250,22 @@ FLIF_DLLEXPORT void FLIF_API flif_image_read_row_RGBA8(FLIF_IMAGE* image, uint32
     try
     {
         image->read_row_RGBA8(row, buffer, buffer_size_bytes);
+    }
+    catch(...) {}
+}
+
+FLIF_DLLEXPORT void FLIF_API flif_image_write_row_RGBA16(FLIF_IMAGE* image, uint32_t row, const void* buffer, size_t buffer_size_bytes) {
+    try
+    {
+        image->write_row_RGBA16(row, buffer, buffer_size_bytes);
+    }
+    catch(...) {}
+}
+
+FLIF_DLLEXPORT void FLIF_API flif_image_read_row_RGBA16(FLIF_IMAGE* image, uint32_t row, void* buffer, size_t buffer_size_bytes) {
+    try
+    {
+        image->read_row_RGBA16(row, buffer, buffer_size_bytes);
     }
     catch(...) {}
 }

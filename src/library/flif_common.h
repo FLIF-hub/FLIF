@@ -44,15 +44,20 @@ extern "C" {
     typedef struct FLIF_IMAGE FLIF_IMAGE;
 
     FLIF_DLLIMPORT FLIF_IMAGE* FLIF_API flif_create_image(uint32_t width, uint32_t height);
+    FLIF_DLLIMPORT FLIF_IMAGE* FLIF_API flif_create_image_HDR(uint32_t width, uint32_t height);
     FLIF_DLLIMPORT void FLIF_API flif_destroy_image(FLIF_IMAGE* image);
 
     FLIF_DLLIMPORT uint32_t FLIF_API flif_image_get_width(FLIF_IMAGE* image);
     FLIF_DLLIMPORT uint32_t FLIF_API flif_image_get_height(FLIF_IMAGE* image);
     FLIF_DLLIMPORT uint8_t  FLIF_API flif_image_get_nb_channels(FLIF_IMAGE* image);
     FLIF_DLLIMPORT uint32_t FLIF_API flif_image_get_frame_delay(FLIF_IMAGE* image);
+    FLIF_DLLIMPORT void FLIF_API flif_image_set_frame_delay(FLIF_IMAGE* image, uint32_t delay);
 
     FLIF_DLLIMPORT void FLIF_API flif_image_write_row_RGBA8(FLIF_IMAGE* image, uint32_t row, const void* buffer, size_t buffer_size_bytes);
     FLIF_DLLIMPORT void FLIF_API flif_image_read_row_RGBA8(FLIF_IMAGE* image, uint32_t row, void* buffer, size_t buffer_size_bytes);
+
+    FLIF_DLLIMPORT void FLIF_API flif_image_write_row_RGBA16(FLIF_IMAGE* image, uint32_t row, const void* buffer, size_t buffer_size_bytes);
+    FLIF_DLLIMPORT void FLIF_API flif_image_read_row_RGBA16(FLIF_IMAGE* image, uint32_t row, void* buffer, size_t buffer_size_bytes);
 
     FLIF_DLLIMPORT void FLIF_API flif_free_memory(void* buffer);
 
