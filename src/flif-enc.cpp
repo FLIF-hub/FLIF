@@ -361,7 +361,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
     const bool FRA = (nump == 5);
     int beginZL = images[0].zooms();
     int endZL = 0;
-    // preprocessing step: compensate for anticipated loss in final zoomlevel
+    // preprocessing step: compensate for anticipated loss in final zoomlevels
     for (int i = 0; i < plane_zoomlevels(images[0], beginZL, endZL); i++) {
       std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i);
       int p = pzl.first;
@@ -394,7 +394,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
                     //  curr:   120  -->  90 (guess)     so we compensate and make it   100   (error: 30 -> 20)
                     //  bottom: 80                                                      90    (error: 0 -> 10)
                     ColorVal diff = curr-guess;
-                    if (abs(diff) > actual_loss*5/4) continue;
+                    if (abs(diff) > actual_loss*6/5) continue;
                     ColorVal top = image(p,z,r-1,c) + diff/3;
                     for (int pp=0; pp<p; pp++) properties[pp] = image(pp,z,r-1,c);
                     ranges->snap(p,properties,min,max,top);
@@ -403,6 +403,45 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
                     ranges->snap(p,properties,min,max,bottom);
                     image.set(p,z,r-1,c, top);
                     image.set(p,z,r+1,c, bottom);
+              }
+            }
+          }
+    }
+    for (int i = 0; i < plane_zoomlevels(images[0], beginZL, endZL); i++) {
+      std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i);
+      int p = pzl.first;
+      int z = pzl.second;
+      if (z!=1) continue;
+      if (ranges->min(p) >= ranges->max(p)) continue;
+      Properties properties((nump>3?NB_PROPERTIESA[p]:NB_PROPERTIES[p]));
+      int lossp[] = {(loss+6)/10, (loss+2)/4, (loss+2)/3, loss/10, 0};  // less loss on Y, more on Co and Cg
+      if (lossp[p]==0) continue;
+          for (uint32_t r = 0; r < images[0].rows(z); r++) {
+            for (int fr=0; fr<(int)images.size(); fr++) {
+              Image& image = images[fr];
+              if (image.seen_before >= 0) { continue; }
+              uint32_t begin=(image.col_begin[r*image.zoom_rowpixelsize(z)]/image.zoom_colpixelsize(z)),
+                         end=(1+(image.col_end[r*image.zoom_rowpixelsize(z)]-1)/image.zoom_colpixelsize(z))|1;
+              if (begin>1 && ((begin&1) ==0)) begin--;
+              if (begin==0) begin=1;
+              for (uint32_t c = begin; c < end-1; c+=2) {
+                    if (alphazero && p<3 && image(3,z,r,c) == 0) continue;
+                    if (FRA && p<4 && image(4,z,r,c) > 0) continue;
+                    ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max);
+                    ColorVal curr = image(p,z,r,c);
+                    int factor=255;
+                    if (z==1) factor += loss;
+                    int actual_loss = (adaptive? factor-map(0,z,r,c) : factor) * lossp[p] / luma_alpha_compensate(p,image(0,z,r,c),image(p,z,r,c),(nump>3?image(3,z,r,c):255));
+                    ColorVal diff = curr-guess;
+                    if (abs(diff) > actual_loss) continue;
+                    ColorVal left = image(p,z,r,c-1) + diff/3;
+                    for (int pp=0; pp<p; pp++) properties[pp] = image(pp,z,r,c-1);
+                    ranges->snap(p,properties,min,max,left);
+                    ColorVal right = image(p,z,r,c+1) + diff/3;
+                    for (int pp=0; pp<p; pp++) properties[pp] = image(pp,z,r,c+1);
+                    ranges->snap(p,properties,min,max,right);
+                    image.set(p,z,r,c-1, left);
+                    image.set(p,z,r,c+1, right);
               }
             }
           }
