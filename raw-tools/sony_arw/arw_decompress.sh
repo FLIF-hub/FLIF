@@ -28,9 +28,15 @@ tar -C "$DIR" -xf "$SRC"
 tar -C "$DIR" -Jxf "$DIR"/extra.tar.xz
 START=$(stat -c '%s' "$DIR"/begin)
 HALF_WIDTH=$(flif -i "$DIR"/result.flif | sed -e 's/^.*FLIF image, \([0-9]*\)x.*$/\1/')
+PADDING=00
+if [ -e "$DIR"/padding ]
+then
+	PADDING=$(head -c1 "$DIR/padding" | xxd -ps)
+	rm "$DIR"/padding
+fi
 
 flif -d "$DIR"/result.flif "$DIR"/result.flif.png
-(cat "$DIR"/begin; convert "$DIR"/result.flif.png -depth 16 rgba:- | arw_encode $HALF_WIDTH $START "$DIR"/alarms.bin) > "$DST"
+(cat "$DIR"/begin; convert "$DIR"/result.flif.png -depth 16 rgba:- | arw_encode $HALF_WIDTH $START "$DIR"/alarms.bin $PADDING) > "$DST"
 if ! sha256sum --quiet -c "$DIR"/orig.sha256 < "$DST"
 then
 	echo "SHA mismatch, $DST broken, stuff left in $DIR :-("

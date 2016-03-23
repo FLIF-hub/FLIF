@@ -2796,6 +2796,14 @@ void CLASS sony_arw2_load_raw()
 	  chunk_cnt++;
     }
   }
+
+  // 2 of tested cameras added zeroes for padding, whereas 1 added 0xFF
+  // instead
+  data[0] = 0;
+  fread(data, 1, 1, ifp);
+  if(data[0] != 0)
+	  fprintf(stderr, "PADDING: %hhx\n", data[0]);
+
   free (data);
   free(debayer_buf);
 }
