@@ -21,7 +21,7 @@ limitations under the License.
 const std::vector<std::string> transforms = {"Channel_Compact", "YCoCg", "Bounds",
                                              "Palette_Alpha", "Palette", "?? Palette_Chroma ??", "Color_Buckets",
                                              "Duplicate_Frame", "Frame_Shape", "Frame_Lookback",
-                                             "?? YCbCr ??", "?? DCT ??", "?? DWT ??", "?? Quantization ??",
+                                             "?? YCbCr ??", "DCT", "?? DWT ??", "?? Quantization ??",
                                              "?? Reserved ??", "?? Other ??" };
 // Plenty of room for future extensions: transform "Other" can be used to encode identifiers of arbitrary many other transforms
 
@@ -63,8 +63,8 @@ ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRang
 }
 
 
-const int NB_PROPERTIES[] = {7,9,8,7,7};
-const int NB_PROPERTIESA[] = {8,10,9,7,7};
+const int NB_PROPERTIES[] = {8,10,9,8,8};
+const int NB_PROPERTIESA[] = {9,11,10,8,8};
 
 void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p) {
     propRanges.clear();
@@ -77,17 +77,22 @@ void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p) {
       }
       if (ranges.numPlanes()>3) propRanges.push_back(std::make_pair(ranges.min(3), ranges.max(3)));  // pixel on alpha plane
     }
+
+    //if (p<1 || p>2) 
+    propRanges.push_back(std::make_pair(0,2));       // median predictor: which of the three values is the median?
+
     if (p==1 || p==2) propRanges.push_back(std::make_pair(ranges.min(0)-ranges.max(0),ranges.max(0)-ranges.min(0))); // luma prediction miss
     propRanges.push_back(std::make_pair(mind,maxd)); // neighbor A - neighbor B   (top-bottom or left-right)
     propRanges.push_back(std::make_pair(mind,maxd)); // top/left prediction miss (previous pixel)
     propRanges.push_back(std::make_pair(mind,maxd)); // left/top prediction miss (other direction)
     propRanges.push_back(std::make_pair(mind,maxd)); // bottom/right prediction miss
     propRanges.push_back(std::make_pair(min,max));   // guess
-    //if (p<1 || p>2) propRanges.push_back(std::make_pair(0,2));       // which predictor was it
+
 //    propRanges.push_back(std::make_pair(mind,maxd));  // left - topleft
 //    propRanges.push_back(std::make_pair(mind,maxd));  // topleft - top
-    //propRanges.push_back(std::make_pair(mind,maxd));
 
+//    if (p == 0 || p > 2)
+//      propRanges.push_back(std::make_pair(mind,maxd)); // top - topright
     if (p != 2) {
       propRanges.push_back(std::make_pair(mind,maxd)); // toptop - top
       propRanges.push_back(std::make_pair(mind,maxd)); // leftleft - left
@@ -96,27 +101,27 @@ void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p) {
 
 // Actual prediction. Also sets properties. Property vector should already have the right size before calling this.
 // This is a fall-back function which should be replaced by direct calls to the specific predict_and_calcProps_plane function
-ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges, const Image &image, const int z, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) ATTRIBUTE_HOT;
-ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges, const Image &image, const int z, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) {
+ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges, const Image &image, const int z, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max, const int predictor) ATTRIBUTE_HOT;
+ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges, const Image &image, const int z, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max, const int predictor) {
     image.getPlane(0).prepare_zoomlevel(z);
     image.getPlane(p).prepare_zoomlevel(z);
     switch(p) {
       case 0:
-        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,true,false,0,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max);
-        else return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,false,false,0,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max);
+        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,true,false,0,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max,predictor);
+        else return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,false,false,0,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max,predictor);
       case 1:
-        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,true,false,1,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max);
-        else return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,false,false,1,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max);
+        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,true,false,1,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max,predictor);
+        else return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,false,false,1,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max,predictor);
       case 2:
-        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,true,false,2,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max);
-        else return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,false,false,2,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max);
+        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,true,false,2,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max,predictor);
+        else return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,false,false,2,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max,predictor);
       case 3:
-        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,true,false,3,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max);
-        else return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,false,false,3,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max);
+        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,true,false,3,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max,predictor);
+        else return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,false,false,3,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max,predictor);
       default:
         assert(p==4);
-        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,true,false,4,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max);
-        else return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,false,false,4,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max);
+        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,true,false,4,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max,predictor);
+        else return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,false,false,4,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max,predictor);
     }
 }
 

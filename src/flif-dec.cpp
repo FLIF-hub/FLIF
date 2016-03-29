@@ -272,7 +272,7 @@ void flif_decode_FLIF2_inner_interpol(Images &images, const ColorRanges *ranges,
 // assumption: plane and alpha are prepare_zoomlevel(z)
 template<typename Coder, typename plane_t, typename alpha_t, int p, typename ranges_t>
 void flif_decode_plane_zoomlevel_horizontal(plane_t &plane, Coder &coder, Images &images, const ranges_t *ranges, const alpha_t &alpha, const alpha_t &planeY, Properties &properties,
-    const int z, const int fr, const uint32_t r,  const bool alphazero, const bool FRA) {
+    const int z, const int fr, const uint32_t r,  const bool alphazero, const bool FRA, const int predictor) {
     ColorVal min,max;
     Image& image = images[fr];
     if (image.seen_before >= 0) {
@@ -301,19 +301,19 @@ void flif_decode_plane_zoomlevel_horizontal(plane_t &plane, Coder &coder, Images
     if (r > 1 && r < image.rows(z)-1 && !FRA && begin == 0 && end > 3) {
       for (uint32_t c = begin; c < 2; c++) {
         if (alphazero && p<3 && alpha.get_fast(r,c) == 0) { plane.set_fast(r,c,predict_plane_horizontal(plane,z,p,r,c, image.rows(z))); continue;}
-        ColorVal guess = predict_and_calcProps_plane<plane_t,alpha_t,true,false,p,ranges_t>(properties,ranges,image,plane,planeY,z,r,c,min,max);
+        ColorVal guess = predict_and_calcProps_plane<plane_t,alpha_t,true,false,p,ranges_t>(properties,ranges,image,plane,planeY,z,r,c,min,max, predictor);
         ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
         plane.set_fast(r,c, curr);
       }
       for (uint32_t c = 2; c < end-2; c++) {
         if (alphazero && p<3 && alpha.get_fast(r,c) == 0) { plane.set_fast(r,c,predict_plane_horizontal(plane,z,p,r,c, image.rows(z))); continue;}
-        ColorVal guess = predict_and_calcProps_plane<plane_t,alpha_t,true,true,p,ranges_t>(properties,ranges,image,plane,planeY,z,r,c,min,max);
+        ColorVal guess = predict_and_calcProps_plane<plane_t,alpha_t,true,true,p,ranges_t>(properties,ranges,image,plane,planeY,z,r,c,min,max, predictor);
         ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
         plane.set_fast(r,c, curr);
       }
       for (uint32_t c = end-2; c < end; c++) {
         if (alphazero && p<3 && alpha.get_fast(r,c) == 0) { plane.set_fast(r,c,predict_plane_horizontal(plane,z,p,r,c, image.rows(z))); continue;}
-        ColorVal guess = predict_and_calcProps_plane<plane_t,alpha_t,true,false,p,ranges_t>(properties,ranges,image,plane,planeY,z,r,c,min,max);
+        ColorVal guess = predict_and_calcProps_plane<plane_t,alpha_t,true,false,p,ranges_t>(properties,ranges,image,plane,planeY,z,r,c,min,max, predictor);
         ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
         plane.set_fast(r,c, curr);
       }
@@ -323,7 +323,7 @@ void flif_decode_plane_zoomlevel_horizontal(plane_t &plane, Coder &coder, Images
       for (uint32_t c = begin; c < end; c++) {
         if (alphazero && p<3 && alpha.get_fast(r,c) == 0) { plane.set_fast(r,c,predict_plane_horizontal(plane,z,p,r,c, image.rows(z))); continue;}
         if (FRA && p<4 && image.getFRA(z,r,c) > 0) { plane.set_fast(r,c,images[fr-image.getFRA(z,r,c)](p,z,r,c)); continue;}
-        ColorVal guess = predict_and_calcProps_plane<plane_t,alpha_t,true,false,p,ranges_t>(properties,ranges,image,plane,planeY,z,r,c,min,max);
+        ColorVal guess = predict_and_calcProps_plane<plane_t,alpha_t,true,false,p,ranges_t>(properties,ranges,image,plane,planeY,z,r,c,min,max, predictor);
         if (FRA && p==4 && max > fr) max = fr;
         ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
         plane.set_fast(r,c, curr);
@@ -333,7 +333,7 @@ void flif_decode_plane_zoomlevel_horizontal(plane_t &plane, Coder &coder, Images
 
 template<typename Coder, typename plane_t, typename alpha_t, int p, typename ranges_t>
 void flif_decode_plane_zoomlevel_vertical(plane_t &plane, Coder &coder, Images &images, const ranges_t *ranges, const alpha_t &alpha, const alpha_t &planeY, Properties &properties,
-    const int z, const int fr, const uint32_t r,  const bool alphazero, const bool FRA) {
+    const int z, const int fr, const uint32_t r,  const bool alphazero, const bool FRA, const int predictor) {
     ColorVal min,max;
     Image& image = images[fr];
     if (image.seen_before >= 0) {
@@ -366,19 +366,19 @@ void flif_decode_plane_zoomlevel_vertical(plane_t &plane, Coder &coder, Images &
       uint32_t c = begin;
       for (; c < 3; c+=2) {
         if (alphazero && p<3 && alpha.get_fast(r,c) == 0) { plane.set_fast(r,c,predict_plane_vertical(plane, z, p, r, c, image.cols(z))); continue;}
-        ColorVal guess = predict_and_calcProps_plane<plane_t,alpha_t,false,false,p,ranges_t>(properties,ranges,image,plane,planeY,z,r,c,min,max);
+        ColorVal guess = predict_and_calcProps_plane<plane_t,alpha_t,false,false,p,ranges_t>(properties,ranges,image,plane,planeY,z,r,c,min,max, predictor);
         ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
         plane.set_fast(r,c, curr);
       }
       for (; c < end-2; c+=2) {
         if (alphazero && p<3 && alpha.get_fast(r,c) == 0) { plane.set_fast(r,c,predict_plane_vertical(plane, z, p, r, c, image.cols(z))); continue;}
-        ColorVal guess = predict_and_calcProps_plane<plane_t,alpha_t,false,true,p,ranges_t>(properties,ranges,image,plane,planeY,z,r,c,min,max);
+        ColorVal guess = predict_and_calcProps_plane<plane_t,alpha_t,false,true,p,ranges_t>(properties,ranges,image,plane,planeY,z,r,c,min,max, predictor);
         ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
         plane.set_fast(r,c, curr);
       }
       for (; c < end; c+=2) {
         if (alphazero && p<3 && alpha.get_fast(r,c) == 0) { plane.set_fast(r,c,predict_plane_vertical(plane, z, p, r, c, image.cols(z))); continue;}
-        ColorVal guess = predict_and_calcProps_plane<plane_t,alpha_t,false,false,p,ranges_t>(properties,ranges,image,plane,planeY,z,r,c,min,max);
+        ColorVal guess = predict_and_calcProps_plane<plane_t,alpha_t,false,false,p,ranges_t>(properties,ranges,image,plane,planeY,z,r,c,min,max, predictor);
         ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
         plane.set_fast(r,c, curr);
       }
@@ -388,7 +388,7 @@ void flif_decode_plane_zoomlevel_vertical(plane_t &plane, Coder &coder, Images &
       for (uint32_t c = begin; c < end; c+=2) {
         if (alphazero && p<3 && alpha.get_fast(r,c) == 0) { plane.set(z,r,c,predict_plane_vertical(plane, z, p, r, c, image.cols(z))); continue;}
         if (FRA && p<4 && image.getFRA(z,r,c) > 0) { plane.set(z,r,c,images[fr-image.getFRA(z,r,c)](p,z,r,c)); continue;}
-        ColorVal guess = predict_and_calcProps_plane<plane_t,alpha_t,false,false,p,ranges_t>(properties,ranges,image,plane,planeY,z,r,c,min,max);
+        ColorVal guess = predict_and_calcProps_plane<plane_t,alpha_t,false,false,p,ranges_t>(properties,ranges,image,plane,planeY,z,r,c,min,max, predictor);
         if (FRA && p==4 && max > fr) max = fr;
         ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
         //plane.set(z,r,c, curr);
@@ -401,10 +401,10 @@ void flif_decode_plane_zoomlevel_vertical(plane_t &plane, Coder &coder, Images &
 template<typename Coder, typename alpha_t, int p, typename ranges_t>
 struct horizontal_plane_decoder: public PlaneVisitor {
     Coder &coder; Images &images; const ranges_t *ranges; Properties &properties; const int z; const bool alphazero, FRA;
-    uint32_t r; int fr; const alpha_t *alpha; const alpha_t *planeY;
+    uint32_t r; int fr; const alpha_t *alpha; const alpha_t *planeY; const int predictor;
 
-    horizontal_plane_decoder(Coder &c, Images &i, const ranges_t *ra, Properties &prop, const int zl, const bool az, const bool fra) :
-        coder(c), images(i), ranges(ra), properties(prop), z(zl), alphazero(az), FRA(fra) {}
+    horizontal_plane_decoder(Coder &c, Images &i, const ranges_t *ra, Properties &prop, const int zl, const bool az, const bool fra, const int pred) :
+        coder(c), images(i), ranges(ra), properties(prop), z(zl), alphazero(az), FRA(fra), predictor(pred) {}
 
     void prepare_row(uint32_t row, int frame, const alpha_t *a, const alpha_t *pY) {
         r = row;
@@ -414,23 +414,23 @@ struct horizontal_plane_decoder: public PlaneVisitor {
     }
     void visit(Plane<ColorVal_intern_8>   &plane) override {
         // this branching on plane number is just to avoid too much template code blowup
-        if (p==0) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_8>,alpha_t,0,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA);
-        if (p==3) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_8>,alpha_t,3,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA);
-        if (p==4) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_8>,alpha_t,4,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA);
+        if (p==0) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_8>,alpha_t,0,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor);
+        if (p==3) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_8>,alpha_t,3,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor);
+        if (p==4) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_8>,alpha_t,4,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor);
     }
     void visit(Plane<ColorVal_intern_16>  &plane) override {
-        if (p==1) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_16>,alpha_t,1,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA);
-        if (p==2) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_16>,alpha_t,2,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA);
+        if (p==1) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_16>,alpha_t,1,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor);
+        if (p==2) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_16>,alpha_t,2,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor);
     }
 #ifdef SUPPORT_HDR
     void visit(Plane<ColorVal_intern_16u> &plane) override {
-        if (p==0) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_16u>,alpha_t,0,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA);
-        if (p==3) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_16u>,alpha_t,3,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA);
-        if (p==4) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_16u>,alpha_t,4,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA);
+        if (p==0) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_16u>,alpha_t,0,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor);
+        if (p==3) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_16u>,alpha_t,3,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor);
+        if (p==4) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_16u>,alpha_t,4,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor);
     }
     void visit(Plane<ColorVal_intern_32>  &plane) override {
-        if (p==1) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_32>,alpha_t,1,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA);
-        if (p==2) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_32>,alpha_t,2,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA);
+        if (p==1) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_32>,alpha_t,1,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor);
+        if (p==2) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_32>,alpha_t,2,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor);
     }
 #endif
 //    void visit(ConstantPlane              &plane) override {flif_decode_plane_zoomlevel_horizontal<Coder,ConstantPlane,alpha_t,p>(plane,coder,images,ranges,*alpha,properties,z,fr,r,alphazero,FRA);}
@@ -440,10 +440,10 @@ struct horizontal_plane_decoder: public PlaneVisitor {
 template<typename Coder, typename alpha_t, int p, typename ranges_t>
 struct vertical_plane_decoder: public PlaneVisitor {
     Coder &coder; Images &images; const ranges_t *ranges; Properties &properties; const int z; const bool alphazero, FRA;
-    uint32_t r; int fr; const alpha_t *alpha; const alpha_t *planeY;
+    uint32_t r; int fr; const alpha_t *alpha; const alpha_t *planeY; const int predictor;
 
-    vertical_plane_decoder(Coder &c, Images &i, const ranges_t *ra, Properties &prop, const int zl, const bool az, const bool fra) :
-        coder(c), images(i), ranges(ra), properties(prop), z(zl), alphazero(az), FRA(fra) {}
+    vertical_plane_decoder(Coder &c, Images &i, const ranges_t *ra, Properties &prop, const int zl, const bool az, const bool fra, const int pred) :
+        coder(c), images(i), ranges(ra), properties(prop), z(zl), alphazero(az), FRA(fra), predictor(pred) {}
 
     void prepare_row(uint32_t row, int frame, const alpha_t *a, const alpha_t *pY) {
         r = row;
@@ -453,23 +453,23 @@ struct vertical_plane_decoder: public PlaneVisitor {
     }
     void visit(Plane<ColorVal_intern_8>   &plane) override {
         // this branching on plane number is just to avoid too much template code blowup
-        if (p==0) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_8>,alpha_t,0,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA);
-        if (p==3) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_8>,alpha_t,3,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA);
-        if (p==4) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_8>,alpha_t,4,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA);
+        if (p==0) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_8>,alpha_t,0,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor);
+        if (p==3) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_8>,alpha_t,3,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor);
+        if (p==4) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_8>,alpha_t,4,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor);
     }
     void visit(Plane<ColorVal_intern_16>  &plane) override {
-        if (p==1) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_16>,alpha_t,1,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA);
-        if (p==2) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_16>,alpha_t,2,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA);
+        if (p==1) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_16>,alpha_t,1,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor);
+        if (p==2) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_16>,alpha_t,2,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor);
     }
 #ifdef SUPPORT_HDR
     void visit(Plane<ColorVal_intern_16u> &plane) override {
-        if (p==0) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_16u>,alpha_t,0,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA);
-        if (p==3) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_16u>,alpha_t,3,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA);
-        if (p==4) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_16u>,alpha_t,4,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA);
+        if (p==0) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_16u>,alpha_t,0,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor);
+        if (p==3) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_16u>,alpha_t,3,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor);
+        if (p==4) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_16u>,alpha_t,4,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor);
     }
     void visit(Plane<ColorVal_intern_32>  &plane) override {
-        if (p==1) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_32>,alpha_t,1,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA);
-        if (p==2) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_32>,alpha_t,2,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA);
+        if (p==1) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_32>,alpha_t,1,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor);
+        if (p==2) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_32>,alpha_t,2,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor);
     }
 #endif
 //    void visit(ConstantPlane              &plane) override {flif_decode_plane_zoomlevel_vertical<Coder,ConstantPlane,alpha_t,p>(plane,coder,images,ranges,*alpha,properties,z,fr,r,alphazero,FRA);}
@@ -477,12 +477,12 @@ struct vertical_plane_decoder: public PlaneVisitor {
 
 template<typename IO, typename Rac, typename Coder, typename alpha_t, int p, typename ranges_t>
 bool flif_decode_FLIF2_inner_horizontal(IO& io, Rac &rac, std::vector<Coder> &coders, Images &images, const ranges_t *ranges,
-                             const int beginZL, const int endZL, int quality, int scale, const int i, const int z) {
+                             const int beginZL, const int endZL, int quality, int scale, const int i, const int z, const int predictor) {
     const int nump = images[0].numPlanes();
     const bool alphazero = images[0].alpha_zero_special;
     const bool FRA = (nump == 5);
     Properties properties((nump>3?NB_PROPERTIESA[p]:NB_PROPERTIES[p]));
-    horizontal_plane_decoder<Coder,alpha_t,p,ranges_t> rowdecoder(coders[p],images,ranges,properties,z,alphazero,FRA);
+    horizontal_plane_decoder<Coder,alpha_t,p,ranges_t> rowdecoder(coders[p],images,ranges,properties,z,alphazero,FRA, predictor);
           for (uint32_t r = 1; r < images[0].rows(z); r += 2) {
             if (images[0].cols() == 0) return false; // decode aborted
             pixels_done += images[0].cols(z);
@@ -508,12 +508,12 @@ bool flif_decode_FLIF2_inner_horizontal(IO& io, Rac &rac, std::vector<Coder> &co
 }
 template<typename IO, typename Rac, typename Coder, typename alpha_t, int p, typename ranges_t>
 bool flif_decode_FLIF2_inner_vertical(IO& io, Rac &rac, std::vector<Coder> &coders, Images &images, const ranges_t *ranges,
-                             const int beginZL, const int endZL, int quality, int scale, const int i, const int z) {
+                             const int beginZL, const int endZL, int quality, int scale, const int i, const int z, const int predictor) {
     const int nump = images[0].numPlanes();
     const bool alphazero = images[0].alpha_zero_special;
     const bool FRA = (nump == 5);
     Properties properties((nump>3?NB_PROPERTIESA[p]:NB_PROPERTIES[p]));
-    vertical_plane_decoder<Coder,alpha_t,p,ranges_t> rowdecoder(coders[p],images,ranges,properties,z,alphazero,FRA);
+    vertical_plane_decoder<Coder,alpha_t,p,ranges_t> rowdecoder(coders[p],images,ranges,properties,z,alphazero,FRA, predictor);
           for (uint32_t r = 0; r < images[0].rows(z); r++) {
             if (images[0].cols() == 0) return false; // decode aborted
             pixels_done += images[0].cols(z)/2;
@@ -541,25 +541,25 @@ bool flif_decode_FLIF2_inner_vertical(IO& io, Rac &rac, std::vector<Coder> &code
 
 template<typename IO, typename Rac, typename Coder, typename alpha_t, typename ranges_t>
 bool flif_decode_FLIF2_inner_horizontal_p(int p, IO& io, Rac &rac, std::vector<Coder> &coders, Images &images, const ranges_t *ranges,
-                             const int beginZL, const int endZL, int quality, int scale, const int i, const int z) {
+                             const int beginZL, const int endZL, int quality, int scale, const int i, const int z, const int predictor) {
     switch(p) {
-        case 0: return flif_decode_FLIF2_inner_horizontal<IO,Rac,Coder,alpha_t,0,ranges_t>(io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z);
-        case 1: return flif_decode_FLIF2_inner_horizontal<IO,Rac,Coder,alpha_t,1,ranges_t>(io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z);
-        case 2: return flif_decode_FLIF2_inner_horizontal<IO,Rac,Coder,alpha_t,2,ranges_t>(io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z);
-        case 3: return flif_decode_FLIF2_inner_horizontal<IO,Rac,Coder,alpha_t,3,ranges_t>(io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z);
-        case 4: return flif_decode_FLIF2_inner_horizontal<IO,Rac,Coder,alpha_t,4,ranges_t>(io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z);
+        case 0: return flif_decode_FLIF2_inner_horizontal<IO,Rac,Coder,alpha_t,0,ranges_t>(io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z, predictor);
+        case 1: return flif_decode_FLIF2_inner_horizontal<IO,Rac,Coder,alpha_t,1,ranges_t>(io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z, predictor);
+        case 2: return flif_decode_FLIF2_inner_horizontal<IO,Rac,Coder,alpha_t,2,ranges_t>(io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z, predictor);
+        case 3: return flif_decode_FLIF2_inner_horizontal<IO,Rac,Coder,alpha_t,3,ranges_t>(io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z, predictor);
+        case 4: return flif_decode_FLIF2_inner_horizontal<IO,Rac,Coder,alpha_t,4,ranges_t>(io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z, predictor);
     }
     return false; // should not happen
 }
 template<typename IO, typename Rac, typename Coder, typename alpha_t, typename ranges_t>
 bool flif_decode_FLIF2_inner_vertical_p(int p, IO& io, Rac &rac, std::vector<Coder> &coders, Images &images, const ranges_t *ranges,
-                             const int beginZL, const int endZL, int quality, int scale, const int i, const int z) {
+                             const int beginZL, const int endZL, int quality, int scale, const int i, const int z, const int predictor) {
     switch(p) {
-        case 0: return flif_decode_FLIF2_inner_vertical<IO,Rac,Coder,alpha_t,0,ranges_t>(io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z);
-        case 1: return flif_decode_FLIF2_inner_vertical<IO,Rac,Coder,alpha_t,1,ranges_t>(io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z);
-        case 2: return flif_decode_FLIF2_inner_vertical<IO,Rac,Coder,alpha_t,2,ranges_t>(io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z);
-        case 3: return flif_decode_FLIF2_inner_vertical<IO,Rac,Coder,alpha_t,3,ranges_t>(io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z);
-        case 4: return flif_decode_FLIF2_inner_vertical<IO,Rac,Coder,alpha_t,4,ranges_t>(io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z);
+        case 0: return flif_decode_FLIF2_inner_vertical<IO,Rac,Coder,alpha_t,0,ranges_t>(io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z, predictor);
+        case 1: return flif_decode_FLIF2_inner_vertical<IO,Rac,Coder,alpha_t,1,ranges_t>(io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z, predictor);
+        case 2: return flif_decode_FLIF2_inner_vertical<IO,Rac,Coder,alpha_t,2,ranges_t>(io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z, predictor);
+        case 3: return flif_decode_FLIF2_inner_vertical<IO,Rac,Coder,alpha_t,3,ranges_t>(io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z, predictor);
+        case 4: return flif_decode_FLIF2_inner_vertical<IO,Rac,Coder,alpha_t,4,ranges_t>(io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z, predictor);
     }
     return false; // should not happen
 }
@@ -572,17 +572,31 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
 //    const bool alphazero = images[0].alpha_zero_special;
 //    const bool FRA = (nump == 5);
     // flif_decode
-
+    UniformSymbolCoder<Rac> metaCoder(rac);
+    std::vector<int> zoomlevels(nump, beginZL);
+    const bool default_order = metaCoder.read_int(0, 1);
+    const bool fixed_predictor = metaCoder.read_int(0, 1);
+    int predictor = 0;
+    if (fixed_predictor) predictor=metaCoder.read_int(0, MAX_PREDICTOR);
     for (int i = 0; i < plane_zoomlevels(images[0], beginZL, endZL); i++) {
-      std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i);
-      int p = pzl.first;
-      int z = pzl.second;
+      int p;
+      if (default_order) {
+        std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i);
+        p = pzl.first;
+        assert(zoomlevels[p] == pzl.second);
+      } else {
+        p = metaCoder.read_int(0, nump-1);
+      }
+      int z = zoomlevels[p];
+      if (z >= 0) zoomlevels[p]--;
+      else {e_printf("Corrupt file: invalid plane/zoomlevel\n"); return false;}
       if ((100*pixels_done > quality*pixels_todo)) {
               v_printf(5,"%lu subpixels done, %lu subpixels todo, quality target %i%% reached (%i%%)\n",(long unsigned)pixels_done,(long unsigned)pixels_todo,(int)quality,(int)(100*pixels_done/pixels_todo));
               flif_decode_FLIF2_inner_interpol(images, ranges, i, beginZL, endZL, (z%2 == 0 ?1:0), scale);
               return false;
       }
       if (ranges->min(p) < ranges->max(p)) {
+        if (!fixed_predictor) predictor = metaCoder.read_int(0, MAX_PREDICTOR);
         if (1<<(z/2) < scale) {
               v_printf(5,"%lu subpixels done (out of %lu subpixels at this scale), scale target 1:%i reached\n",(long unsigned)pixels_done,(long unsigned)pixels_todo,(int)scale);
               flif_decode_FLIF2_inner_interpol(images, ranges, i, beginZL, endZL, (z%2 == 0 ?1:0), scale);
@@ -597,15 +611,15 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
 //        GeneralPlane &alpha = nump > 3 ? images[0].getPlane(3) : null_alpha;
         if (z % 2 == 0) {
 //                if (alpha.is_constant()) { if (!flif_decode_FLIF2_inner_horizontal_p<IO,Rac,Coder,ConstantPlane,ranges_t>(p,io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z)) return false; }
-                if (images[0].getDepth() <= 8) { if (!flif_decode_FLIF2_inner_horizontal_p<IO,Rac,Coder,Plane<ColorVal_intern_8>,ranges_t>(p,io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z)) return false;}
+                if (images[0].getDepth() <= 8) { if (!flif_decode_FLIF2_inner_horizontal_p<IO,Rac,Coder,Plane<ColorVal_intern_8>,ranges_t>(p,io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z, predictor)) return false;}
 #ifdef SUPPORT_HDR
-                else if (images[0].getDepth() > 8) { if (!flif_decode_FLIF2_inner_horizontal_p<IO,Rac,Coder,Plane<ColorVal_intern_16u>,ranges_t>(p,io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z)) return false; }
+                else if (images[0].getDepth() > 8) { if (!flif_decode_FLIF2_inner_horizontal_p<IO,Rac,Coder,Plane<ColorVal_intern_16u>,ranges_t>(p,io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z, predictor)) return false; }
 #endif
         } else {
 //                if (alpha.is_constant()) { if (!flif_decode_FLIF2_inner_vertical_p<IO,Rac,Coder,ConstantPlane,ranges_t>(p,io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z)) return false;
-                if (images[0].getDepth() <= 8) { if (!flif_decode_FLIF2_inner_vertical_p<IO,Rac,Coder,Plane<ColorVal_intern_8>,ranges_t>(p,io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z)) return false;}
+                if (images[0].getDepth() <= 8) { if (!flif_decode_FLIF2_inner_vertical_p<IO,Rac,Coder,Plane<ColorVal_intern_8>,ranges_t>(p,io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z, predictor)) return false;}
 #ifdef SUPPORT_HDR
-                else if (images[0].getDepth() > 8) { if (!flif_decode_FLIF2_inner_vertical_p<IO,Rac,Coder,Plane<ColorVal_intern_16u>,ranges_t>(p,io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z)) return false;}
+                else if (images[0].getDepth() > 8) { if (!flif_decode_FLIF2_inner_vertical_p<IO,Rac,Coder,Plane<ColorVal_intern_16u>,ranges_t>(p,io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z, predictor)) return false;}
 #endif
 
         }
@@ -693,8 +707,10 @@ bool flif_decode_main(RacIn<IO>& rac, IO& io, Images &images, const ColorRanges 
     std::vector<Tree> forest(ranges->numPlanes(), Tree());
     int roughZL = 0;
     if (encoding == 2) {
-      roughZL = images[0].zooms() - NB_NOLEARN_ZOOMS-1;
-      if (roughZL < 0) roughZL = 0;
+//      roughZL = images[0].zooms() - NB_NOLEARN_ZOOMS-1;
+//      if (roughZL < 0) roughZL = 0;
+      UniformSymbolCoder<RacIn<IO>> metaCoder(rac);
+      roughZL = metaCoder.read_int(0,images[0].zooms());
 //      v_printf(2,"Decoding rough data\n");
       if (!flif_decode_FLIF2_pass<IO, RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, bits> >(io, rac, images, ranges, forest, images[0].zooms(), roughZL+1, 100, scale, transforms, callback, partial_images, cutoff, alpha)) {
         flif_decode_FLIF2_inner_interpol(images, ranges, 0, roughZL, 0, -1, scale);
@@ -795,7 +811,8 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     if (width < 1 || height < 1) {e_printf("Invalid FLIF header\n"); return false;}
 
     RacIn<IO> rac(io);
-    SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> metaCoder(rac);
+//    SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> metaCoder(rac);
+    UniformSymbolCoder<RacIn<IO>> metaCoder(rac);
 
 //    image.init(width, height, 0, 0, 0);
     v_printf(3,"Decoding %ux%u image, channels:",width,height);

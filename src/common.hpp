@@ -48,6 +48,7 @@ extern int progressive_qual_shown;
 
 
 #define MAX_TRANSFORM 15
+#define MAX_PREDICTOR 2
 
 extern const std::vector<std::string> transforms;
 
@@ -185,9 +186,9 @@ inline ColorVal predict(const Image &image, int z, int p, uint32_t r, uint32_t c
 
 // Actual prediction. Also sets properties. Property vector should already have the right size before calling this.
 template <typename plane_t, typename plane_tY, bool horizontal, bool nobordercases, int p, typename ranges_t>
-ColorVal predict_and_calcProps_plane(Properties &properties, const ranges_t *ranges, const Image &image, const plane_t &plane, const plane_tY &planeY, const int z, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) ATTRIBUTE_HOT;
+ColorVal predict_and_calcProps_plane(Properties &properties, const ranges_t *ranges, const Image &image, const plane_t &plane, const plane_tY &planeY, const int z, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max, const int predictor) ATTRIBUTE_HOT;
 template <typename plane_t, typename plane_tY, bool horizontal, bool nobordercases, int p, typename ranges_t>
-ColorVal predict_and_calcProps_plane(Properties &properties, const ranges_t *ranges, const Image &image, const plane_t &plane, const plane_tY &planeY, const int z, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max) {
+ColorVal predict_and_calcProps_plane(Properties &properties, const ranges_t *ranges, const Image &image, const plane_t &plane, const plane_tY &planeY, const int z, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max, const int predictor) {
     ColorVal guess;
     //int which = 0;
     int index = 0;
@@ -214,10 +215,20 @@ ColorVal predict_and_calcProps_plane(Properties &properties, const ranges_t *ran
         bottomleft = (nobordercases || (bottomPresent && c>0) ? PIXEL(z,r+1,c-1) : left);
         const ColorVal bottom = (nobordercases || bottomPresent ? PIXEL(z,r+1,c) : left);
         const ColorVal avg = (top + bottom)>>1;
+        const ColorVal topleftgradient = left+top-topleft;
+        const ColorVal median = median3(avg, topleftgradient, left+bottom-bottomleft);
+        int which = 2;
+        if (median == avg) which = 0;
+        else if (median == topleftgradient) which = 1;
+        properties[index++]=which;
         if (p == 1 || p == 2) {
           properties[index++] = PIXELY(z,r,c) - ((PIXELY(z,r-1,c)+PIXELY(z,(nobordercases || bottomPresent ? r+1 : r-1),c))>>1);
         }
-        guess = avg;
+        if (predictor == 0) guess = avg;
+        else if (predictor == 1)
+            guess = median;
+        else //if (predictor == 2)
+            guess = median3(top,bottom,left);
         ranges->snap(p,properties,min,max,guess);
         properties[index++] = top-bottom;
         properties[index++]=top-((topleft+topright)>>1);
@@ -231,11 +242,21 @@ ColorVal predict_and_calcProps_plane(Properties &properties, const ranges_t *ran
         topright = (nobordercases || (r>0 && rightPresent) ? PIXEL(z,r-1,c+1) : top);
         bottomleft = (nobordercases || (bottomPresent) ? PIXEL(z,r+1,c-1) : left);
         const ColorVal right = (nobordercases || rightPresent ? PIXEL(z,r,c+1) : top);
-        ColorVal avg = (left + right)>>1;
+        const ColorVal avg = (left + right)>>1;
+        const ColorVal topleftgradient = left+top-topleft;
+        const ColorVal median = median3(avg, topleftgradient, right+top-topright);
+        int which = 2;
+        if (median == avg) which = 0;
+        else if (median == topleftgradient) which = 1;
+        properties[index++]=which;
         if (p == 1 || p == 2) {
           properties[index++] = PIXELY(z,r,c) - ((PIXELY(z,r,c-1)+PIXELY(z,r,(nobordercases || rightPresent ? c+1 : c-1)))>>1);
         }
-        guess = avg;
+        if (predictor == 0) guess = avg;
+        else if (predictor == 1)
+            guess = median;
+        else //if (predictor == 2)
+            guess = median3(top,left,right);
         ranges->snap(p,properties,min,max,guess);
         properties[index++] = left-right;
         properties[index++]=left-((bottomleft+topleft)>>1);
@@ -250,6 +271,10 @@ ColorVal predict_and_calcProps_plane(Properties &properties, const ranges_t *ran
 //    properties[index++]=left - topleft;
 //    properties[index++]=topleft - top;
 
+//    if (p == 0 || p > 2) {
+//        if (nobordercases || (c+1 < image.cols(z) && r > 0)) properties[index++]=top - topright;
+//        else properties[index++]=0;
+//    }
     if (p != 2) {
         if (nobordercases || r > 1) properties[index++]=PIXEL(z,r-2,c)-top;    // toptop - top
         else properties[index++]=0;
@@ -259,7 +284,7 @@ ColorVal predict_and_calcProps_plane(Properties &properties, const ranges_t *ran
     return guess;
 }
 
-ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges, const Image &image, const int z, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max);
+ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges, const Image &image, const int z, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max, const int predictor);
 
 int plane_zoomlevels(const Image &image, const int beginZL, const int endZL);
 
