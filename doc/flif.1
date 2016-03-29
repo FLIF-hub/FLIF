@@ -153,11 +153,11 @@ Images which use relatively few different colors, e.g. ex-GIF images, can be com
 a palette of colors instead of the full RGB(A) color space. By default, \fBflif\fP uses a palette if
 the image has less than 1024 distinct colors. With this option, you can adjust this threshold.
 In particular, \fB-P\fR\fI0\fR disables the use of a color palette.
-.PP
+.br
 There are two kinds of palettes: Palette_Alpha contains RGBA colors, while Palette contains RGB colors.
 On images with transparency, it can be the case that there are more than \fINB_COLORS\fR distinct RGBA colors, but less than
 \fINB_COLORS\fR distinct RGB colors; in that case the Alpha channel gets encoded separately and the Palette transform is used.
-.PP
+.br
 By default, \fBflif\fP orders the palette in lexicographical order on the transformed color values -- typically (Y,Co,Cg) or (Alpha,Y,Co,Cg).
 If \fINB_COLORS\fR is a negative number, then the palette is not ordered and the colors are added in the order in which they appear
 in the image (in scanline order). In that case, the maximum palette size is the absolute value of \fINB_COLORS\fR.
@@ -169,7 +169,7 @@ to decide whether or not to use Color_Buckets. With this option, Color_Buckets i
 unless the image is a grayscale image or uses a palette (so to use color buckets instead of a palette, use \fB\-AP\fR\fI0\fR.
 .TP
 \fB\-B\fR, \fB\-\-no\-color\-buckets\fR
-Similar to \fB\-B\fR, this option overrides the heuristic and forces Color_Buckets to be disabled.
+Similar to \fB\-A\fR, this option overrides the heuristic and forces Color_Buckets to be disabled.
 .TP
 \fB\-C\fR, \fB\-\-no\-channel\-compact\fR
 This option disables the Channel_Compact transform. This transformation reduces the domain of each channel
@@ -179,6 +179,21 @@ to eliminate unused values. While this typically results in better compression, 
 This option disables the YCoCg color transform. This color space transform is aimed at decorrelating the RGB channels,
 and usually leads to better compression. It also helps to improve the quality of progressive decoding, by encoding the
 most important Y channel earlier than the chroma channels.
+.TP
+\fB\-G\fR, \fB\-\-guess\fR=\fIMETHOD\fR
+Interlaced FLIF can use different pixel prediction (guess) methods. By default, the encoder uses a simple heuristic
+to automatically pick a good method. This option lets you manually override that choice.
+.br
+\fB\-G\fR\fI0\fR uses the average of top and bottom (H) or left and right (V);
+.br
+\fB\-G\fR\fI1\fR uses the median of top+left-topleft, bottom+left-bottomleft (H) or top+right-topright (V), and the \fB\-G\fR\fI0\fR guess;
+.br
+\fB\-G\fR\fI2\fR uses the median of top, left, and bottom (H) or right (V);
+.br
+\fB\-G\fR\fI3\fR uses different predictors (any of the above) for each plane/zoomlevel, depending on some heuristic.
+.br
+The default behavior corresponds to either \fB\-G\fR\fI0\fR, \fB\-G\fR\fI1\fR, or \fB\-G\fR\fI2\fR, depending on a simple heuristic.
+For photographs, \fB\-G\fR\fI0\fR tends to be better, while for line art, \fB\-G\fR\fI1\fR or \fB\-G\fR\fI2\fR are usually best.
 .TP
 \fB\-R\fR, \fB\-\-maniac\-repeats\fR=\fINB_ITERATIONS\fR
 The first and computationally most demanding step of FLIF encoding is performing a number of iterations
