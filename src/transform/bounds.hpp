@@ -87,8 +87,8 @@ protected:
         for (int p=0; p<srcRanges->numPlanes(); p++) {
 //            ColorVal min = coder.read_int(0, srcRanges->max(p) - srcRanges->min(p)) + srcRanges->min(p);
 //            ColorVal max = coder.read_int(0, srcRanges->max(p) - min) + min;
-            ColorVal min = coder.read_int(srcRanges->min(p), srcRanges->max(p));
-            ColorVal max = coder.read_int(min, srcRanges->max(p));
+            ColorVal min = coder.read_int2(srcRanges->min(p), srcRanges->max(p));
+            ColorVal max = coder.read_int2(min, srcRanges->max(p));
             if (min > max) return false;
             if (min < srcRanges->min(p)) return false;
             if (max > srcRanges->max(p)) return false;
@@ -106,8 +106,8 @@ protected:
             ColorVal max = bounds[p].second;
 //            coder.write_int(0, srcRanges->max(p) - srcRanges->min(p), min - srcRanges->min(p));
 //            coder.write_int(0, srcRanges->max(p) - min, max - min);
-            coder.write_int(srcRanges->min(p), srcRanges->max(p), min);
-            coder.write_int(min, srcRanges->max(p), max);
+            coder.write_int2(srcRanges->min(p), srcRanges->max(p), min);
+            coder.write_int2(min, srcRanges->max(p), max);
             v_printf(5,"[%i:%i..%i]",p,min,max);
         }
     }

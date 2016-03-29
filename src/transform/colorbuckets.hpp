@@ -402,7 +402,7 @@ protected:
         }
     }
 
-    const ColorBucket load_bucket(SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> &coder, const ColorRanges *srcRanges, const int plane, const prevPlanes &pixelL, const prevPlanes &pixelU) const {
+    const ColorBucket load_bucket(std::vector<SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18>> &coder, const ColorRanges *srcRanges, const int plane, const prevPlanes &pixelL, const prevPlanes &pixelU) const {
         ColorBucket b;
         if (plane<3)
         for (int p=0; p<plane; p++) {
@@ -413,22 +413,22 @@ protected:
         ColorVal smin,smax;
         minmax(srcRanges,plane,pixelL,pixelU,smin,smax);
 
-        int exists = coder.read_int(0, 1);
+        int exists = coder[0].read_int2(0, 1);
         if (exists == 0) {
            return b; // empty bucket
         }
         if (smin == smax) {b.min = b.max = smin; b.discrete=false; return b;}
-        b.min = coder.read_int(smin, smax);
-        b.max = coder.read_int(b.min, smax);
+        b.min = coder[1].read_int2(smin, smax);
+        b.max = coder[2].read_int2(b.min, smax);
         if (b.min == b.max) { b.discrete=false; return b; }
         if (b.min + 1 == b.max) { b.discrete=false; return b; }
-        b.discrete = coder.read_int(0,1);
+        b.discrete = coder[3].read_int2(0,1);
         if (b.discrete) {
-           int nb = coder.read_int(2, std::min((int)max_per_colorbucket[plane],b.max-b.min));
+           int nb = coder[4].read_int2(2, std::min((int)max_per_colorbucket[plane],b.max-b.min));
            b.values.push_back(b.min);
            ColorVal v=b.min;
              for (int p=1; p < nb-1; p++) {
-               b.values.push_back(coder.read_int(v+1, b.max+1-nb+p));
+               b.values.push_back(coder[5].read_int2(v+1, b.max+1-nb+p));
                v = b.values[p];
              }
            if (b.min < b.max) b.values.push_back(b.max);
@@ -436,12 +436,13 @@ protected:
         return b;
     }
     bool load(const ColorRanges *srcRanges, RacIn<IO> &rac) override {
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> coder(rac);
+//        SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> coder(rac);
+        std::vector<SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18>> coders(6,SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18>(rac));
         prevPlanes pixelL, pixelU;
-        cb->bucket0 = load_bucket(coder, srcRanges, 0, pixelL, pixelU);
+        cb->bucket0 = load_bucket(coders, srcRanges, 0, pixelL, pixelU);
         pixelL.push_back(cb->min0);
         pixelU.push_back(cb->min0+CB0a-1);
-        for (ColorBucket& b : cb->bucket1) {b=load_bucket(coder, srcRanges, 1, pixelL, pixelU); pixelL[0] += CB0a; pixelU[0] += CB0a; }
+        for (ColorBucket& b : cb->bucket1) {b=load_bucket(coders, srcRanges, 1, pixelL, pixelU); pixelL[0] += CB0a; pixelU[0] += CB0a; }
         if (srcRanges->min(2) < srcRanges->max(2)) {
           pixelL[0] = cb->min0;
           pixelU[0] = cb->min0+CB0b-1;
@@ -451,18 +452,18 @@ protected:
                 pixelL[1] = cb->min1;
                 pixelU[1] = cb->min1+CB1-1;
                 for (ColorBucket& b : bv) {
-                        b=load_bucket(coder, srcRanges, 2, pixelL, pixelU);
+                        b=load_bucket(coders, srcRanges, 2, pixelL, pixelU);
                         pixelL[1] += CB1; pixelU[1] += CB1;
                 }
                 pixelL[0] += CB0b; pixelU[0] += CB0b;
           }
         }
-        if (srcRanges->numPlanes() > 3) cb->bucket3 = load_bucket(coder, srcRanges, 3, pixelL, pixelU);
+        if (srcRanges->numPlanes() > 3) cb->bucket3 = load_bucket(coders, srcRanges, 3, pixelL, pixelU);
         return true;
     }
 
 #ifdef HAS_ENCODER
-    void save_bucket(const ColorBucket &b, SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18> &coder, const ColorRanges *srcRanges, const int plane, const prevPlanes &pixelL, const prevPlanes &pixelU) const {
+    void save_bucket(const ColorBucket &b, std::vector<SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18>> &coder, const ColorRanges *srcRanges, const int plane, const prevPlanes &pixelL, const prevPlanes &pixelU) const {
         if (plane<3)
         for (int p=0; p<plane; p++) {
                 if (!cb->exists(p,pixelL,pixelU)) {
@@ -474,37 +475,38 @@ protected:
         minmax(srcRanges,plane,pixelL,pixelU,smin,smax);
 
         if (b.min > b.max) {
-                coder.write_int(0, 1, 0);  // empty bucket
+                coder[0].write_int2(0, 1, 0);  // empty bucket
                 return;
-        } else coder.write_int(0, 1, 1);  // non-empty bucket
+        } else coder[0].write_int2(0, 1, 1);  // non-empty bucket
         if (smin==smax) { return;}
 
 
-        coder.write_int(smin, smax, b.min);
-        coder.write_int(b.min, smax, b.max);
+        coder[1].write_int2(smin, smax, b.min);
+        coder[2].write_int2(b.min, smax, b.max);
         if (b.min == b.max) return;  // singleton bucket
         if (b.min + 1  == b.max) return; // bucket contains two consecutive values
-        coder.write_int(0, 1, b.discrete);
+        coder[3].write_int2(0, 1, b.discrete);
         if (b.discrete) {
            assert((int)b.values.size() < b.max-b.min+1); // no discrete buckets that are completely full
-           coder.write_int(2, std::min((int)max_per_colorbucket[plane],b.max-b.min), b.values.size());
+           coder[4].write_int2(2, std::min((int)max_per_colorbucket[plane],b.max-b.min), b.values.size());
            ColorVal v=b.min;
            int nb = b.values.size();
            for (int p=1; p < nb - 1; p++) {
-               coder.write_int(v+1, b.max+1-nb+p, b.values[p]);
+               coder[5].write_int2(v+1, b.max+1-nb+p, b.values[p]);
                v = b.values[p];
            }
         }
     }
     void save(const ColorRanges *srcRanges, RacOut<IO> &rac) const override {
-        SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18> coder(rac);
+        std::vector<SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18>> coders(6,SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18>(rac));
+        //SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18> coder(rac);
 //        printf("Saving Y Color Bucket: ");
         prevPlanes pixelL, pixelU;
-        save_bucket(cb->bucket0, coder, srcRanges, 0, pixelL, pixelU);
+        save_bucket(cb->bucket0, coders, srcRanges, 0, pixelL, pixelU);
 //        printf("\nSaving I Color Buckets\n  ");
         pixelL.push_back(cb->min0);
         pixelU.push_back(cb->min0+CB0a-1);
-        for (auto& b : cb->bucket1) { save_bucket(b, coder, srcRanges, 1, pixelL, pixelU); pixelL[0] += CB0a; pixelU[0] += CB0a; }
+        for (auto& b : cb->bucket1) { save_bucket(b, coders, srcRanges, 1, pixelL, pixelU); pixelL[0] += CB0a; pixelU[0] += CB0a; }
 //        printf("\nSaving Q Color Buckets\n  ");
         if (srcRanges->min(2) < srcRanges->max(2)) {
           pixelL[0] = cb->min0;
@@ -515,7 +517,7 @@ protected:
                 pixelL[1] = cb->min1;
                 pixelU[1] = cb->min1+CB1-1;
                 for (auto& b : bv) {
-                        save_bucket(b, coder, srcRanges, 2, pixelL, pixelU);
+                        save_bucket(b, coders, srcRanges, 2, pixelL, pixelU);
                         pixelL[1] += CB1; pixelU[1] += CB1;
                 }
                 pixelL[0] += CB0b; pixelU[0] += CB0b;
@@ -524,7 +526,7 @@ protected:
 //        printf("\n");
         if (srcRanges->numPlanes() > 3) {
 //          printf("Saving Alpha Color Bucket: ");
-          save_bucket(cb->bucket3, coder, srcRanges, 3, pixelL, pixelU);
+          save_bucket(cb->bucket3, coders, srcRanges, 3, pixelL, pixelU);
 //          printf("\n");
         }
     }

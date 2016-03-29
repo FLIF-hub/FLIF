@@ -33,6 +33,7 @@ public:
 
 #ifdef HAS_ENCODER
     void write_int(int min, int max, int val);
+    void write_int(int bits, int val) { write_int(0, (1<<bits) -1, val); };
 #endif
     int read_int(int min, int max) {
         assert(max >= min);
@@ -50,11 +51,13 @@ public:
             return read_int(min, min+med);
         }
     }
+    int read_int(int bits) { return read_int(0, (1<<bits)-1); }
 };
 
 typedef enum {
     BIT_ZERO,
     BIT_SIGN,
+
     BIT_EXP,
     BIT_MANT,
 //    BIT_EXTRA
@@ -284,12 +287,28 @@ public:
 
 #ifdef HAS_ENCODER
     void write_int(int min, int max, int value);
+    void write_int2(int min, int max, int value) {
+        ////int avg = (min+max)/2;
+        //int avg = min;
+        //write_int(min-avg,max-avg,value-avg);
+        if (min>0) write_int(0,max-min,value-min);
+        else if (max<0) write_int(min-max,0,value-max);
+        else write_int(min,max,value);
+    }
     void write_int(int nbits, int value);
 #endif
 
     int read_int(int min, int max) {
         SimpleSymbolBitCoder<BitChance, RAC, bits> bitCoder(table, ctx, rac);
         return reader<bits, SimpleSymbolBitCoder<BitChance, RAC, bits>>(bitCoder, min, max);
+    }
+    int read_int2(int min, int max) {
+        ////int avg = (min+max)/2;
+        //int avg = min;
+        //return read_int(min-avg,max-avg)+avg;
+        if (min > 0) return read_int(0,max-min)+min;
+        else if (max<0) return read_int(min-max,0)+max;
+        else return read_int(min,max);
     }
     int read_int(int nbits) {
         assert (nbits <= bits);

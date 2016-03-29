@@ -203,13 +203,13 @@ template <typename BitChance, typename RAC> class MetaPropertySymbolCoder {
 public:
     typedef SimpleSymbolCoder<BitChance, RAC, 18> Coder;
 private:
-    Coder coder;
+    std::vector<Coder> coder;
     const Ranges range;
     unsigned int nb_properties;
 
 public:
     MetaPropertySymbolCoder(RAC &racIn, const Ranges &rangesIn, int cut = 2, int alpha = 0xFFFFFFFF / 19) :
-        coder(racIn, cut, alpha),
+        coder(3,Coder(racIn, cut, alpha)),
         range(rangesIn),
         nb_properties(rangesIn.size())
     {
@@ -225,7 +225,7 @@ public:
 
     bool read_subtree(int pos, Ranges &subrange, Tree &tree) {
         PropertyDecisionNode &n = tree[pos];
-        int p = n.property = coder.read_int(0,nb_properties)-1;
+        int p = n.property = coder[0].read_int2(0,nb_properties)-1;
 
         if (p != -1) {
             int oldmin = subrange[p].first;
@@ -234,9 +234,9 @@ public:
               e_printf( "Invalid tree. Aborting tree decoding.\n");
               return false;
             }
-            n.count = coder.read_int(CONTEXT_TREE_MIN_COUNT, CONTEXT_TREE_MAX_COUNT); // * CONTEXT_TREE_COUNT_QUANTIZATION;
+            n.count = coder[1].read_int2(CONTEXT_TREE_MIN_COUNT, CONTEXT_TREE_MAX_COUNT); // * CONTEXT_TREE_COUNT_QUANTIZATION;
             assert(oldmin < oldmax);
-            int splitval = n.splitval = coder.read_int(oldmin, oldmax-1);
+            int splitval = n.splitval = coder[2].read_int2(oldmin, oldmax-1);
             int childID = n.childID = tree.size();
 //            e_printf( "Pos %i: prop %i splitval %i in [%i..%i]\n", pos, n.property, splitval, oldmin, oldmax-1);
             tree.push_back(PropertyDecisionNode());

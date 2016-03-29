@@ -69,7 +69,7 @@ protected:
     bool load(const ColorRanges *srcRanges, RacIn<IO> &rac) override {
         if (srcRanges->numPlanes() > 4) return false; // something wrong we already have FRA when loading
         SimpleSymbolCoder<SimpleBitChance, RacIn<IO>, 18> coder(rac);
-        max_lookback = coder.read_int(1, nb_frames-1);
+        max_lookback = coder.read_int2(1, nb_frames-1);
         v_printf(5,"[%i]",max_lookback);
         return true;
     }
@@ -77,7 +77,7 @@ protected:
 #ifdef HAS_ENCODER
     void save(const ColorRanges *, RacOut<IO> &rac) const override {
         SimpleSymbolCoder<SimpleBitChance, RacOut<IO>, 18> coder(rac);
-        coder.write_int(1,nb_frames-1,max_lookback);
+        coder.write_int2(1,nb_frames-1,max_lookback);
     }
 
 // a heuristic to figure out if this is going to help (it won't help if we introduce more entropy than what is eliminated)

@@ -335,14 +335,14 @@ template <typename BitChance, typename RAC>
 void MetaPropertySymbolCoder<BitChance,RAC>::write_subtree(int pos, Ranges &subrange, const Tree &tree) {
         const PropertyDecisionNode &n = tree[pos];
         int p = n.property;
-        coder.write_int(0,nb_properties,p+1);
+        coder[0].write_int2(0,nb_properties,p+1);
         if (p != -1) {
-            coder.write_int(CONTEXT_TREE_MIN_COUNT, CONTEXT_TREE_MAX_COUNT, n.count);
+            coder[1].write_int2(CONTEXT_TREE_MIN_COUNT, CONTEXT_TREE_MAX_COUNT, n.count);
 //            printf("From properties 0..%i, split node at PROPERTY %i\n",nb_properties-1,p);
             int oldmin = subrange[p].first;
             int oldmax = subrange[p].second;
             assert(oldmin < oldmax);
-            coder.write_int(oldmin, oldmax-1, n.splitval);
+            coder[2].write_int2(oldmin, oldmax-1, n.splitval);
 //            e_printf( "Pos %i: prop %i splitval %i in [%i..%i]\n", pos, n.property, n.splitval, oldmin, oldmax-1);
             // > splitval
             subrange[p].first = n.splitval+1;
