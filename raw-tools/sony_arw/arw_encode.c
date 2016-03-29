@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
 
@@ -122,17 +123,18 @@ void flush_arw(uint16_t *outbuf, int *outcnt)
     }
 }
 
-void write_zeroes(long headerlen)
+void write_padding(long headerlen, int val)
 {
 	long our_len = headerlen + chunk_cnt * 16;
 	long shouldbe = (our_len / 0x8000) * 0x8000 + 0x8000;
 	long missing = shouldbe - our_len;
 
 	char *buf;
-	buf = calloc(missing, 1);
+	buf = malloc(missing);
 	if(!buf) {
-		fprintf(stderr, "woops, can't alloc zeroes\n");
+		fprintf(stderr, "woops, can't alloc padding\n");
 	} else {
+		memset(buf, val, missing);
 		fwrite(buf, 1, missing, stdout);
 	}
 }
@@ -143,6 +145,7 @@ int main(int argc, char **argv)
 	uint16_t *buf;
 	uint16_t arw_buf[32];
 	int arw_buf_cnt = 0;
+	int padding = 0;
 
 	if(argc < 3) {
 		fprintf(stderr, "need at least a width, a headerlen, and possibly an exceptions file\n");
@@ -160,6 +163,9 @@ int main(int argc, char **argv)
 
 	if(argc > 3)
 		excf = fopen(argv[3], "r");
+
+	if(argc > 4)
+		padding = strtol(argv[4], NULL, 16);
 
 	exception = load_exception(excf);
 
@@ -186,7 +192,7 @@ int main(int argc, char **argv)
 
 	free(buf);
 
-	write_zeroes(headerlen);
+	write_padding(headerlen, padding);
 
 	return 0;
 }
