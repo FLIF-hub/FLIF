@@ -115,14 +115,19 @@ void flif_encode_scanlines_pass(IO& io, Rac &rac, const Images &images, const Co
 
 // return the predictor that has the smallest total difference
 int find_best_predictor(const Images &images, const ColorRanges *ranges, const int p, const int z) {
-    const int zerobonus = 2;
+    const int zerobonus = 1;
     ColorVal min,max;
     const int nump = images[0].numPlanes();
     const bool alphazero = (nump>3 && images[0].alpha_zero_special);
     const bool FRA = (nump == 5);
     Properties properties((nump>3?NB_PROPERTIESA[p]:NB_PROPERTIES[p]));
-    std::vector<uint64_t> total_diff(MAX_PREDICTOR+1, 0);
+    std::vector<uint64_t> total_size(MAX_PREDICTOR+1, 0);
     for (int predictor=0; predictor <= MAX_PREDICTOR; predictor++) {
+      //Ranges propRanges;
+      //initPropRanges(propRanges, *ranges, p);
+      //RacDummy dummy;
+      //Tree tree;
+      //PropertySymbolCoder<FLIFBitChancePass1, RacDummy, 18> coder(dummy, propRanges, tree); //, split_threshold, cutoff, alpha);
       if (z % 2 == 0) {
         // horizontal: scan the odd rows, output pixel values
           for (uint32_t r = 1; r < images[0].rows(z); r += 2) {
@@ -136,7 +141,9 @@ int find_best_predictor(const Images &images, const ColorRanges *ranges, const i
                     if (FRA && p<4 && image(4,z,r,c) > 0) continue;
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max,predictor);
                     ColorVal curr = image(p,z,r,c);
-                    total_diff[predictor] += maniac::util::ilog2(abs(curr-guess)) + (curr-guess ? zerobonus : 0);
+                    total_size[predictor] += maniac::util::ilog2(abs(curr-guess)) + (curr-guess ? zerobonus : 0);
+                    //if (FRA && p==4 && max > fr) max = fr;
+                    //coder.write_int(properties, min - guess, max - guess, curr - guess);
               }
             }
           }
@@ -155,22 +162,26 @@ int find_best_predictor(const Images &images, const ColorRanges *ranges, const i
                     if (FRA && p<4 && image(4,z,r,c) > 0) continue;
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max,predictor);
                     ColorVal curr = image(p,z,r,c);
-                    total_diff[predictor] += maniac::util::ilog2(abs(curr-guess)) + (curr-guess ? zerobonus : 0);
+                    total_size[predictor] += maniac::util::ilog2(abs(curr-guess)) + (curr-guess ? zerobonus : 0);
+                    //if (FRA && p==4 && max > fr) max = fr;
+                    //coder.write_int(properties, min - guess, max - guess, curr - guess);
               }
             }
           }
       }
+      //total_size[predictor] = coder.compute_total_size();
     }
     int best = 0;
+    total_size[0] = 9*total_size[0]/10; // give an advantage to predictor 0, because if it's a close race, then 0 is usually better in the end
     for (int predictor=0; predictor <= MAX_PREDICTOR; predictor++)
-        if (total_diff[predictor] < total_diff[best])
+        if (total_size[predictor] < total_size[best])
             best=predictor;
     return best;
 }
 
 template<typename IO, typename Rac, typename Coder>
 void flif_encode_FLIF2_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const Images &images,
-                             const ColorRanges *ranges, const int beginZL, const int endZL, const int the_predictor) {
+                             const ColorRanges *ranges, const int beginZL, const int endZL, const int the_predictor[]) {
     ColorVal min,max;
     const int nump = images[0].numPlanes();
     const bool alphazero = (nump>3 && images[0].alpha_zero_special);
@@ -179,18 +190,16 @@ void flif_encode_FLIF2_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const
     UniformSymbolCoder<Rac> metaCoder(rac);
     const bool default_order = true;
     metaCoder.write_int(0, 1, (default_order? 1 : 0)); // we're using the default zoomlevel/plane ordering
-    const bool fixed_predictor = (the_predictor >= 0);
-    metaCoder.write_int(0, 1, (fixed_predictor? 1 : 0));
-    if (fixed_predictor) metaCoder.write_int(0, MAX_PREDICTOR, the_predictor);
+    for (int p=0; p<nump; p++) metaCoder.write_int(-1, MAX_PREDICTOR, the_predictor[p]);
     for (int i = 0; i < plane_zoomlevels(images[0], beginZL, endZL); i++) {
       std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i);
       int p = pzl.first;
       int z = pzl.second;
       if (!default_order) metaCoder.write_int(0, nump-1, p);
       if (ranges->min(p) >= ranges->max(p)) continue;
-      int predictor = (the_predictor < 0 ? find_best_predictor(images, ranges, p, z) : the_predictor);
+      int predictor = (the_predictor[p] < 0 ? find_best_predictor(images, ranges, p, z) : the_predictor[p]);
       //if (z < 2 && the_predictor < 0) printf("Plane %i, zoomlevel %i: predictor %i\n",p,z,predictor);
-      if (!fixed_predictor) metaCoder.write_int(0, MAX_PREDICTOR, predictor);
+      if (the_predictor[p] < 0) metaCoder.write_int(0, MAX_PREDICTOR, predictor);
       if (endZL == 0) v_printf(2,"\r%i%% done [%i/%i] ENC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
       Properties properties((nump>3?NB_PROPERTIESA[p]:NB_PROPERTIES[p]));
       if (z % 2 == 0) {
@@ -248,7 +257,7 @@ void flif_encode_FLIF2_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const
 
 template<typename IO, typename Rac, typename Coder>
 void flif_encode_FLIF2_pass(IO& io, Rac &rac, const Images &images, const ColorRanges *ranges, std::vector<Tree> &forest, const int beginZL, const int endZL,
-                            int repeats, int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int cutoff = 2, int alpha = 0xFFFFFFFF / 19, const int predictor=0) {
+                            int repeats, int divisor, int min_size, int split_threshold, int cutoff, int alpha, const int predictor[]) {
     std::vector<Coder> coders;
     coders.reserve(ranges->numPlanes());
     for (int p = 0; p < ranges->numPlanes(); p++) {
@@ -419,15 +428,16 @@ inline int luma_alpha_compensate(int p, ColorVal Y, ColorVal X, ColorVal A) {
         // more loss if closer to black
 //    return 128 + A/2 + Y/4 - 48;
 }
-void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int loss, bool adaptive, Image &map, const int predictor) {
+void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int loss, bool adaptive, Image &map) {
     ColorVal min,max;
     int nump = images[0].numPlanes();
     const bool alphazero = (nump>3 && images[0].alpha_zero_special);
     const bool FRA = (nump == 5);
     int beginZL = images[0].zooms();
     int endZL = 0;
-    if (predictor == 0) {
-    // preprocessing step: compensate for anticipated loss in final zoomlevels (only for predictor 0)
+    int predictor=0;
+
+    // preprocessing step: compensate for anticipated loss in final zoomlevels (assuming predictor 0)
     for (int i = 0; i < plane_zoomlevels(images[0], beginZL, endZL); i++) {
       std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i);
       int p = pzl.first;
@@ -512,7 +522,6 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
             }
           }
     }
-    } // end if(predictor==0)
 
     // add loss
     for (int i = 0; i < plane_zoomlevels(images[0], beginZL, endZL); i++) {
@@ -620,7 +629,7 @@ template<typename IO, typename BitChance, typename Rac> void flif_encode_tree(IO
 template <int bits, typename IO>
 void flif_encode_main(RacOut<IO>& rac, IO& io, Images &images, flifEncoding encoding,
                  int learn_repeats, const ColorRanges *ranges,
-                 int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int cutoff = 2, int alpha = 0xFFFFFFFF / 19, int predictor = 0) {
+                 int divisor, int min_size, int split_threshold, int cutoff, int alpha, int predictor[]) {
 
     Image& image=images[0];
     int realnumplanes = 0;
@@ -680,7 +689,7 @@ template <typename IO>
 bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding,
                  int learn_repeats, int acb, int palette_size, int lookback,
                  int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD,
-                 int cutoff=2, int alpha=19, int crc_check=-1, int loss=0, int predictor=0) {
+                 int cutoff=2, int alpha=19, int crc_check=-1, int loss=0, int predictor[]=NULL) {
 
     io.fputs("FLIF");  // bytes 1-4 are fixed magic
     int numPlanes = images[0].numPlanes();
@@ -694,7 +703,6 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
         numFrames = 1;
         images.pop_back();
     }
-    if (loss>0 && predictor<0) predictor=0;
 
     // byte 5 encodes color type, interlacing, animation
     // 128 64 32 16 8 4 2 1
@@ -856,6 +864,10 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
         }
     }
 
+    int default_predictor[5] = {0,0,0,0,0};
+    if (!predictor) predictor=default_predictor;
+    if (loss>0) for(int p=0; p<numPlanes; p++) predictor[p]=0;
+
     if (loss > 0) {
       switch(encoding) {
         case flifEncoding::nonInterlaced:
@@ -863,18 +875,22 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
             if (alphazero && ranges->numPlanes() > 3 && ranges->min(3) <= 0) flif_encode_scanlines_interpol_zero_alpha(images, ranges);
             break;
         case flifEncoding::interlaced:
-            flif_make_lossy_interlaced(images,ranges,loss,adaptive,adaptive_map, predictor);
+            flif_make_lossy_interlaced(images,ranges,loss,adaptive,adaptive_map);
             if (alphazero && ranges->numPlanes() > 3 && ranges->min(3) <= 0) flif_encode_FLIF2_interpol_zero_alpha(images, ranges, image.zooms(), 0);
             break;
       }
     } else {
-        if (encoding == flifEncoding::interlaced && predictor == -2) {
-            int most_important_plane = (images[0].palette ? 1 : 0);
-            if (ranges->min(most_important_plane) < ranges->max(most_important_plane))
-                predictor = find_best_predictor(images, ranges, most_important_plane, 0);
-            else
-                predictor = 0;
-            v_printf(3,"Using pixel predictor method %i\n",predictor);
+        if (encoding == flifEncoding::interlaced) {
+          for(int p=0; p<ranges->numPlanes(); p++) {
+            if (predictor[p] == -2) {
+              if (ranges->min(p) < ranges->max(p)) {
+                predictor[p] = find_best_predictor(images, ranges, p, 1);
+                // predictor 0 is usually the safest choice, so only pick a different one if it's the best at zoomlevel 0 too
+                if (predictor[p] > 0 && find_best_predictor(images, ranges, p, 0) != predictor[p]) predictor[p] = 0;
+                v_printf(3,"Using pixel predictor method %i for plane %i\n",predictor[p],p);
+              } else predictor[p] = 0;
+            }
+          }
         }
     }
 
@@ -908,7 +924,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
 }
 
 
-template bool flif_encode(FileIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int palette_size, int lookback, int divisor, int min_size, int split_threshold, int cutoff, int alpha, int crc_check, int loss, int predictor);
-template bool flif_encode(BlobIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int palette_size, int lookback, int divisor, int min_size, int split_threshold, int cutoff, int alpha, int crc_check, int loss, int predictor);
+template bool flif_encode(FileIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int palette_size, int lookback, int divisor, int min_size, int split_threshold, int cutoff, int alpha, int crc_check, int loss, int predictor[]);
+template bool flif_encode(BlobIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int palette_size, int lookback, int divisor, int min_size, int split_threshold, int cutoff, int alpha, int crc_check, int loss, int predictor[]);
 
 #endif

@@ -575,9 +575,8 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
     UniformSymbolCoder<Rac> metaCoder(rac);
     std::vector<int> zoomlevels(nump, beginZL);
     const bool default_order = metaCoder.read_int(0, 1);
-    const bool fixed_predictor = metaCoder.read_int(0, 1);
-    int predictor = 0;
-    if (fixed_predictor) predictor=metaCoder.read_int(0, MAX_PREDICTOR);
+    int the_predictor[5] = {0,0,0,0,0};
+    for (int p=0; p<nump; p++) the_predictor[p] = metaCoder.read_int(-1, MAX_PREDICTOR);
     for (int i = 0; i < plane_zoomlevels(images[0], beginZL, endZL); i++) {
       int p;
       if (default_order) {
@@ -596,7 +595,9 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
               return false;
       }
       if (ranges->min(p) < ranges->max(p)) {
-        if (!fixed_predictor) predictor = metaCoder.read_int(0, MAX_PREDICTOR);
+        int predictor;
+        if (the_predictor[p]<0) predictor = metaCoder.read_int(0, MAX_PREDICTOR);
+        else predictor = the_predictor[p];
         if (1<<(z/2) < scale) {
               v_printf(5,"%lu subpixels done (out of %lu subpixels at this scale), scale target 1:%i reached\n",(long unsigned)pixels_done,(long unsigned)pixels_todo,(int)scale);
               flif_decode_FLIF2_inner_interpol(images, ranges, i, beginZL, endZL, (z%2 == 0 ?1:0), scale);

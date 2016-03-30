@@ -134,7 +134,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  ____ _(_)____\n");
-    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc12 [28 Mar 2016]\n");
+    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc13 [30 Mar 2016]\n");
     v_printf(3,"  (__ | |_| __)    ");v_printf(3,"Copyright (C) 2016 Jon Sneyers and Pieter Wuille\n");
     v_printf(3,"    (_|___|_)      ");
 #ifdef HAS_ENCODER
@@ -215,7 +215,7 @@ bool encode_load_input_images(int argc, char **argv, Images &images) {
 }
 bool encode_flif(int argc, char **argv, Images &images, int palette_size, int acb, flifEncodingOptional method, int lookback,
                  int learn_repeats, std::vector<int> &frame_delay, int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE,
-                 int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int yiq=1, int plc=1, int frs=1, int cutoff=2, int alpha=19, int crc_check=-1, int loss=0, int predictor=0) {
+                 int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int yiq=1, int plc=1, int frs=1, int cutoff=2, int alpha=19, int crc_check=-1, int loss=0, int predictor[]=NULL) {
     bool flat=true;
     unsigned int framenb=0;
     for (Image& i : images) { i.frame_delay = frame_delay[framenb]; if (framenb+1 < frame_delay.size()) framenb++; }
@@ -292,7 +292,7 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
 bool handle_encode(int argc, char **argv, Images &images, int palette_size, int acb, flifEncodingOptional method,
                    int lookback, int learn_repeats, std::vector<int> &frame_delay, int divisor=CONTEXT_TREE_COUNT_DIV,
                    int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD,
-                   int yiq=1, int plc=1, bool alpha_zero_special=true, int frs=1, int cutoff=2, int alpha=19, int crc_check=-1, int loss=0, int predictor=0) {
+                   int yiq=1, int plc=1, bool alpha_zero_special=true, int frs=1, int cutoff=2, int alpha=19, int crc_check=-1, int loss=0, int predictor[]=NULL) {
     if (!encode_load_input_images(argc,argv,images)) return false;
     if (!alpha_zero_special) for (Image& i : images) i.alpha_zero_special = false;
     argv += (argc-1);
@@ -368,7 +368,7 @@ int main(int argc, char **argv)
     int cutoff=2;
     int loss=0;
     bool adaptive=false;
-    int predictor=-2; // heuristically pick a fixed predictor
+    int predictor[]={-2,-2,-2,-2,-2}; // heuristically pick a fixed predictor on all planes
 #else
     int mode = 1;
 #endif
@@ -490,9 +490,12 @@ int main(int argc, char **argv)
                   if (loss < 0 || loss > 1000) {e_printf("Not a sensible number for option -Q (try something between 0 and 100)\n"); return 1; }
                   break;
         case 'U': adaptive=true; break;
-        case 'G': predictor=atoi(optarg);
-                  if (predictor < 0 || predictor > 3) {e_printf("Not a sensible number for option -G\nValid values are: 0 (avg), 1 (median avg/gradients), 2 (median neighbors), 3 (auto/mixed)\n"); return 1; }
-                  if (predictor == 3) predictor = -1;
+        case 'G': {
+                  int pred=atoi(optarg);
+                  if (pred < 0 || pred > 3) {e_printf("Not a sensible number for option -G\nValid values are: 0 (avg), 1 (median avg/gradients), 2 (median neighbors), 3 (auto/mixed)\n"); return 1; }
+                  if (pred == 3) pred = -1;
+                  for (int i=0; i<5; i++) predictor[i]=pred;
+                  }
                   break;
 #endif
         case 'h': showhelp=true; break;
