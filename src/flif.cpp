@@ -80,6 +80,7 @@ void show_help(int mode) {
 #ifdef HAS_ENCODER
     if (mode != 1) {
     v_printf(1,"Encode options: (-e, --encode)\n");
+    v_printf(1,"   -E, --effort=N              0=fast/poor compression, 100=slowest/best? (default: -E60)\n");
     v_printf(1,"   -I, --interlace             interlacing (default, except for tiny images)\n");
     v_printf(1,"   -N, --no-interlace          force no interlacing\n");
     v_printf(1,"   -Q, --lossy=N               lossy compression; default: -Q100 (lossless)\n");
@@ -87,7 +88,7 @@ void show_help(int mode) {
     v_printf(1,"   -F, --frame-delay=N[,N,..]  delay between animation frames in ms; default: -F100\n");
 //    v_printf(1,"Multiple input images (for animated FLIF) must have the same dimensions.\n");
     v_printf(2,"Advanced encode options: (mostly useful for flifcrushing)\n");
-    v_printf(2,"   -P, --max-palette-size=N    max size for Palette(_Alpha); default: -P1024\n");
+    v_printf(2,"   -P, --max-palette-size=N    max size for Palette(_Alpha); default: -P%i\n",DEFAULT_MAX_PALETTE_SIZE);
     v_printf(2,"   -A, --force-color-buckets   force Color_Buckets transform\n");
     v_printf(2,"   -B, --no-color-buckets      disable Color_Buckets transform\n");
     v_printf(2,"   -C, --no-channel-compact    disable Channel_Compact transform\n");
@@ -100,8 +101,9 @@ void show_help(int mode) {
     v_printf(3,"   -M, --maniac-min-size=N     MANIAC post-pruning threshold; default: -M%i\n",CONTEXT_TREE_MIN_SUBTREE_SIZE);
     v_printf(3,"   -X, --chance-cutoff=N       minimum chance (N/4096); default: -X2\n");
     v_printf(3,"   -Z, --chance-alpha=N        chance decay factor; default: -Z19\n");
-    v_printf(2,"   -U, --adaptive              adaptive lossy, second input image is saliency map\n");
-    v_printf(2,"   -G, --guess=N               pixel predictor: 0=avg, 1=median(avg,grad1,grad2), 2=median_neighbors, 3=auto/mixed\n");
+    v_printf(3,"   -U, --adaptive              adaptive lossy, second input image is saliency map\n");
+    v_printf(3,"   -G, --guess=N[N..]          pixel predictor for each plane (Y,Co,Cg,Alpha,Lookback)\n");
+    v_printf(3,"                               ?=pick heuristically, 0=avg, 1=median_grad, 2=median_nb, 3=mixed\n");
     }
 #endif
     if (mode != 0) {
@@ -109,7 +111,7 @@ void show_help(int mode) {
     v_printf(1,"   -i, --identify             do not decode, just identify the input FLIF file\n");
     v_printf(1,"   -q, --quality=N            lossy decode quality percentage; default -q100\n");
     v_printf(1,"   -s, --scale=N              lossy downscaled image at scale 1:N (2,4,8,16,32); default -s1\n");
-    v_printf(1,"   -r, --resize=WxH           lossy downscaled image to fit WxH\n");
+    v_printf(1,"   -r, --resize=WxH           lossy downscaled image to fit inside WxH (but typically smaller)\n");
     }
 }
 
@@ -134,7 +136,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  ____ _(_)____\n");
-    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc13 [30 Mar 2016]\n");
+    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc14 [2 Apr 2016]\n");
     v_printf(3,"  (__ | |_| __)    ");v_printf(3,"Copyright (C) 2016 Jon Sneyers and Pieter Wuille\n");
     v_printf(3,"    (_|___|_)      ");
 #ifdef HAS_ENCODER
@@ -185,7 +187,7 @@ bool encode_load_input_images(int argc, char **argv, Images &images) {
     int nb_input_images = argc-1;
     while(argc>1) {
         Image image;
-        v_printf(2,"\r");
+        v_printf_tty(2,"\r");
         if (!image.load(argv[0])) {
             e_printf("Could not read input file: %s\n", argv[0]);
             return false;
@@ -210,7 +212,6 @@ bool encode_load_input_images(int argc, char **argv, Images &images) {
         argc--; argv++;
         if (nb_input_images>1) {v_printf(2,"    (%i/%i)         ",(int)images.size(),nb_input_images); v_printf(4,"\n");}
     }
-    v_printf(2,"\n");
     return true;
 }
 bool encode_flif(int argc, char **argv, Images &images, int palette_size, int acb, flifEncodingOptional method, int lookback,
@@ -244,15 +245,13 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
     if (!loss) {
     // only use palette/CB if we're lossless, because lossy and palette don't go well together...
     if (palette_size == -1) {
-        palette_size = 1024;
-        if (nb_pixels * images.size() / 2 < 1024) {
-          palette_size = nb_pixels * images.size() / 2;
+        palette_size = DEFAULT_MAX_PALETTE_SIZE;
+        if (nb_pixels * images.size() / 3 < DEFAULT_MAX_PALETTE_SIZE) {
+          palette_size = nb_pixels * images.size() / 3;
         }
     }
     if (palette_size != 0) {
         desc.push_back("Palette_Alpha");  // try palette (including alpha)
-    }
-    if (palette_size != 0) {
         desc.push_back("Palette");  // try palette (without alpha)
     }
     if (acb == -1) {
@@ -413,13 +412,14 @@ int main(int argc, char **argv)
         {"chance-alpha", 1, NULL, 'Z'},
         {"lossy", 1, NULL, 'Q'},
         {"adaptive", 0, NULL, 'U'},
-        {"guess-method", 0, NULL, 'G'},
+        {"guess-method", 1, NULL, 'G'},
+        {"effort", 1, NULL, 'E'},
 #endif
         {0, 0, 0, 0}
     };
     int i,c;
 #ifdef HAS_ENCODER
-    while ((c = getopt_long (argc, argv, "hdvciVq:s:r:etINnF:KP:ABYCL:SR:D:M:T:X:Z:Q:UG:", optlist, &i)) != -1) {
+    while ((c = getopt_long (argc, argv, "hdvciVq:s:r:etINnF:KP:ABYCL:SR:D:M:T:X:Z:Q:UG:E:", optlist, &i)) != -1) {
 #else
     while ((c = getopt_long (argc, argv, "hdvciVq:s:r:", optlist, &i)) != -1) {
 #endif
@@ -448,6 +448,7 @@ int main(int argc, char **argv)
         case 'B': acb=0; break;
         case 'P': palette_size=atoi(optarg);
                   if (palette_size < -32000 || palette_size > 32000) {e_printf("Not a sensible number for option -P\n"); return 1; }
+                  if (palette_size > 512) {v_printf(1,"Warning: palette size above 512 implies that simple FLIF decoders (8-bit only) cannot decode this file.\n"); }
                   if (palette_size == 0) {v_printf(5,"Palette disabled\n"); }
                   break;
         case 'R': learn_repeats=atoi(optarg);
@@ -491,10 +492,51 @@ int main(int argc, char **argv)
                   break;
         case 'U': adaptive=true; break;
         case 'G': {
-                  int pred=atoi(optarg);
-                  if (pred < 0 || pred > 3) {e_printf("Not a sensible number for option -G\nValid values are: 0 (avg), 1 (median avg/gradients), 2 (median neighbors), 3 (auto/mixed)\n"); return 1; }
-                  if (pred == 3) pred = -1;
-                  for (int i=0; i<5; i++) predictor[i]=pred;
+                  int p=0;
+                  while(*optarg != 0) {
+                    int d=0;
+                    switch (*optarg) {
+                        case '?': case 'G': case 'g': case 'H': case 'h': // guess/heuristically choose
+                            d = -2; break;
+                        case '0': case 'A': case 'a': // average
+                            d = 0; break;
+                        case '1': case 'M': case 'm': // median of 3 values (avg, grad1, grad2)
+                            d = 1; break;
+                        case '2': case 'N': case 'n': // median of 3 neighbors
+                            d = 2; break;
+                        case '3': // auto/mixed, usually a bad idea
+                            d = -1; break;
+                        case ' ': case ',': case '+':
+                            optarg++; continue;
+                        default:
+                        e_printf("Not a sensible value for option -G\nValid values are: 0 (avg), 1 (median avg/gradients), 2 (median neighbors), 3 (auto/mixed), ? (heuristically pick 0-2)\n"); return 1;
+                    }
+                    if (p>4) {e_printf("Error while parsing option -G: too many planes specified\n"); return 1; }
+                    predictor[p] = d;
+                    p++; optarg++;
+                  }
+                  for (; p<5; p++) predictor[p]=predictor[0];
+                  }
+                  break;
+        case 'E': {
+                  int effort=atoi(optarg);
+                  if (effort < 0 || effort > 100) {e_printf("Not a sensible number for option -E (try something between 0 and 100)\n"); return 1; }
+                  // set some parameters automatically
+                  if (effort < 10) learn_repeats=0;
+                  else if (effort <= 50) {learn_repeats=1; split_threshold=5461*8*5;}
+                  else if (effort <= 70) {learn_repeats=2;  split_threshold=5461*8*8;}
+                  else if (effort <= 90) {learn_repeats=3; split_threshold=5461*8*10;}
+                  else if (effort <= 100) {learn_repeats=4; split_threshold=5461*8*12;}
+                  if (effort < 15) { for (int i=0; i<5; i++) predictor[i]=0; }
+                  else if (effort < 30) { predictor[1]=0; predictor[2]=0; }
+                  if (effort < 5) acb=0;
+                  if (effort < 8) palette_size=0;
+                  if (effort < 25) plc=0;
+                  if (effort < 30) lookback=0;
+                  if (effort < 5) frs=0;
+                  v_printf(3,"Encode effort: %i, corresponds to parameters -R%i -T%i%s%s%s%s\n", effort, learn_repeats, split_threshold/5461,
+                                    (effort<15?" -G0":(effort<30?" -G?00":"")), (effort<5?" -B":""), (effort<8?" -P0":""), (effort<25?" -C":""));
+                                    // not mentioning animation options since they're usually irrelevant
                   }
                   break;
 #endif

@@ -114,6 +114,21 @@ can easily lead to worse compression.
 .PP
 The following encode options are available:
 .TP
+\fB\-E\fR, \fB\-\-effort\fR=\fIEFFORT\fR
+How much effort to spend on compression, as expressed on a scale from 0 (nearly no effort) to 100 (a lot of effort).
+The default is \fB\-E\fR\fI60\fR. At the moment, most of the values of \fIEFFORT\fR result in the same internal configuration;
+interesting values to try are: \fB\-E\fR\fI0\fR, \fB\-E\fR\fI5\fR, \fB\-E\fR\fI10\fR, \fB\-E\fR\fI20\fR, \fB\-E\fR\fI30\fR,
+\fB\-E\fR\fI60\fR, \fB\-E\fR\fI80\fR, \fB\-E\fR\fI100\fR.
+There is no guarantee that higher values for \fIEFFORT\fR actually result in smaller files: it is very much possible that
+a file encoded with \fB\-E\fR\fI100\fR is larger than one encoded with \fB\-E\fR\fI10\fR.
+There is a guarantee, however, that more time will be spent for higher values of \fIEFFORT\fR.
+On average, higher values for \fIEFFORT\fR do result in smaller files, though the difference in file size
+between \fB\-E\fR\fI10\fR and \fB\-E\fR\fI100\fR is typically small, while the difference in encode time is significant.
+.br
+This option is no substitute for brute-force optimization: even at \fB\-E\fR\fI100\fR, there is only one encoding performed.
+External tools that try many encodings can achieve smaller sizes than \fB\-E\fR\fI100\fR.
+This option is mosty useful to reduce the encode time without really harming compression much.
+.TP
 \fB\-I\fR, \fB\-\-interlace\fR
 Force the resulting image to be interlaced (also known as 'progressive'). This is the default setting,
 except for very small images (currently defined as 'less than 10,000 pixels'), where progressive decoding
@@ -145,13 +160,14 @@ Here is an example:
 By default, pixels that are fully transparent have undefined RGB values in a FLIF image, since those values
 are irrelevant for nearly all purposes. If you insist on storing the RGB values hidden behind A=0, use this
 option. In rare cases this can lead to better compression.
-.PP
-The options below can be used to tune some encoder parameters in order to get (slightly) better compression.
+
+.SH ADVANCED ENCODE OPTIONS
+The options below can be used to manually tune some encoder parameters in order to try to get (slightly) better compression.
 .TP
 \fB\-P\fR, \fB\-\-max\-palette\-size\fR=\fINB_COLORS\fR
 Images which use relatively few different colors, e.g. ex-GIF images, can be compressed better using
 a palette of colors instead of the full RGB(A) color space. By default, \fBflif\fP uses a palette if
-the image has less than 1024 distinct colors. With this option, you can adjust this threshold.
+the image has less than 512 distinct colors. With this option, you can adjust this threshold.
 In particular, \fB-P\fR\fI0\fR disables the use of a color palette.
 .br
 There are two kinds of palettes: Palette_Alpha contains RGBA colors, while Palette contains RGB colors.
@@ -180,7 +196,7 @@ This option disables the YCoCg color transform. This color space transform is ai
 and usually leads to better compression. It also helps to improve the quality of progressive decoding, by encoding the
 most important Y channel earlier than the chroma channels.
 .TP
-\fB\-G\fR, \fB\-\-guess\fR=\fIMETHOD\fR
+\fB\-G\fR, \fB\-\-guess\fR=\fIMETHOD\fR[\fIMETHOD\fR]...
 Interlaced FLIF can use different pixel prediction (guess) methods. By default, the encoder uses a simple heuristic
 to automatically pick a good method. This option lets you manually override that choice.
 .br
@@ -190,10 +206,14 @@ to automatically pick a good method. This option lets you manually override that
 .br
 \fB\-G\fR\fI2\fR uses the median of top, left, and bottom (H) or right (V);
 .br
-\fB\-G\fR\fI3\fR uses different predictors (any of the above) for each plane/zoomlevel, depending on some heuristic.
+\fB\-G\fR\fI?\fR picks one of the above predictors, depending on some heuristic. This is the default setting.
 .br
-The default behavior corresponds to either \fB\-G\fR\fI0\fR, \fB\-G\fR\fI1\fR, or \fB\-G\fR\fI2\fR, depending on a simple heuristic.
+\fB\-G\fR\fI3\fR uses different predictors (any of the above) for each plane/zoomlevel, depending on some heuristic. This is usually a bad idea.
+.br
 For photographs, \fB\-G\fR\fI0\fR tends to be better, while for line art, \fB\-G\fR\fI1\fR or \fB\-G\fR\fI2\fR are usually best.
+You can specify the pixel predictor separately for each plane (Y,Co,Cg,A). Unspecified predictors are set to the Y plane predictor.
+So for example \fB\-G\fR\fI0?2\fR means: use predictor 0 for the Y plane, an automatically chosen predictor for the Co plane,
+predictor 2 for the Cg plane, and if there's an alpha channel, use predictor 0 (the same as for the Y plane).
 .TP
 \fB\-R\fR, \fB\-\-maniac\-repeats\fR=\fINB_ITERATIONS\fR
 The first and computationally most demanding step of FLIF encoding is performing a number of iterations
