@@ -18,25 +18,33 @@ limitations under the License.
 
 #include "common.hpp"
 
-const std::vector<std::string> transforms = {"Channel_Compact", "YCoCg", "Bounds",
-                                             "Palette_Alpha", "Palette", "?? Palette_Chroma ??", "Color_Buckets",
-                                             "Duplicate_Frame", "Frame_Shape", "Frame_Lookback",
-                                             "?? YCbCr ??", "DCT", "?? DWT ??", "?? Quantization ??",
-                                             "?? Reserved ??", "?? Other ??" };
+// These are the names of the transformations done before encoding / after decoding
+const std::vector<std::string> transforms = {"Channel_Compact", "YCoCg", "?? YCbCr ??", "Bounds",  // color space / ranges
+                                             "Palette_Alpha", "Palette", "Color_Buckets",  // sparse-color transforms
+                                             "?? DCT ??", "?? DWT ??", // JPEG-style transforms, not implemented (but maybe in future versions?)
+                                             "Duplicate_Frame", "Frame_Shape", "Frame_Lookback", // animation-related transforms
+                                             "?? Other ??" };
 // Plenty of room for future extensions: transform "Other" can be used to encode identifiers of arbitrary many other transforms
 
+// Some global variables used to show progress and to know when to stop a partial/progressive decode
+// (TODO: avoid global variables)
 int64_t pixels_todo = 0;
 int64_t pixels_done = 0;
 int progressive_qual_target = 0;
 int progressive_qual_shown = -1;
 
 
-const int PLANE_ORDERING[] = {4,3,0,1,2}; // FRA, A, Y, I, Q
+// The order in which the planes are encoded.
+// Lookback (animations-only, value refers to a previous frame) has to be first, because all other planes are not encoded if lookback != 0
+// Alpha has to be next, because for fully transparent A=0 pixels, the other planes are not encoded
+// Y (luma) is next (the first channel for still opaque images), because it is perceptually most important
+// Co and Cg are in that order because Co is perceptually slightly more important than Cg [citation needed]
+const int PLANE_ORDERING[] = {4,3,0,1,2}; // FRA (lookback), A, Y, Co, Cg
 
+
+// MANIAC property information for non-interlaced images
 const int NB_PROPERTIES_scanlines[] = {7,8,9,7,7};
 const int NB_PROPERTIES_scanlinesA[] = {8,9,10,7,7};
-
-
 void initPropRanges_scanlines(Ranges &propRanges, const ColorRanges &ranges, int p) {
     propRanges.clear();
     int min = ranges.min(p);
@@ -63,9 +71,9 @@ ColorVal predict_and_calcProps_scanlines(Properties &properties, const ColorRang
 }
 
 
+// MANIAC property information for interlaced images
 const int NB_PROPERTIES[] = {8,10,9,8,8};
 const int NB_PROPERTIESA[] = {9,11,10,8,8};
-
 void initPropRanges(Ranges &propRanges, const ColorRanges &ranges, int p) {
     propRanges.clear();
     int min = ranges.min(p);
@@ -105,24 +113,47 @@ ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges
 ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges, const Image &image, const int z, const int p, const uint32_t r, const uint32_t c, ColorVal &min, ColorVal &max, const int predictor) {
     image.getPlane(0).prepare_zoomlevel(z);
     image.getPlane(p).prepare_zoomlevel(z);
-    switch(p) {
+
+#ifdef SUPPORT_HDR
+    if (image.getDepth() > 8) {
+     switch(p) {
       case 0:
-        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,true,false,0,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max,predictor);
-        else return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,false,false,0,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max,predictor);
+        if (z%2==0) return predict_and_calcProps_plane<Plane<ColorVal_intern_16u>,Plane<ColorVal_intern_16u>,true,false,0,ColorRanges>(properties,ranges,image,static_cast<const Plane<ColorVal_intern_16u>&>(image.getPlane(p)),static_cast<const Plane<ColorVal_intern_16u>&>(image.getPlane(0)),z,r,c,min,max,predictor);
+        else return predict_and_calcProps_plane<Plane<ColorVal_intern_16u>,Plane<ColorVal_intern_16u>,false,false,0,ColorRanges>(properties,ranges,image,static_cast<const Plane<ColorVal_intern_16u>&>(image.getPlane(p)),static_cast<const Plane<ColorVal_intern_16u>&>(image.getPlane(0)),z,r,c,min,max,predictor);
       case 1:
-        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,true,false,1,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max,predictor);
-        else return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,false,false,1,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max,predictor);
+        if (z%2==0) return predict_and_calcProps_plane<Plane<ColorVal_intern_32>,Plane<ColorVal_intern_16u>,true,false,1,ColorRanges>(properties,ranges,image,static_cast<const Plane<ColorVal_intern_32>&>(image.getPlane(p)),static_cast<const Plane<ColorVal_intern_16u>&>(image.getPlane(0)),z,r,c,min,max,predictor);
+        else return predict_and_calcProps_plane<Plane<ColorVal_intern_32>,Plane<ColorVal_intern_16u>,false,false,1,ColorRanges>(properties,ranges,image,static_cast<const Plane<ColorVal_intern_32>&>(image.getPlane(p)),static_cast<const Plane<ColorVal_intern_16u>&>(image.getPlane(0)),z,r,c,min,max,predictor);
       case 2:
-        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,true,false,2,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max,predictor);
-        else return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,false,false,2,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max,predictor);
+        if (z%2==0) return predict_and_calcProps_plane<Plane<ColorVal_intern_32>,Plane<ColorVal_intern_16u>,true,false,2,ColorRanges>(properties,ranges,image,static_cast<const Plane<ColorVal_intern_32>&>(image.getPlane(p)),static_cast<const Plane<ColorVal_intern_16u>&>(image.getPlane(0)),z,r,c,min,max,predictor);
+        else return predict_and_calcProps_plane<Plane<ColorVal_intern_32>,Plane<ColorVal_intern_16u>,false,false,2,ColorRanges>(properties,ranges,image,static_cast<const Plane<ColorVal_intern_32>&>(image.getPlane(p)),static_cast<const Plane<ColorVal_intern_16u>&>(image.getPlane(0)),z,r,c,min,max,predictor);
       case 3:
-        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,true,false,3,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max,predictor);
-        else return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,false,false,3,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max,predictor);
+        if (z%2==0) return predict_and_calcProps_plane<Plane<ColorVal_intern_16u>,Plane<ColorVal_intern_16u>,true,false,3,ColorRanges>(properties,ranges,image,static_cast<const Plane<ColorVal_intern_16u>&>(image.getPlane(p)),static_cast<const Plane<ColorVal_intern_16u>&>(image.getPlane(0)),z,r,c,min,max,predictor);
+        else return predict_and_calcProps_plane<Plane<ColorVal_intern_16u>,Plane<ColorVal_intern_16u>,false,false,3,ColorRanges>(properties,ranges,image,static_cast<const Plane<ColorVal_intern_16u>&>(image.getPlane(p)),static_cast<const Plane<ColorVal_intern_16u>&>(image.getPlane(0)),z,r,c,min,max,predictor);
       default:
         assert(p==4);
-        if (z%2==0) return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,true,false,4,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max,predictor);
-        else return predict_and_calcProps_plane<GeneralPlane,GeneralPlane,false,false,4,ColorRanges>(properties,ranges,image,image.getPlane(p),image.getPlane(0),z,r,c,min,max,predictor);
-    }
+        if (z%2==0) return predict_and_calcProps_plane<Plane<ColorVal_intern_8>,Plane<ColorVal_intern_16u>,true,false,4,ColorRanges>(properties,ranges,image,static_cast<const Plane<ColorVal_intern_8>&>(image.getPlane(p)),static_cast<const Plane<ColorVal_intern_16u>&>(image.getPlane(0)),z,r,c,min,max,predictor);
+        else return predict_and_calcProps_plane<Plane<ColorVal_intern_8>,Plane<ColorVal_intern_16u>,false,false,4,ColorRanges>(properties,ranges,image,static_cast<const Plane<ColorVal_intern_8>&>(image.getPlane(p)),static_cast<const Plane<ColorVal_intern_16u>&>(image.getPlane(0)),z,r,c,min,max,predictor);
+     }
+    } else
+#endif
+     switch(p) {
+      case 0:
+        if (z%2==0) return predict_and_calcProps_plane<Plane<ColorVal_intern_8>,Plane<ColorVal_intern_8>,true,false,0,ColorRanges>(properties,ranges,image,static_cast<const Plane<ColorVal_intern_8>&>(image.getPlane(p)),static_cast<const Plane<ColorVal_intern_8>&>(image.getPlane(0)),z,r,c,min,max,predictor);
+        else return predict_and_calcProps_plane<Plane<ColorVal_intern_8>,Plane<ColorVal_intern_8>,false,false,0,ColorRanges>(properties,ranges,image,static_cast<const Plane<ColorVal_intern_8>&>(image.getPlane(p)),static_cast<const Plane<ColorVal_intern_8>&>(image.getPlane(0)),z,r,c,min,max,predictor);
+      case 1:
+        if (z%2==0) return predict_and_calcProps_plane<Plane<ColorVal_intern_16>,Plane<ColorVal_intern_8>,true,false,1,ColorRanges>(properties,ranges,image,static_cast<const Plane<ColorVal_intern_16>&>(image.getPlane(p)),static_cast<const Plane<ColorVal_intern_8>&>(image.getPlane(0)),z,r,c,min,max,predictor);
+        else return predict_and_calcProps_plane<Plane<ColorVal_intern_16>,Plane<ColorVal_intern_8>,false,false,1,ColorRanges>(properties,ranges,image,static_cast<const Plane<ColorVal_intern_16>&>(image.getPlane(p)),static_cast<const Plane<ColorVal_intern_8>&>(image.getPlane(0)),z,r,c,min,max,predictor);
+      case 2:
+        if (z%2==0) return predict_and_calcProps_plane<Plane<ColorVal_intern_16>,Plane<ColorVal_intern_8>,true,false,2,ColorRanges>(properties,ranges,image,static_cast<const Plane<ColorVal_intern_16>&>(image.getPlane(p)),static_cast<const Plane<ColorVal_intern_8>&>(image.getPlane(0)),z,r,c,min,max,predictor);
+        else return predict_and_calcProps_plane<Plane<ColorVal_intern_16>,Plane<ColorVal_intern_8>,false,false,2,ColorRanges>(properties,ranges,image,static_cast<const Plane<ColorVal_intern_16>&>(image.getPlane(p)),static_cast<const Plane<ColorVal_intern_8>&>(image.getPlane(0)),z,r,c,min,max,predictor);
+      case 3:
+        if (z%2==0) return predict_and_calcProps_plane<Plane<ColorVal_intern_8>,Plane<ColorVal_intern_8>,true,false,3,ColorRanges>(properties,ranges,image,static_cast<const Plane<ColorVal_intern_8>&>(image.getPlane(p)),static_cast<const Plane<ColorVal_intern_8>&>(image.getPlane(0)),z,r,c,min,max,predictor);
+        else return predict_and_calcProps_plane<Plane<ColorVal_intern_8>,Plane<ColorVal_intern_8>,false,false,3,ColorRanges>(properties,ranges,image,static_cast<const Plane<ColorVal_intern_8>&>(image.getPlane(p)),static_cast<const Plane<ColorVal_intern_8>&>(image.getPlane(0)),z,r,c,min,max,predictor);
+      default:
+        assert(p==4);
+        if (z%2==0) return predict_and_calcProps_plane<Plane<ColorVal_intern_8>,Plane<ColorVal_intern_8>,true,false,4,ColorRanges>(properties,ranges,image,static_cast<const Plane<ColorVal_intern_8>&>(image.getPlane(p)),static_cast<const Plane<ColorVal_intern_8>&>(image.getPlane(0)),z,r,c,min,max,predictor);
+        else return predict_and_calcProps_plane<Plane<ColorVal_intern_8>,Plane<ColorVal_intern_8>,false,false,4,ColorRanges>(properties,ranges,image,static_cast<const Plane<ColorVal_intern_8>&>(image.getPlane(p)),static_cast<const Plane<ColorVal_intern_8>&>(image.getPlane(0)),z,r,c,min,max,predictor);
+     }
 }
 
 int plane_zoomlevels(const Image &image, const int beginZL, const int endZL) {

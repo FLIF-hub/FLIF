@@ -47,7 +47,7 @@ extern int progressive_qual_target;
 extern int progressive_qual_shown;
 
 
-#define MAX_TRANSFORM 15
+#define MAX_TRANSFORM 12
 #define MAX_PREDICTOR 2
 
 extern const std::vector<std::string> transforms;
