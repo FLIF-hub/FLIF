@@ -373,7 +373,7 @@ ColorVal flif_make_lossy(int min, int max, ColorVal value, int loss) {
         if (minabs1 > amax) { // 1-bit is impossible
             bit = 0;
         } else if (maxabs0 >= amin) { // 0-bit and 1-bit are both possible
-            if (pos > maniac::util::ilog2(loss))
+            if (pos > ignoredbits)
                 bit = (a >> pos) & 1;
             else
                 bit = 0;
@@ -419,14 +419,8 @@ void flif_make_lossy_scanlines(Images &images, const ColorRanges *ranges, int lo
     }
 }
 inline int luma_alpha_compensate(int p, ColorVal Y, ColorVal X, ColorVal A) {
-//    return 255;
-//    if (p==0) return 128+A/2; // divide by 128 at low alpha (so double loss), 255 at high alpha (normal loss)
     if (p==4) return 255;
-    return 128+A/2; // more loss if closer to transparent grey
-    // p is a chroma plane, assuming Y in [0,255] and X in [-255,255]
-        // more loss if more transparent
-        // more loss if closer to black
-//    return 128 + A/2 + Y/4 - 48;
+    return 128+A/2; // divide by 128 at low alpha (so double loss), 255 at high alpha (normal loss)
 }
 void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int loss, bool adaptive, Image &map) {
     ColorVal min,max;
@@ -436,6 +430,8 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
     int beginZL = images[0].zooms();
     int endZL = 0;
     int predictor=0;
+//    int lossp[] = {(loss+6)/10, (loss+2)/4, (loss+2)/3, loss/10, 0};  // less loss on Y, more on Co and Cg
+    int lossp[] = {(loss+6)/10, (loss+1)/3, (loss+2)/3, loss/10, 0};  // less loss on Y, more on Co and Cg
 
     // preprocessing step: compensate for anticipated loss in final zoomlevels (assuming predictor 0)
     for (int i = 0; i < plane_zoomlevels(images[0], beginZL, endZL); i++) {
@@ -445,7 +441,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
       if (z>0) continue;
       if (ranges->min(p) >= ranges->max(p)) continue;
       Properties properties((nump>3?NB_PROPERTIESA[p]:NB_PROPERTIES[p]));
-      int lossp[] = {(loss+6)/10, (loss+2)/4, (loss+2)/3, loss/10, 0};  // less loss on Y, more on Co and Cg
+    //  int lossp[] = {(loss+6)/10, (loss+2)/4, (loss+2)/3, loss/10, 0};  // less loss on Y, more on Co and Cg
       if (lossp[p]==0) continue;
           for (uint32_t r = 1; r < images[0].rows(z)-1; r += 2) {
             for (int fr=0; fr<(int)images.size(); fr++) {
@@ -470,11 +466,14 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
                     //  curr:   120  -->  90 (guess)     so we compensate and make it   100   (error: 30 -> 20)
                     //  bottom: 80                                                      90    (error: 0 -> 10)
                     ColorVal diff = curr-guess;
+//                    if (abs(diff) > actual_loss*6/5) continue;
                     if (abs(diff) > actual_loss*6/5) continue;
-                    ColorVal top = image(p,z,r-1,c) + diff/3;
+                    ColorVal top = image(p,z,r-1,c);
+                    ColorVal bottom = image(p,z,r+1,c);
+                    top += diff/3;
+                    bottom += diff/3;
                     for (int pp=0; pp<p; pp++) properties[pp] = image(pp,z,r-1,c);
                     ranges->snap(p,properties,min,max,top);
-                    ColorVal bottom = image(p,z,r+1,c) + diff/3;
                     for (int pp=0; pp<p; pp++) properties[pp] = image(pp,z,r+1,c);
                     ranges->snap(p,properties,min,max,bottom);
                     image.set(p,z,r-1,c, top);
@@ -490,7 +489,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
       if (z!=1) continue;
       if (ranges->min(p) >= ranges->max(p)) continue;
       Properties properties((nump>3?NB_PROPERTIESA[p]:NB_PROPERTIES[p]));
-      int lossp[] = {(loss+6)/10, (loss+2)/4, (loss+2)/3, loss/10, 0};  // less loss on Y, more on Co and Cg
+      //int lossp[] = {(loss+6)/10, (loss+2)/4, (loss+2)/3, loss/10, 0};  // less loss on Y, more on Co and Cg
       if (lossp[p]==0) continue;
           for (uint32_t r = 0; r < images[0].rows(z); r++) {
             for (int fr=0; fr<(int)images.size(); fr++) {
@@ -509,11 +508,14 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
                     if (z==1) factor += loss;
                     int actual_loss = (adaptive? factor-map(0,z,r,c) : factor) * lossp[p] / luma_alpha_compensate(p,image(0,z,r,c),image(p,z,r,c),(nump>3?image(3,z,r,c):255));
                     ColorVal diff = curr-guess;
+//                    if (abs(diff) > actual_loss) continue;
                     if (abs(diff) > actual_loss) continue;
-                    ColorVal left = image(p,z,r,c-1) + diff/3;
+                    ColorVal left = image(p,z,r,c-1);
+                    ColorVal right = image(p,z,r,c+1);
+                    left += diff/3;
                     for (int pp=0; pp<p; pp++) properties[pp] = image(pp,z,r,c-1);
                     ranges->snap(p,properties,min,max,left);
-                    ColorVal right = image(p,z,r,c+1) + diff/3;
+                    right += diff/3;
                     for (int pp=0; pp<p; pp++) properties[pp] = image(pp,z,r,c+1);
                     ranges->snap(p,properties,min,max,right);
                     image.set(p,z,r,c-1, left);
@@ -530,14 +532,13 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
       int z = pzl.second;
       if (ranges->min(p) >= ranges->max(p)) continue;
       Properties properties((nump>3?NB_PROPERTIESA[p]:NB_PROPERTIES[p]));
-      int lossp[] = {(loss+6)/10, (loss+2)/4, (loss+2)/3, loss/10, 0};  // less loss on Y, more on Co and Cg
+//      int lossp[] = {(loss+6)/10, (loss+2)/4, (loss+2)/3, loss/10, 0};  // less loss on Y, more on Co and Cg
       if (lossp[p]==0) continue;
       // Y quality steps:  ..., 77-86, 87-96, 97-100
       // Co quality steps: ..., 83-86, 87-90, 91-94, 95-98, 99-100
       // Cg quality steps: ..., 85-87, 88-90, 91-93, 94-96, 97-99, 100
       // overall quality jumps at: ...., 87, 88, 91, 94, 95, 97, 99, 100
       if (z % 2 == 0) {
-        // horizontal: scan the odd rows, output pixel values
           for (uint32_t r = 1; r < images[0].rows(z); r += 2) {
             for (int fr=0; fr<(int)images.size(); fr++) {
               Image& image = images[fr];
@@ -553,15 +554,17 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
                     if (z>2 && c+1 < end && c > begin) {
                         ColorVal child1 = image(p,z-1,r,2*c-1);
                         ColorVal child2 = image(p,z-1,r,2*c+1);
-                        if (abs(curr-child1) <= loss && abs(curr-child2) <= loss) {
+//                        if (abs(curr-child1) <= loss && abs(curr-child2) <= loss) {
+                        if (abs(curr-child1) < 2*lossp[p] && abs(curr-child2) < 2*lossp[p] ) {
                             // current pixel is likely to influence neighbors in next zoomlevels, so apply less loss to avoid cascading error
                             factor = 64+(abs(curr-child1)+abs(curr-child2)+abs(curr-guess))*64/lossp[p];
                             if (factor>255) factor=255;
                         }
                     }
                     // less error in the early steps
-                    if (z>6 && lossp[p]>20) factor /= 2;
-                    if (z>8 && lossp[p]>30) factor /= 2;
+                    if (z>4) factor = factor * 4 / z;
+//                    if (z>6 && lossp[p]>30) factor /= 2;
+//                    if (z>8 && lossp[p]>20) factor /= 2;
                     factor = ((beginZL-z)*factor/(beginZL));
                     if (z==0) factor += loss*2;
                     ColorVal diff = flif_make_lossy(min - guess, max - guess, curr - guess,
@@ -591,14 +594,16 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
                     if (z>2 && r+1 < images[0].rows(z) && r > 0) {
                         ColorVal child1 = image(p,z-1,2*r-1,c);
                         ColorVal child2 = image(p,z-1,2*r+1,c);
-                        if (abs(curr-child1) <= loss && abs(curr-child2) <= loss) {
+//                        if (abs(curr-child1) <= loss && abs(curr-child2) <= loss) {
+                        if (abs(curr-child1) < 2*lossp[p] && abs(curr-child2) < 2*lossp[p] ) {
                             // current pixel is likely to influence neighbors in next zoomlevels, so apply less loss to avoid cascading error
                             factor = 64+(abs(curr-child1)+abs(curr-child2)+abs(curr-guess))*64/lossp[p];
                             if (factor>255) factor=255;
                         }
                     }
-                    if (z>6 && lossp[p]>20) factor /= 2;
-                    if (z>8 && lossp[p]>30) factor /= 2;
+                    if (z>4) factor = factor * 4 / z;
+//                    if (z>6 && lossp[p]>30) factor /= 2;
+//                    if (z>8 && lossp[p]>20) factor /= 2;
                     factor = ((beginZL-z)*factor/(beginZL));
                     if (z==1) factor += loss;
                     ColorVal diff = flif_make_lossy(min - guess, max - guess, curr - guess,

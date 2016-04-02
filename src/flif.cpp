@@ -488,7 +488,9 @@ int main(int argc, char **argv)
                   if (alpha < 2 || alpha > 128) {e_printf("Not a sensible number for option -Z (try something between 2 and 128)\n"); return 1; }
                   break;
         case 'Q': loss=100-atoi(optarg);
-                  if (loss < 0 || loss > 1000) {e_printf("Not a sensible number for option -Q (try something between 0 and 100)\n"); return 1; }
+                  // can't go above quality 100 = lossless
+                  // can go way below 0 if you want
+                  if (loss < 0) {e_printf("Not a sensible number for option -Q (try something between 0 and 100)\n"); return 1; }
                   break;
         case 'U': adaptive=true; break;
         case 'G': {
