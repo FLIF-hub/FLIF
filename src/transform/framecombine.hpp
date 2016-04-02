@@ -39,7 +39,7 @@ public:
         if (p >= 3) { mi=min(p); ma=max(p); }
         else ranges->minmax(p, pp, mi, ma);
     }
-    const ColorRanges* previous() const { return ranges; }
+    const ColorRanges* previous() const override { return ranges; }
 };
 
 template <typename IO>
