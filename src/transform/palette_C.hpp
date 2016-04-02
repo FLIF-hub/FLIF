@@ -96,7 +96,10 @@ public:
             }
           }
          }
-         if ((int)CPalette.size() <= srcRanges->max(p)-srcRanges->min(p)) nontrivial = true;
+//         if ((int)CPalette.size() <= srcRanges->max(p)-srcRanges->min(p)) nontrivial = true;
+         // if on all channels, less than 10% of the range can be compacted away, it's probably a bad idea to do the compaction
+         // since the gain from a smaller RGB range will probably not compensate for the disturbing of the YIQ transform
+         if ((int)CPalette.size() * 10 <= 9 * (srcRanges->max(p)-srcRanges->min(p))) nontrivial = true;
          if (CPalette.size() < 10) {
            // add up to 10 shades of gray
            ColorVal prev=0;
