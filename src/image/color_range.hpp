@@ -54,7 +54,7 @@ public:
     ColorVal max(int p) const override { return ranges->max(p); }
     void minmax(const int p, const prevPlanes &pp, ColorVal &minv, ColorVal &maxv) const override { ranges->minmax(p,pp,minv,maxv); }
     bool isStatic() const override { return ranges->isStatic(); }
-    const ColorRanges* previous() const { return ranges; }
+    const ColorRanges* previous() const override { return ranges; }
 };
 
 const ColorRanges *dupRanges(const ColorRanges *ranges);
