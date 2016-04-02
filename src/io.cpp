@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <unistd.h>
 
 #include "io.hpp"
 
@@ -40,6 +41,16 @@ int get_verbosity() {
 
 void v_printf(const int v, const char *format, ...) {
     if (verbosity < v) return;
+    va_list args;
+    va_start(args, format);
+    vfprintf(stdout, format, args);
+    fflush(stdout);
+    va_end(args);
+}
+
+void v_printf_tty(const int v, const char *format, ...) {
+    if (verbosity < v) return;
+    if(!isatty(1)) return;
     va_list args;
     va_start(args, format);
     vfprintf(stdout, format, args);
