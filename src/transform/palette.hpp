@@ -50,7 +50,7 @@ public:
          else if (p<3) { minv=0; maxv=0; return;}
          else ranges->minmax(p,pp,minv,maxv);
     }
-    const ColorRanges* previous() const { return ranges; }
+    const ColorRanges* previous() const override { return ranges; }
 
 };
 
