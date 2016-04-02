@@ -50,6 +50,7 @@ public:
          else if (p==3) { minv=1; maxv=1; return;}
          else ranges->minmax(p,pp,minv,maxv);
     }
+    const ColorRanges* previous() const { return ranges; }
 
 };
 

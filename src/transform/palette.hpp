@@ -50,6 +50,7 @@ public:
          else if (p<3) { minv=0; maxv=0; return;}
          else ranges->minmax(p,pp,minv,maxv);
     }
+    const ColorRanges* previous() const { return ranges; }
 
 };
 
@@ -82,6 +83,7 @@ public:
         return new ColorRangesPalette(srcRanges, Palette_vector.size());
     }
     void invData(Images& images) const override {
+//        v_printf(5,"invData Palette\n");
         for (Image& image : images) {
           image.undo_make_constant_plane(0);
           image.undo_make_constant_plane(1); // only needed when there is only one palette color, so plane 1 is also constant
