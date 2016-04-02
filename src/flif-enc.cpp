@@ -65,7 +65,7 @@ void flif_encode_scanlines_inner(IO& io, Rac& rac, std::vector<Coder> &coders, c
         if (ranges->min(p) >= ranges->max(p)) continue;
         const ColorVal minP = ranges->min(p);
         Properties properties((nump>3?NB_PROPERTIES_scanlinesA[p]:NB_PROPERTIES_scanlines[p]));
-        v_printf(2,"\r%i%% done [%i/%i] ENC[%ux%u]    ",(int)(100*pixels_done/pixels_todo),i,nump,images[0].cols(),images[0].rows());
+        v_printf_tty(2,"\r%i%% done [%i/%i] ENC[%ux%u]    ",(int)(100*pixels_done/pixels_todo),i,nump,images[0].cols(),images[0].rows());
         pixels_done += images[0].cols()*images[0].rows();
         for (uint32_t r = 0; r < images[0].rows(); r++) {
             for (int fr=0; fr< (int)images.size(); fr++) {
@@ -200,13 +200,13 @@ void flif_encode_FLIF2_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const
       int predictor = (the_predictor[p] < 0 ? find_best_predictor(images, ranges, p, z) : the_predictor[p]);
       //if (z < 2 && the_predictor < 0) printf("Plane %i, zoomlevel %i: predictor %i\n",p,z,predictor);
       if (the_predictor[p] < 0) metaCoder.write_int(0, MAX_PREDICTOR, predictor);
-      if (endZL == 0) v_printf(2,"\r%i%% done [%i/%i] ENC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
+      if (endZL == 0) v_printf_tty(2,"\r%i%% done [%i/%i] ENC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
       Properties properties((nump>3?NB_PROPERTIESA[p]:NB_PROPERTIES[p]));
       if (z % 2 == 0) {
         // horizontal: scan the odd rows, output pixel values
           for (uint32_t r = 1; r < images[0].rows(z); r += 2) {
             pixels_done += images[0].cols(z);
-            if (endZL == 0 && (r & 257)==257) v_printf(3,"\r%i%% done [%i/%i] ENC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
+            if (endZL == 0 && (r & 257)==257) v_printf_tty(3,"\r%i%% done [%i/%i] ENC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
             for (int fr=0; fr<(int)images.size(); fr++) {
               const Image& image = images[fr];
               if (image.seen_before >= 0) { continue; }
@@ -227,7 +227,7 @@ void flif_encode_FLIF2_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const
         // vertical: scan the odd columns
           for (uint32_t r = 0; r < images[0].rows(z); r++) {
             pixels_done += images[0].cols(z)/2;
-            if (endZL == 0 && (r&513)==513) v_printf(3,"\r%i%% done [%i/%i] ENC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
+            if (endZL == 0 && (r&513)==513) v_printf_tty(3,"\r%i%% done [%i/%i] ENC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
             for (int fr=0; fr<(int)images.size(); fr++) {
               const Image& image = images[fr];
               if (image.seen_before >= 0) { continue; }
@@ -248,8 +248,8 @@ void flif_encode_FLIF2_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const
           }
       }
       if (endZL==0 && io.ftell()>fs) {
-          v_printf(3,"    wrote %li bytes    ", io.ftell());
-          v_printf(5,"\n");
+          v_printf_tty(3,"    wrote %li bytes    ", io.ftell());
+          v_printf_tty(5,"\n");
           fs = io.ftell();
       }
     }
@@ -656,7 +656,7 @@ void flif_encode_main(RacOut<IO>& rac, IO& io, Images &images, flifEncoding enco
     }
 
     //v_printf(2,"Encoding data (pass 1)\n");
-    if (learn_repeats>1) v_printf(3,"Learning a MANIAC tree. Iterating %i times.\n",learn_repeats);
+    if (learn_repeats>0) v_printf(3,"Learning a MANIAC tree. Iterating %i time%s.\n",learn_repeats,(learn_repeats>1?"s":""));
     switch(encoding) {
         case flifEncoding::nonInterlaced:
            flif_encode_scanlines_pass<IO, RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, bits> >(io, dummy, images, ranges, forest, learn_repeats, divisor, min_size, split_threshold, cutoff, alpha);
@@ -665,7 +665,8 @@ void flif_encode_main(RacOut<IO>& rac, IO& io, Images &images, flifEncoding enco
            flif_encode_FLIF2_pass<IO, RacDummy, PropertySymbolCoder<FLIFBitChancePass1, RacDummy, bits> >(io, dummy, images, ranges, forest, roughZL, 0, learn_repeats, divisor, min_size, split_threshold, cutoff, alpha, predictor);
            break;
     }
-    v_printf(3,"\rHeader: %li bytes.", fs);
+    v_printf_tty(3,"\r");
+    v_printf(3,"Header: %li bytes.", fs);
     if (encoding==flifEncoding::interlaced) v_printf(3," Rough data: %li bytes.", io.ftell()-fs);
     fflush(stdout);
 
@@ -758,7 +759,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     //SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18> metaCoder(rac);
     UniformSymbolCoder<RacOut<IO>> metaCoder(rac);
 
-    v_printf(3,"Input: %ux%u, channels:", images[0].cols(), images[0].rows());
+    v_printf(2," (%ux%u", images[0].cols(), images[0].rows());
     for (int p = 0; p < numPlanes; p++) {
         assert(image.min(p) == 0);
         if (c=='0') {
@@ -766,17 +767,17 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
           v_printf(3," [%i] %i bpp",p,ilog2(image.max(p)+1));
         }
     }
-    if (c=='1') v_printf(3," %i, depth: 8 bit",numPlanes);
-    if (c=='2') v_printf(3," %i, depth: 16 bit",numPlanes);
-    if (numFrames>1) v_printf(3,", frames: %i",numFrames);
+    if (c=='1') v_printf(3,", %i channels, 8-bit",numPlanes);
+    if (c=='2') v_printf(3,", %i channels, 16-bit",numPlanes);
+    if (numFrames>1) v_printf(3,", %i frames",numFrames);
     int alphazero=0;
     if (numPlanes > 3) {
         if (images[0].alpha_zero_special) alphazero=1;
         if (alphazero) metaCoder.write_int(0,1,1);
         else metaCoder.write_int(0,1,0);
-        if (!alphazero) v_printf(3, ", store RGB at A=0");
+        if (!alphazero) v_printf(3, ", keep RGB at A=0");
     }
-    v_printf(3,"\n");
+    v_printf(2,")\n");
     if (numFrames>1) {
         metaCoder.write_int(0, 100, 0); // repeats (0=infinite)
         for (int i=0; i<numFrames; i++) {
@@ -804,7 +805,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     std::vector<std::unique_ptr<const ColorRanges>> rangesList;
     rangesList.push_back(std::unique_ptr<const ColorRanges>(getRanges(image)));
     int tcount=0;
-    v_printf(4,"Transforms: ");
+    v_printf(3,"Transforms: ");
 
     for (unsigned int i=0; i<transDesc.size(); i++) {
         auto trans = create_transform<IO>(transDesc[i]);
@@ -813,11 +814,11 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
         if (transDesc[i] == "Frame_Lookback") trans->configure(lookback);
         if (!trans->init(previous_range) ||
             (!trans->process(previous_range, images)
-              && !(acb==1 && transDesc[i] == "Color_Buckets" && (v_printf(4,", forced "), (tcount=0), true) ))) {
+              && !(acb==1 && transDesc[i] == "Color_Buckets" && (v_printf(3,", forced "), (tcount=0), true) ))) {
             //e_printf( "Transform '%s' failed\n", transDesc[i].c_str());
         } else {
-            if (tcount++ > 0) v_printf(4,", ");
-            v_printf(4,"%s", transDesc[i].c_str());
+            if (tcount++ > 0) v_printf(3,", ");
+            v_printf(3,"%s", transDesc[i].c_str());
             fflush(stdout);
             rac.write_bit(true);
             write_name(rac, transDesc[i]);
@@ -827,7 +828,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
             trans->data(images);
         }
     }
-    if (tcount==0) v_printf(4,"none\n"); else v_printf(4,"\n");
+    if (tcount==0) v_printf(3,"none\n"); else v_printf(3,"\n");
     rac.write_bit(false);
     const ColorRanges* ranges = rangesList.back().get();
 
@@ -842,33 +843,37 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
           if (nBits > mbits) mbits = nBits;
         }
     }
-    int bits = 10; // hardcoding things for 8 bit RGB (which means 9 bit IQ and 10 bit differences)
+    int bits = 10; // hardcoding things for 8 bit RGB (which means 9 bit Co/Cg and 10 bit differences)
 #ifdef SUPPORT_HDR
     if (mbits >10) bits=18;
 #endif
     if (mbits > bits) { e_printf("OOPS: this FLIF only supports 8-bit RGBA (not compiled with SUPPORT_HDR)\n"); return false;}
 
     if (alphazero && ranges->numPlanes() > 3 && ranges->min(3) <= 0) {
-      v_printf(4,"Replacing fully transparent RGB subpixels with predicted subpixel values\n");
+      v_printf(4,"Replacing fully transparent subpixels with predicted subpixel values\n");
       switch(encoding) {
         case flifEncoding::nonInterlaced: flif_encode_scanlines_interpol_zero_alpha(images, ranges); break;
         case flifEncoding::interlaced: flif_encode_FLIF2_interpol_zero_alpha(images, ranges, image.zooms(), 0); break;
       }
     }
-    for (int p = 0; p < ranges->numPlanes(); p++) {
+
+    for (int p = 1; p < ranges->numPlanes(); p++) {
         if (ranges->min(p) >= ranges->max(p)) {
-            v_printf(4,"Constant plane %i at color value %i\n",p,ranges->min(p));
+            //v_printf(5,"Constant plane %i at color value %i\n",p,ranges->min(p));
             //pixels_todo -= (int64_t)image.rows()*image.cols()*(learn_repeats+1);
             for (int fr = 0; fr < numFrames; fr++)
                 images[fr].make_constant_plane(p,ranges->min(p));
         }
     }
+    // Y plane shouldn't be constant, even if it is (because we want to avoid special-casing fast Y plane access)
+    for (int fr = 0; fr < numFrames; fr++) images[fr].undo_make_constant_plane(0);
 
     int default_predictor[5] = {0,0,0,0,0};
     if (!predictor) predictor=default_predictor;
     if (loss>0) for(int p=0; p<numPlanes; p++) predictor[p]=0;
 
     if (loss > 0) {
+      v_printf(3,"Introducing loss to improve compression. Amount of loss: %i\n", loss);
       switch(encoding) {
         case flifEncoding::nonInterlaced:
             flif_make_lossy_scanlines(images,ranges,loss,adaptive,adaptive_map);
@@ -881,16 +886,27 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
       }
     } else {
         if (encoding == flifEncoding::interlaced) {
+          v_printf(3,"Using pixel predictor method: -G");
+          bool autodetect=false;
           for(int p=0; p<ranges->numPlanes(); p++) {
+            if (predictor[p] >= 0) v_printf(3,"%i",predictor[p]);
+            else if (predictor[p] == -1) v_printf(3,"3");
+            else {v_printf(3,"?"); autodetect=true;}
+          }
+          if (autodetect) {
+           v_printf(3,"  ->  -G");
+           for(int p=0; p<ranges->numPlanes(); p++) {
             if (predictor[p] == -2) {
               if (ranges->min(p) < ranges->max(p)) {
                 predictor[p] = find_best_predictor(images, ranges, p, 1);
                 // predictor 0 is usually the safest choice, so only pick a different one if it's the best at zoomlevel 0 too
                 if (predictor[p] > 0 && find_best_predictor(images, ranges, p, 0) != predictor[p]) predictor[p] = 0;
-                v_printf(3,"Using pixel predictor method %i for plane %i\n",predictor[p],p);
               } else predictor[p] = 0;
             }
+            v_printf(3,"%i",(predictor[p] >= 0 ? predictor[p] : 3));
+           }
           }
+          v_printf(3,"\n");
         }
     }
 
@@ -913,10 +929,11 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     rac.flush();
     io.flush();
 
+    v_printf_tty(2,"\r");
     if (numFrames==1)
-      v_printf(2,"\rEncoding done, %li bytes for %ux%u pixels (%.4fbpp)   \n",io.ftell(), images[0].cols(), images[0].rows(), 8.0*io.ftell()/images[0].rows()/images[0].cols());
+      v_printf(2,"Wrote output FLIF file %s, %li bytes for %ux%u pixels (%.4fbpp)   \n",io.getName(),io.ftell(), images[0].cols(), images[0].rows(), 8.0*io.ftell()/images[0].rows()/images[0].cols());
     else
-      v_printf(2,"\rEncoding done, %li bytes for %i frames of %ux%u pixels (%.4fbpp)   \n",io.ftell(), numFrames, images[0].cols(), images[0].rows(), 8.0*io.ftell()/numFrames/images[0].rows()/images[0].cols());
+      v_printf(2,"Wrote output FLIF file %s, %li bytes for %i frames of %ux%u pixels (%.4fbpp)   \n",io.getName(),io.ftell(), numFrames, images[0].cols(), images[0].rows(), 8.0*io.ftell()/numFrames/images[0].rows()/images[0].cols());
 
 //    images[0].save("debug.pam");
 
