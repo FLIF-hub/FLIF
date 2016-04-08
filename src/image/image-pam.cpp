@@ -36,14 +36,24 @@ bool image_load_pam(const char *filename, Image& image) {
     int maxlines=100;
     do {
         t = fgets(buf, PPMREADBUFLEN, fp);
-        if ( t == NULL ) return 1;
+        if ( t == NULL ) {
+            fclose(fp);
+            return true;
+        }
         /* Px formats can have # comments after first line */
-        if (strncmp(buf, "#", 1) == 0 || strncmp(buf, "\n", 1) == 0) continue;
+        if (strncmp(buf, "#", 1) == 0 || strncmp(buf, "\n", 1) == 0)
+            continue;
+
         sscanf(buf, "WIDTH %u\n", &width);
         sscanf(buf, "HEIGHT %u\n", &height);
         sscanf(buf, "DEPTH %u\n", &depth);
         sscanf(buf, "MAXVAL %u\n", &maxval);
-        if (maxlines-- < 1) {e_printf("Problem while parsing PAM header.\n"); fclose(fp); return false;}
+
+        if (maxlines-- < 1) {
+            e_printf("Problem while parsing PAM header.\n");
+            fclose(fp);
+            return false;
+        }
     } while ( strncmp(buf, "ENDHDR", 6) != 0 );
     if (depth>4 || depth <1 || width <1 || height < 1 || maxval<1 || maxval > 0xffff) {
         e_printf("Couldn't parse PAM header, or unsupported kind of PAM file.\n");
