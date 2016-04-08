@@ -74,6 +74,7 @@ install: all
 	install -m 755 ../tools/apng2flif $(PREFIX)/bin
 
 install-dev:
+	install -d $(PREFIX)/include
 	install -m 644 library/*.h $(PREFIX)/include
 
 magic:
