@@ -215,6 +215,11 @@ You can specify the pixel predictor separately for each plane (Y,Co,Cg,A). Unspe
 So for example \fB\-G\fR\fI0?2\fR means: use predictor 0 for the Y plane, an automatically chosen predictor for the Co plane,
 predictor 2 for the Cg plane, and if there's an alpha channel, use predictor 0 (the same as for the Y plane).
 .TP
+\fB\-H\fR, \fB\-\-invisible\-guess\fR=\fIMETHOD\fR
+Interlaced FLIF with an alpha channel can use different pixel prediction methods to define the RGB values of invisible (A=0) pixels.
+This can have a (small) effect on compression. The available methods are \fB\-H\fR\fI0\fR, \fB\-H\fR\fI1\fR, and \fB\-H\fR\fI2\fR,
+which have the same meaning as in the option \fB\-G\fR (see above). The default method is \fB\-H\fR\fI2\fR.
+.TP
 \fB\-R\fR, \fB\-\-maniac\-repeats\fR=\fINB_ITERATIONS\fR
 The first and computationally most demanding step of FLIF encoding is performing a number of iterations
 of dummy-encoding in order to learn image-adapted MANIAC trees.

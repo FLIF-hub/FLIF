@@ -285,7 +285,7 @@ void flif_encode_FLIF2_pass(IO& io, Rac &rac, const Images &images, const ColorR
     }
 }
 
-void flif_encode_FLIF2_interpol_zero_alpha(Images &images, const ColorRanges * ranges, const int beginZL, const int endZL)
+void flif_encode_FLIF2_interpol_zero_alpha(Images &images, const ColorRanges * ranges, const int beginZL, const int endZL, const int predictor)
 {
     const std::vector<ColorVal> greys = computeGreys(ranges);
 
@@ -306,14 +306,14 @@ void flif_encode_FLIF2_interpol_zero_alpha(Images &images, const ColorRanges * r
         // horizontal: scan the odd rows
           for (uint32_t r = 1; r < image.rows(z); r += 2) {
             for (uint32_t c = 0; c < image.cols(z); c++) {
-               if (image(3,z,r,c) == 0) image.set(p,z,r,c, predict(image,z,p,r,c));
+               if (image(3,z,r,c) == 0) image.set(p,z,r,c, predict(image,z,p,r,c,predictor));
             }
           }
       } else {
         // vertical: scan the odd columns
           for (uint32_t r = 0; r < image.rows(z); r++) {
             for (uint32_t c = 1; c < image.cols(z); c += 2) {
-               if (image(3,z,r,c) == 0) image.set(p,z,r,c, predict(image,z,p,r,c));
+               if (image(3,z,r,c) == 0) image.set(p,z,r,c, predict(image,z,p,r,c,predictor));
             }
           }
       }
@@ -695,7 +695,7 @@ template <typename IO>
 bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding,
                  int learn_repeats, int acb, int palette_size, int lookback,
                  int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD,
-                 int cutoff=2, int alpha=19, int crc_check=-1, int loss=0, int predictor[]=NULL) {
+                 int cutoff=2, int alpha=19, int crc_check=-1, int loss=0, int predictor[]=NULL, int invisible_predictor=2) {
 
     io.fputs("FLIF");  // bytes 1-4 are fixed magic
     int numPlanes = images[0].numPlanes();
@@ -858,7 +858,10 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
       v_printf(4,"Replacing fully transparent subpixels with predicted subpixel values\n");
       switch(encoding) {
         case flifEncoding::nonInterlaced: flif_encode_scanlines_interpol_zero_alpha(images, ranges); break;
-        case flifEncoding::interlaced: flif_encode_FLIF2_interpol_zero_alpha(images, ranges, image.zooms(), 0); break;
+        case flifEncoding::interlaced:
+            metaCoder.write_int(0,MAX_PREDICTOR,invisible_predictor);
+            flif_encode_FLIF2_interpol_zero_alpha(images, ranges, image.zooms(), 0, invisible_predictor);
+            break;
       }
     }
 
@@ -886,7 +889,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
             break;
         case flifEncoding::interlaced:
             flif_make_lossy_interlaced(images,ranges,loss,adaptive,adaptive_map);
-            if (alphazero && ranges->numPlanes() > 3 && ranges->min(3) <= 0) flif_encode_FLIF2_interpol_zero_alpha(images, ranges, image.zooms(), 0);
+            if (alphazero && ranges->numPlanes() > 3 && ranges->min(3) <= 0) flif_encode_FLIF2_interpol_zero_alpha(images, ranges, image.zooms(), 0, invisible_predictor);
             break;
       }
     } else {
@@ -946,7 +949,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
 }
 
 
-template bool flif_encode(FileIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int palette_size, int lookback, int divisor, int min_size, int split_threshold, int cutoff, int alpha, int crc_check, int loss, int predictor[]);
-template bool flif_encode(BlobIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int palette_size, int lookback, int divisor, int min_size, int split_threshold, int cutoff, int alpha, int crc_check, int loss, int predictor[]);
+template bool flif_encode(FileIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int palette_size, int lookback, int divisor, int min_size, int split_threshold, int cutoff, int alpha, int crc_check, int loss, int predictor[], int invisible_predictor);
+template bool flif_encode(BlobIO& io, Images &images, std::vector<std::string> transDesc, flifEncoding encoding, int learn_repeats, int acb, int palette_size, int lookback, int divisor, int min_size, int split_threshold, int cutoff, int alpha, int crc_check, int loss, int predictor[], int invisible_predictor);
 
 #endif

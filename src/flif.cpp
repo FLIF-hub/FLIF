@@ -104,6 +104,7 @@ void show_help(int mode) {
     v_printf(3,"   -U, --adaptive              adaptive lossy, second input image is saliency map\n");
     v_printf(3,"   -G, --guess=N[N..]          pixel predictor for each plane (Y,Co,Cg,Alpha,Lookback)\n");
     v_printf(3,"                               ?=pick heuristically, 0=avg, 1=median_grad, 2=median_nb, 3=mixed\n");
+    v_printf(3,"   -H, --invisible-guess=N     predictor for invisible pixels (only if -K is not used)\n");
     }
 #endif
     if (mode != 0) {
@@ -136,7 +137,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  ____ _(_)____\n");
-    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc14 [2 Apr 2016]\n");
+    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc15 [11 Apr 2016]\n");
     v_printf(3,"  (__ | |_| __)    ");v_printf(3,"Copyright (C) 2016 Jon Sneyers and Pieter Wuille\n");
     v_printf(3,"    (_|___|_)      ");
 #ifdef HAS_ENCODER
@@ -216,7 +217,7 @@ bool encode_load_input_images(int argc, char **argv, Images &images) {
 }
 bool encode_flif(int argc, char **argv, Images &images, int palette_size, int acb, flifEncodingOptional method, int lookback,
                  int learn_repeats, std::vector<int> &frame_delay, int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE,
-                 int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int yiq=1, int plc=1, int frs=1, int cutoff=2, int alpha=19, int crc_check=-1, int loss=0, int predictor[]=NULL) {
+                 int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD, int yiq=1, int plc=1, int frs=1, int cutoff=2, int alpha=19, int crc_check=-1, int loss=0, int predictor[]=NULL, int invisible_predictor=2) {
     bool flat=true;
     unsigned int framenb=0;
     for (Image& i : images) { i.frame_delay = frame_delay[framenb]; if (framenb+1 < frame_delay.size()) framenb++; }
@@ -285,18 +286,18 @@ bool encode_flif(int argc, char **argv, Images &images, int palette_size, int ac
     if (!file)
         return false;
     FileIO fio(file, argv[0]);
-    return flif_encode(fio, images, desc, method.encoding, learn_repeats, acb, palette_size, lookback, divisor, min_size, split_threshold, cutoff, alpha, crc_check, loss, predictor);
+    return flif_encode(fio, images, desc, method.encoding, learn_repeats, acb, palette_size, lookback, divisor, min_size, split_threshold, cutoff, alpha, crc_check, loss, predictor, invisible_predictor);
 }
 
 bool handle_encode(int argc, char **argv, Images &images, int palette_size, int acb, flifEncodingOptional method,
                    int lookback, int learn_repeats, std::vector<int> &frame_delay, int divisor=CONTEXT_TREE_COUNT_DIV,
                    int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD,
-                   int yiq=1, int plc=1, bool alpha_zero_special=true, int frs=1, int cutoff=2, int alpha=19, int crc_check=-1, int loss=0, int predictor[]=NULL) {
+                   int yiq=1, int plc=1, bool alpha_zero_special=true, int frs=1, int cutoff=2, int alpha=19, int crc_check=-1, int loss=0, int predictor[]=NULL, int invisible_predictor=2) {
     if (!encode_load_input_images(argc,argv,images)) return false;
     if (!alpha_zero_special) for (Image& i : images) i.alpha_zero_special = false;
     argv += (argc-1);
     argc = 1;
-    return encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, frs, cutoff, alpha, crc_check, loss, predictor);
+    return encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, frs, cutoff, alpha, crc_check, loss, predictor, invisible_predictor);
 }
 #endif
 
@@ -368,6 +369,7 @@ int main(int argc, char **argv)
     int loss=0;
     bool adaptive=false;
     int predictor[]={-2,-2,-2,-2,-2}; // heuristically pick a fixed predictor on all planes
+    int invisible_predictor=2;
 #else
     int mode = 1;
 #endif
@@ -412,14 +414,15 @@ int main(int argc, char **argv)
         {"chance-alpha", 1, NULL, 'Z'},
         {"lossy", 1, NULL, 'Q'},
         {"adaptive", 0, NULL, 'U'},
-        {"guess-method", 1, NULL, 'G'},
+        {"guess", 1, NULL, 'G'},
+        {"invisible-guess", 1, NULL, 'H'},
         {"effort", 1, NULL, 'E'},
 #endif
         {0, 0, 0, 0}
     };
     int i,c;
 #ifdef HAS_ENCODER
-    while ((c = getopt_long (argc, argv, "hdvciVq:s:r:etINnF:KP:ABYCL:SR:D:M:T:X:Z:Q:UG:E:", optlist, &i)) != -1) {
+    while ((c = getopt_long (argc, argv, "hdvciVq:s:r:etINnF:KP:ABYCL:SR:D:M:T:X:Z:Q:UG:H:E:", optlist, &i)) != -1) {
 #else
     while ((c = getopt_long (argc, argv, "hdvciVq:s:r:", optlist, &i)) != -1) {
 #endif
@@ -520,6 +523,9 @@ int main(int argc, char **argv)
                   for (; p<5; p++) predictor[p]=predictor[0];
                   }
                   break;
+        case 'H': invisible_predictor=atoi(optarg);
+                  if (invisible_predictor < 0 || invisible_predictor > 2) {e_printf("Not a sensible value for option -H\nValid values are: 0 (avg), 1 (median avg/gradients), 2 (median neighbors)\n"); return 1; }
+                  break;
         case 'E': {
                   int effort=atoi(optarg);
                   if (effort < 0 || effort > 100) {e_printf("Not a sensible number for option -E (try something between 0 and 100)\n"); return 1; }
@@ -601,7 +607,7 @@ int main(int argc, char **argv)
 #ifdef HAS_ENCODER
     if (adaptive) loss = -loss; // use negative loss to indicate we want to do adaptive lossy encoding
     if (mode == 0) {
-        if (!handle_encode(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, alpha_zero_special, frs, cutoff, alpha, crc_check, loss, predictor)) return 2;
+        if (!handle_encode(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, alpha_zero_special, frs, cutoff, alpha, crc_check, loss, predictor, invisible_predictor)) return 2;
     } else if (mode == 1) {
 #endif
         return handle_decode(argc, argv, images, quality, scale, resize_width, resize_height, crc_check);
@@ -610,7 +616,7 @@ int main(int argc, char **argv)
 //        if (scale > 1) {e_printf("Not yet supported: transcoding downscaled image; use decode + encode!\n");}
         if (!decode_flif(argv, images, quality, scale, resize_width, resize_height, crc_check)) return 2;
         argc--; argv++;
-        if (!encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, frs, cutoff, alpha, crc_check, loss, predictor)) return 2;
+        if (!encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, frs, cutoff, alpha, crc_check, loss, predictor, invisible_predictor)) return 2;
     }
 #endif
     return 0;

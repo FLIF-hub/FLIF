@@ -146,23 +146,45 @@ inline ColorVal predictScanlines_plane(const plane_t &plane, uint32_t r, uint32_
 
 // Prediction used for interpolation / alpha=0 pixels. Does not have to be the same as the guess used for encoding/decoding.
 template <typename plane_t>
-inline ColorVal predict_plane_horizontal(const plane_t &plane, int z, int p, uint32_t r, uint32_t c, uint32_t rows) {
+inline ColorVal predict_plane_horizontal(const plane_t &plane, int z, int p, uint32_t r, uint32_t c, uint32_t rows, const int predictor) {
     if (p==4) return 0;
     assert(z%2 == 0); // filling horizontal lines
     ColorVal top = plane.get(z,r-1,c);
     ColorVal bottom = (r+1 < rows ? plane.get(z,r+1,c) : top ); // (c > 0 ? image(p, z, r, c - 1) : top));
-    ColorVal avg = (top + bottom)>>1;
-    return avg;
+    if (predictor == 0) {
+      ColorVal avg = (top + bottom)>>1;
+      return avg;
+    } else if (predictor == 1) {
+      ColorVal avg = (top + bottom)>>1;
+      ColorVal left = (c>0 ? plane.get(z,r,c-1) : top);
+      ColorVal topleft = (c>0 ? plane.get(z,r-1,c-1) : top);
+      ColorVal bottomleft = (c>0 && r+1 < rows ? plane.get(z,r+1,c-1) : left);
+      return median3(avg, left+top-topleft, left+bottom-bottomleft);
+    } else { // if (predictor == 2) {
+      ColorVal left = (c>0 ? plane.get(z,r,c-1) : top);
+      return median3(top,bottom,left);
+    }
 }
 
 template <typename plane_t>
-inline ColorVal predict_plane_vertical(const plane_t &plane, int z, int p, uint32_t r, uint32_t c, uint32_t cols) {
+inline ColorVal predict_plane_vertical(const plane_t &plane, int z, int p, uint32_t r, uint32_t c, uint32_t cols, const int predictor) {
     if (p==4) return 0;
     assert(z%2 == 1); // filling vertical lines
     ColorVal left = plane.get(z,r,c-1);
     ColorVal right = (c+1 < cols ? plane.get(z,r,c+1) : left ); //(r > 0 ? image(p, z, r-1, c) : left));
-    ColorVal avg = (left + right)>>1;
-    return avg;
+    if (predictor == 0) {
+      ColorVal avg = (left + right)>>1;
+      return avg;
+    } else if (predictor == 1) {
+      ColorVal avg = (left + right)>>1;
+      ColorVal top = (r>0 ? plane.get(z,r-1,c) : left);
+      ColorVal topleft = (r>0 ? plane.get(z,r-1,c-1) : left);
+      ColorVal topright = (r>0 && c+1 < cols ? plane.get(z,r-1,c+1) : top);
+      return median3(avg, left+top-topleft, right+top-topright);
+    } else { // if (predictor == 2) {
+      ColorVal top = (r>0 ? plane.get(z,r-1,c) : left);
+      return median3(top,left,right);
+    }
 }
 
 // Prediction used for interpolation / alpha=0 pixels. Does not have to be the same as the guess used for encoding/decoding.
@@ -171,13 +193,26 @@ inline ColorVal predictScanlines(const Image &image, int p, uint32_t r, uint32_t
 }
 
 // Prediction used for interpolation / alpha=0 pixels. Does not have to be the same as the guess used for encoding/decoding.
-inline ColorVal predict(const Image &image, int z, int p, uint32_t r, uint32_t c) {
+inline ColorVal predict(const Image &image, int z, int p, uint32_t r, uint32_t c, const int predictor) {
     if (p==4) return 0;
+    ColorVal prediction;
     if (z%2 == 0) { // filling horizontal lines
-      return predict_plane_horizontal(image.getPlane(p),z,p,r,c,image.rows(z));
+      prediction = predict_plane_horizontal(image.getPlane(p),z,p,r,c,image.rows(z),predictor);
     } else { // filling vertical lines
-      return predict_plane_vertical(image.getPlane(p),z,p,r,c,image.cols(z));
+      prediction = predict_plane_vertical(image.getPlane(p),z,p,r,c,image.cols(z),predictor);
     }
+
+    // accurate snap-to-ranges: too expensive?
+/*
+    if (p == 1 || p == 2) {
+      prevPlanes pp(p);
+      ColorVal min, max;
+      for (int prev=0; prev<p; prev++) pp[prev]=image(prev,z,r,c);
+      ranges->snap(p,pp,min,max,prediction);
+    }
+*/
+    return prediction;
+
 }
 
 #define PIXEL(z,r,c) plane.get_fast(r,c)
