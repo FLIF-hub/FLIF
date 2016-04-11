@@ -319,9 +319,10 @@ void flif_decode_plane_zoomlevel_horizontal(plane_t &plane, Coder &coder, Images
             for (uint32_t c = 0; c < begin; c++)
                 if (alpha.get(z,r,c) == 0) plane.set(z,r,c, predict_plane_horizontal(plane,z,p,r,c, image.rows(z), invisible_predictor));
                 else image.set(p,z,r,c,images[fr-1](p,z,r,c));
-            for (uint32_t c = end; c < image.cols(z); c++)
-                if (alpha.get(z,r,c) == 0) plane.set(z,r,c, predict_plane_horizontal(plane,z,p,r,c, image.rows(z), invisible_predictor));
-                else image.set(p,z,r,c,images[fr-1](p,z,r,c));
+// have to wait with the end of the row until the part between begin and end is decoded
+//            for (uint32_t c = end; c < image.cols(z); c++)
+//                if (alpha.get(z,r,c) == 0) plane.set(z,r,c, predict_plane_horizontal(plane,z,p,r,c, image.rows(z), invisible_predictor));
+//                else image.set(p,z,r,c,images[fr-1](p,z,r,c));
         }
         else if (p != 4) {
             const uint32_t cs = image.zoom_colpixelsize(z), rs = image.zoom_rowpixelsize(z);
@@ -364,6 +365,11 @@ void flif_decode_plane_zoomlevel_horizontal(plane_t &plane, Coder &coder, Images
         plane.set_fast(r,c, curr);
       }
     }
+    if (fr>0 && alphazero && p < 3) {
+            for (uint32_t c = end; c < image.cols(z); c++)
+                if (alpha.get(z,r,c) == 0) plane.set(z,r,c, predict_plane_horizontal(plane,z,p,r,c, image.rows(z), invisible_predictor));
+                else image.set(p,z,r,c,images[fr-1](p,z,r,c));
+    }
 }
 
 template<typename Coder, typename plane_t, typename alpha_t, int p, typename ranges_t>
@@ -383,9 +389,10 @@ void flif_decode_plane_zoomlevel_vertical(plane_t &plane, Coder &coder, Images &
             for (uint32_t c = 1; c < begin; c += 2)
                 if (alpha.get(z, r, c) == 0) plane.set(z, r, c, predict_plane_vertical(plane, z, p, r, c, image.cols(z), invisible_predictor));
                 else image.set(p,z,r,c,images[fr-1](p,z,r,c));
-            for (uint32_t c = end; c < image.cols(z); c += 2)
-                if (alpha.get(z, r, c) == 0) plane.set(z, r, c, predict_plane_vertical(plane, z, p, r, c, image.cols(z), invisible_predictor));
-                else image.set(p,z,r,c,images[fr-1](p,z,r,c));
+// have to wait with the end of the row until the part between begin and end is decoded
+//            for (uint32_t c = end; c < image.cols(z); c += 2)
+//                if (alpha.get(z, r, c) == 0) plane.set(z, r, c, predict_plane_vertical(plane, z, p, r, c, image.cols(z), invisible_predictor));
+//                else image.set(p,z,r,c,images[fr-1](p,z,r,c));
         }
         else if (p != 4) {
             const uint32_t cs = image.zoom_colpixelsize(z), rs = image.zoom_rowpixelsize(z);
@@ -429,6 +436,11 @@ void flif_decode_plane_zoomlevel_vertical(plane_t &plane, Coder &coder, Images &
         //plane.set(z,r,c, curr);
         plane.set_fast(r,c, curr);
       }
+    }
+    if (fr>0 && alphazero && p < 3) {
+            for (uint32_t c = end; c < image.cols(z); c += 2)
+                if (alpha.get(z, r, c) == 0) plane.set(z, r, c, predict_plane_vertical(plane, z, p, r, c, image.cols(z), invisible_predictor));
+                else image.set(p,z,r,c,images[fr-1](p,z,r,c));
     }
 }
 
@@ -981,6 +993,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     int invisible_predictor = 0;
     if (alphazero && ranges->numPlanes() > 3 && ranges->min(3) <= 0 && encoding == 2) {
       invisible_predictor = metaCoder.read_int(0,MAX_PREDICTOR);
+      v_printf(4,"Invisible pixel predictor: -H%i\n",invisible_predictor);
     }
 
     int realnumplanes = 0;
