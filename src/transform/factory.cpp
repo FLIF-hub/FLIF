@@ -4,14 +4,17 @@
 
 #include "ycocg.hpp"
 //#include "yc1c2.hpp"
+#include "permute.hpp"
 #include "bounds.hpp"
 #include "colorbuckets.hpp"
 #include "palette.hpp"
 #include "palette_A.hpp"
 #include "palette_C.hpp"
+//#include "palette_CoCg.hpp"
 #include "frameshape.hpp"
 #include "framedup.hpp"
 #include "framecombine.hpp"
+//#include "dct.hpp"
 
 template <typename IO>
 std::unique_ptr<Transform<IO>> create_transform(std::string desc) {
@@ -21,12 +24,16 @@ std::unique_ptr<Transform<IO>> create_transform(std::string desc) {
 //        return new TransformYCC<IO>();
     if (desc == "Bounds")
         return make_unique<TransformBounds<IO>>();
+    if (desc == "PermutePlanes")
+        return make_unique<TransformPermute<IO>>();
     if (desc == "Color_Buckets")
         return make_unique<TransformCB<IO>>();
     if (desc == "Palette")
         return make_unique<TransformPalette<IO>>();
     if (desc == "Palette_Alpha")
         return make_unique<TransformPaletteA<IO>>();
+//    if (desc == "Palette_Chroma")  // turned out to be useless
+//        return make_unique<TransformPaletteCoCg<IO>>();
     if (desc == "Channel_Compact")
         return make_unique<TransformPaletteC<IO>>();
     if (desc == "Frame_Shape")
@@ -35,6 +42,8 @@ std::unique_ptr<Transform<IO>> create_transform(std::string desc) {
         return make_unique<TransformFrameDup<IO>>();
     if (desc == "Frame_Lookback")
         return make_unique<TransformFrameCombine<IO>>();
+//    if (desc == "DCT")
+//        return make_unique<TransformDCT<IO>>();
     return NULL;
 }
 

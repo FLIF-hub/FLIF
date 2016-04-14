@@ -218,6 +218,7 @@ void flif_encode_FLIF2_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max,predictor);
                     ColorVal curr = image(p,z,r,c);
                     if (FRA && p==4 && max > fr) max = fr;
+                    if (FRA && (guess>max || guess<min)) guess = min;
                     assert (curr <= max); assert (curr >= min);
                     coders[p].write_int(properties, min - guess, max - guess, curr - guess);
               }
@@ -241,6 +242,7 @@ void flif_encode_FLIF2_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max,predictor);
                     ColorVal curr = image(p,z,r,c);
                     if (FRA && p==4 && max > fr) max = fr;
+                    if (FRA && (guess>max || guess<min)) guess = min;
                     assert (curr <= max); assert (curr >= min);
                     coders[p].write_int(properties, min - guess, max - guess, curr - guess);
               }
@@ -764,6 +766,8 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     //SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18> metaCoder(rac);
     UniformSymbolCoder<RacOut<IO>> metaCoder(rac);
 
+    metaCoder.write_int(0,1,0); // FLIF version: FLIF16
+
     v_printf(2," (%ux%u", images[0].cols(), images[0].rows());
     for (int p = 0; p < numPlanes; p++) {
         assert(image.min(p) == 0);
@@ -789,7 +793,6 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
            metaCoder.write_int(0, 60000, images[i].frame_delay); // time in ms between frames
         }
     }
-//    v_printf(2,"Header: %li bytes.\n", ftell(f));
 
     if (cutoff==2 && alpha==19) {
       metaCoder.write_int(0,1,0); // using default constants for cutoff/alpha
@@ -859,6 +862,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
       switch(encoding) {
         case flifEncoding::nonInterlaced: flif_encode_scanlines_interpol_zero_alpha(images, ranges); break;
         case flifEncoding::interlaced:
+            v_printf(4,"Invisible pixel predictor: -H%i\n",invisible_predictor);
             metaCoder.write_int(0,MAX_PREDICTOR,invisible_predictor);
             flif_encode_FLIF2_interpol_zero_alpha(images, ranges, image.zooms(), 0, invisible_predictor);
             break;

@@ -361,6 +361,7 @@ void flif_decode_plane_zoomlevel_horizontal(plane_t &plane, Coder &coder, Images
         if (FRA && p<4 && image.getFRA(z,r,c) > 0) { plane.set_fast(r,c,images[fr-image.getFRA(z,r,c)](p,z,r,c)); continue;}
         ColorVal guess = predict_and_calcProps_plane<plane_t,alpha_t,true,false,p,ranges_t>(properties,ranges,image,plane,planeY,z,r,c,min,max, predictor);
         if (FRA && p==4 && max > fr) max = fr;
+        if (FRA && (guess>max || guess<min)) guess = min;
         ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
         plane.set_fast(r,c, curr);
       }
@@ -432,6 +433,7 @@ void flif_decode_plane_zoomlevel_vertical(plane_t &plane, Coder &coder, Images &
         if (FRA && p<4 && image.getFRA(z,r,c) > 0) { plane.set_fast(r,c,images[fr-image.getFRA(z,r,c)](p,z,r,c)); continue;}
         ColorVal guess = predict_and_calcProps_plane<plane_t,alpha_t,false,false,p,ranges_t>(properties,ranges,image,plane,planeY,z,r,c,min,max, predictor);
         if (FRA && p==4 && max > fr) max = fr;
+        if (FRA && (guess>max || guess<min)) guess = min;
         ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
         //plane.set(z,r,c, curr);
         plane.set_fast(r,c, curr);
@@ -862,6 +864,11 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     RacIn<IO> rac(io);
 //    SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> metaCoder(rac);
     UniformSymbolCoder<RacIn<IO>> metaCoder(rac);
+
+    if (metaCoder.read_int(0,1)) {
+        e_printf("This is not a FLIF16 image, but a more recent FLIF file. Please update your FLIF decoder.\n");
+        return false;
+    }
 
 //    image.init(width, height, 0, 0, 0);
     v_printf(3,"Decoding %ux%u image, channels:",width,height);

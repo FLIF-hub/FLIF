@@ -17,6 +17,7 @@ public:
     virtual void minmax(const int p, const prevPlanes &, ColorVal &minv, ColorVal &maxv) const { minv=min(p); maxv=max(p); }
     virtual void snap(const int p, const prevPlanes &pp, ColorVal &minv, ColorVal &maxv, ColorVal &v) const {
         minmax(p,pp,minv,maxv);
+        if (minv > maxv) { e_printf("Corruption detected!\n"); maxv=minv; return; } // this should only happen on malicious/corrupt input files
         assert(minv <= maxv);
         if(v>maxv) v=maxv;
         if(v<minv) v=minv;

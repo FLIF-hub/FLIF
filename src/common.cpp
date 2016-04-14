@@ -19,7 +19,7 @@ limitations under the License.
 #include "common.hpp"
 
 // These are the names of the transformations done before encoding / after decoding
-const std::vector<std::string> transforms = {"Channel_Compact", "YCoCg", "?? YCbCr ??", "Bounds",  // color space / ranges
+const std::vector<std::string> transforms = {"Channel_Compact", "YCoCg", "?? YCbCr ??", "PermutePlanes", "Bounds",  // color space / ranges
                                              "Palette_Alpha", "Palette", "Color_Buckets",  // sparse-color transforms
                                              "?? DCT ??", "?? DWT ??", // JPEG-style transforms, not implemented (but maybe in future versions?)
                                              "Duplicate_Frame", "Frame_Shape", "Frame_Lookback", // animation-related transforms

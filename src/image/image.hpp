@@ -418,7 +418,7 @@ void copy_row_range(plane_t &plane, const GeneralPlane &other, const uint32_t r,
 
 
 class Image {
-    std::unique_ptr<GeneralPlane> planes[5];
+    std::unique_ptr<GeneralPlane> planes[5]; // Red/Y, Green/Co, Blue/Cg, Alpha, Frame-Lookback(animation only)
     uint32_t width, height;
     ColorVal minval,maxval;
     int num;
