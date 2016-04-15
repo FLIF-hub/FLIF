@@ -217,8 +217,10 @@ void flif_encode_FLIF2_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const
                     if (FRA && p<4 && image(4,z,r,c) > 0) continue;
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max,predictor);
                     ColorVal curr = image(p,z,r,c);
-                    if (FRA && p==4 && max > fr) max = fr;
-                    if (FRA && (guess>max || guess<min)) guess = min;
+                    if (FRA) {
+                        if (p==4 && max > fr) max = fr;
+                        if (guess>max || guess<min) guess = min;
+                    }
                     assert (curr <= max); assert (curr >= min);
                     coders[p].write_int(properties, min - guess, max - guess, curr - guess);
               }
@@ -241,8 +243,10 @@ void flif_encode_FLIF2_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const
                     if (FRA && p<4 && image(4,z,r,c) > 0) continue;
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max,predictor);
                     ColorVal curr = image(p,z,r,c);
-                    if (FRA && p==4 && max > fr) max = fr;
-                    if (FRA && (guess>max || guess<min)) guess = min;
+                    if (FRA) {
+                        if (p==4 && max > fr) max = fr;
+                        if (guess>max || guess<min) guess = min;
+                    }
                     assert (curr <= max); assert (curr >= min);
                     coders[p].write_int(properties, min - guess, max - guess, curr - guess);
               }
@@ -350,9 +354,9 @@ ColorVal flif_make_lossy(int min, int max, ColorVal value, int loss) {
     if (min == max) return min;
     if (value == 0) return 0;
 
-    int sign = (value > 0 ? 1 : 0);
-    if (sign && min <= 0) min = 1;
-    if (!sign && max >= 0) max = -1;
+    const int sign = (value > 0 ? 1 : 0);
+    if (sign) { if (min <= 0) min = 1; }
+    else { if(max >= 0) max = -1; }
     int a = abs(value);
     if (a < loss) return 0;
     // we are reducing precision on the mantissa by dropping least significant bits, so
@@ -776,8 +780,8 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
           v_printf(3," [%i] %i bpp",p,ilog2(image.max(p)+1));
         }
     }
-    if (c=='1') v_printf(3,", %i channels, 8-bit",numPlanes);
-    if (c=='2') v_printf(3,", %i channels, 16-bit",numPlanes);
+    if (c=='1') { v_printf(3,", %i channels, 8-bit",numPlanes); }
+    else if (c=='2') { v_printf(3,", %i channels, 16-bit",numPlanes); }
     if (numFrames>1) v_printf(3,", %i frames",numFrames);
     int alphazero=0;
     if (numPlanes > 3) {
