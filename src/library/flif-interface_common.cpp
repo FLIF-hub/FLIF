@@ -56,29 +56,29 @@ void FLIF_IMAGE::read_row_RGBA8(uint32_t row, void* buffer, size_t buffer_size_b
 
     FLIF_RGBA* buffer_rgba = reinterpret_cast<FLIF_RGBA*>(buffer);
     int rshift = 0;
-    int lshift = 1;
+    int mult = 1;
     ColorVal m=image.max(0);
-    while (m > 255) { rshift++; m = m >> 1; } // in case the image has bit depth higher than 8
-    while (m * ((1 << lshift)-1) < 255) { lshift++; } // in case the image has bit depth lower than 8
+    while (m > 0xFF) { rshift++; m = m >> 1; } // in case the image has bit depth higher than 8
+    if (m < 0xFF) mult = 0xFF / m;
 
     if(image.numPlanes() >= 3) {
         // color
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
-            buffer_rgba[c].r = ((image(0, row, c) >> rshift) * ((1<<lshift)-1)) & 0xFF;
-            buffer_rgba[c].g = ((image(1, row, c) >> rshift) * ((1<<lshift)-1)) & 0xFF;
-            buffer_rgba[c].b = ((image(2, row, c) >> rshift) * ((1<<lshift)-1)) & 0xFF;
+            buffer_rgba[c].r = ((image(0, row, c) >> rshift) * mult) & 0xFF;
+            buffer_rgba[c].g = ((image(1, row, c) >> rshift) * mult) & 0xFF;
+            buffer_rgba[c].b = ((image(2, row, c) >> rshift) * mult) & 0xFF;
         }
     } else {
         // grayscale
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
             buffer_rgba[c].r =
             buffer_rgba[c].g =
-            buffer_rgba[c].b = ((image(0, row, c) >> rshift) * ((1<<lshift)-1)) & 0xFF;
+            buffer_rgba[c].b = ((image(0, row, c) >> rshift) * mult) & 0xFF;
         }
     }
     if(image.numPlanes() >= 4) {
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
-            buffer_rgba[c].a = ((image(3, row, c) >> rshift) * ((1<<lshift)-1)) & 0xFF;
+            buffer_rgba[c].a = ((image(3, row, c) >> rshift) * mult) & 0xFF;
         }
     } else {
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
@@ -113,29 +113,29 @@ void FLIF_IMAGE::read_row_RGBA16(uint32_t row, void* buffer, size_t buffer_size_
 
     FLIF_RGBA16* buffer_rgba = reinterpret_cast<FLIF_RGBA16*>(buffer);
     int rshift = 0;
-    int lshift = 1;
+    int mult = 1;
     ColorVal m=image.max(0);
-    while (m > 65535) { rshift++; m = m >> 1; } // in case the image has bit depth higher than 16
-    while (m * ((1 << lshift)-1) < 65535) { lshift++; } // in case the image has bit depth lower than 16
+    while (m > 0xFFFF) { rshift++; m = m >> 1; } // in the unlikely case that the image has bit depth higher than 16
+    if (m < 0xFFFF) mult = 0xFFFF / m;
 
     if(image.numPlanes() >= 3) {
         // color
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
-            buffer_rgba[c].r = ((image(0, row, c) >> rshift) * ((1<<lshift)-1)) & 0xFFFF;
-            buffer_rgba[c].g = ((image(1, row, c) >> rshift) * ((1<<lshift)-1)) & 0xFFFF;
-            buffer_rgba[c].b = ((image(2, row, c) >> rshift) * ((1<<lshift)-1)) & 0xFFFF;
+            buffer_rgba[c].r = (image(0, row, c) >> rshift) * mult;
+            buffer_rgba[c].g = (image(1, row, c) >> rshift) * mult;
+            buffer_rgba[c].b = (image(2, row, c) >> rshift) * mult;
         }
     } else {
         // grayscale
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
             buffer_rgba[c].r =
             buffer_rgba[c].g =
-            buffer_rgba[c].b = ((image(0, row, c) >> rshift) * ((1<<lshift)-1)) & 0xFFFF;
+            buffer_rgba[c].b = (image(0, row, c) >> rshift) * mult;
         }
     }
     if(image.numPlanes() >= 4) {
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
-            buffer_rgba[c].a = ((image(3, row, c) >> rshift) * ((1<<lshift)-1)) & 0xFFFF;
+            buffer_rgba[c].a = (image(3, row, c) >> rshift) * mult;
         }
     } else {
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
@@ -205,6 +205,15 @@ FLIF_DLLEXPORT uint32_t FLIF_API flif_image_get_height(FLIF_IMAGE* image) {
     try
     {
         return image->image.rows();
+    }
+    catch(...) {}
+    return 0;
+}
+
+FLIF_DLLEXPORT uint8_t FLIF_API flif_image_get_depth(FLIF_IMAGE* image) {
+    try
+    {
+        return ( image->image.max(0) > 0xFF ? 16 : 8 );
     }
     catch(...) {}
     return 0;

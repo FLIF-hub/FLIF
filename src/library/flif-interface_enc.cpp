@@ -21,28 +21,28 @@
 
 FLIF_ENCODER::FLIF_ENCODER()
 : interlaced(1)
-, learn_repeats(3)
+, learn_repeats(TREE_LEARN_REPEATS)
 , acb(1)
 , frame_delay(100)
-, palette_size(512)
+, palette_size(DEFAULT_MAX_PALETTE_SIZE)
 , lookback(1)
 , divisor(CONTEXT_TREE_COUNT_DIV)
 , min_size(CONTEXT_TREE_MIN_SUBTREE_SIZE)
 , split_threshold(CONTEXT_TREE_SPLIT_THRESHOLD)
 , alpha_zero_special(1)
-,crc_check(1)
-,channel_compact(1)
-,ycocg(1)
-,frame_shape(1)
-,loss(0)
-,chance_cutoff(2)
-,chance_alpha(19)
+, crc_check(1)
+, channel_compact(1)
+, ycocg(1)
+, frame_shape(1)
+, loss(0)
+, chance_cutoff(2)
+, chance_alpha(19)
 {
 }
 
 void FLIF_ENCODER::add_image(FLIF_IMAGE* image) {
-    images.push_back(image);
     if (!alpha_zero_special) image->image.alpha_zero_special = false;
+    images.push_back(image->image.clone()); // make a clone so the library user can safely destroy an image after adding it
 }
 
 /*!
@@ -53,11 +53,6 @@ int32_t FLIF_ENCODER::encode_file(const char* filename) {
     if(!file)
         return 0;
     FileIO fio(file, filename);
-
-    // TODO: need to change flif_encode() so these expensive copies can be avoided
-    Images copies;
-    for(size_t i = 0; i < images.size(); ++i)
-        copies.push_back(images[i]->image.clone());
 
     std::vector<std::string> desc;
     if (channel_compact) desc.push_back("Channel_Compact");  // compactify channels
@@ -72,7 +67,7 @@ int32_t FLIF_ENCODER::encode_file(const char* filename) {
     if (frame_shape) desc.push_back("Frame_Shape");  // get the shapes of the frames
     if (lookback) desc.push_back("Frame_Lookback");  // make a "deep" alpha channel (negative values are transparent to some previous frame)
 
-    if(!flif_encode(fio, copies, desc,
+    if(!flif_encode(fio, images, desc,
         interlaced != 0 ? flifEncoding::interlaced : flifEncoding::nonInterlaced,
         learn_repeats, acb, palette_size, lookback,
         divisor, min_size, split_threshold, chance_cutoff, chance_alpha, crc_check, loss))
@@ -87,14 +82,9 @@ int32_t FLIF_ENCODER::encode_file(const char* filename) {
 int32_t FLIF_ENCODER::encode_memory(void** buffer, size_t* buffer_size_bytes) {
     BlobIO io;
 
-    // TODO: need to change flif_encode() so these expensive copies can be avoided
-    Images copies;
-    for(size_t i = 0; i < images.size(); ++i)
-        copies.push_back(images[i]->image.clone());
-
     std::vector<std::string> desc;
-    desc.push_back("Channel_Compact");  // compactify channels
-    desc.push_back("YCoCg");  // convert RGB(A) to YCoCg(A)
+    if (channel_compact) desc.push_back("Channel_Compact");  // compactify channels
+    if (ycocg) desc.push_back("YCoCg");  // convert RGB(A) to YCoCg(A)
     desc.push_back("Bounds");  // get the bounds of the color spaces
     desc.push_back("Palette_Alpha");  // try palette (including alpha)
     desc.push_back("Palette");  // try palette (without alpha)
@@ -102,13 +92,13 @@ int32_t FLIF_ENCODER::encode_memory(void** buffer, size_t* buffer_size_bytes) {
       desc.push_back("Color_Buckets");  // try auto color buckets if forced
     }
     desc.push_back("Duplicate_Frame");  // find duplicate frames
-    desc.push_back("Frame_Shape");  // get the shapes of the frames
+    if (frame_shape) desc.push_back("Frame_Shape");  // get the shapes of the frames
     if (lookback) desc.push_back("Frame_Lookback");  // make a "deep" alpha channel (negative values are transparent to some previous frame)
 
-    if(!flif_encode(io, copies, desc,
+    if(!flif_encode(io, images, desc,
         interlaced != 0 ? flifEncoding::interlaced : flifEncoding::nonInterlaced,
         learn_repeats, acb, palette_size, lookback,
-        divisor, min_size, split_threshold))
+        divisor, min_size, split_threshold, chance_cutoff, chance_alpha, crc_check, loss))
         return 0;
 
     *buffer = io.release(buffer_size_bytes);
