@@ -884,7 +884,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
         if (c=='0') v_printf(3," [%i] %i bpp",p,ilog2(max+1));
     }
     if (c=='1') v_printf(3," %i, depth: 8 bit",numPlanes);
-    if (c=='2') v_printf(3," %i, depth: 16 bit",numPlanes);
+    else if (c=='2') v_printf(3," %i, depth: 16 bit",numPlanes);
     if (numFrames>1) v_printf(3,", frames: %i",numFrames);
     bool alphazero=false;
     if (numPlanes>3) {
