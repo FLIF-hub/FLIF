@@ -45,6 +45,28 @@ void FLIF_ENCODER::add_image(FLIF_IMAGE* image) {
     images.push_back(image->image.clone()); // make a clone so the library user can safely destroy an image after adding it
 }
 
+void FLIF_ENCODER::transformations(std::vector<std::string> &desc) {
+    uint64_t nb_pixels = (uint64_t)images[0].rows() * images[0].cols();
+    if (nb_pixels > 2) {         // no point in doing anything for 1- or 2-pixel images
+     if (channel_compact && !loss) desc.push_back("Channel_Compact");  // compactify channels
+     if (ycocg) desc.push_back("YCoCg");  // convert RGB(A) to YCoCg(A)
+     desc.push_back("PermutePlanes");  // permute RGB to GRB
+     desc.push_back("Bounds");  // get the bounds of the color spaces
+     if (!loss) {
+       desc.push_back("Palette_Alpha");  // try palette (including alpha)
+       desc.push_back("Palette");  // try palette (without alpha)
+       if (acb) {
+         desc.push_back("Color_Buckets");  // try auto color buckets if forced
+       }
+      }
+    }
+    desc.push_back("Duplicate_Frame");  // find duplicate frames
+    if (!loss) { // only if lossless
+     if (frame_shape) desc.push_back("Frame_Shape");  // get the shapes of the frames
+     if (lookback) desc.push_back("Frame_Lookback");  // make a "deep" alpha channel (negative values are transparent to some previous frame)
+    }
+}
+
 /*!
 * \return non-zero if the function succeeded
 */
@@ -55,17 +77,7 @@ int32_t FLIF_ENCODER::encode_file(const char* filename) {
     FileIO fio(file, filename);
 
     std::vector<std::string> desc;
-    if (channel_compact) desc.push_back("Channel_Compact");  // compactify channels
-    if (ycocg) desc.push_back("YCoCg");  // convert RGB(A) to YCoCg(A)
-    desc.push_back("Bounds");  // get the bounds of the color spaces
-    desc.push_back("Palette_Alpha");  // try palette (including alpha)
-    desc.push_back("Palette");  // try palette (without alpha)
-    if (acb) {
-      desc.push_back("Color_Buckets");  // try auto color buckets if forced
-    }
-    desc.push_back("Duplicate_Frame");  // find duplicate frames
-    if (frame_shape) desc.push_back("Frame_Shape");  // get the shapes of the frames
-    if (lookback) desc.push_back("Frame_Lookback");  // make a "deep" alpha channel (negative values are transparent to some previous frame)
+    transformations(desc);
 
     if(!flif_encode(fio, images, desc,
         interlaced != 0 ? flifEncoding::interlaced : flifEncoding::nonInterlaced,
@@ -83,17 +95,7 @@ int32_t FLIF_ENCODER::encode_memory(void** buffer, size_t* buffer_size_bytes) {
     BlobIO io;
 
     std::vector<std::string> desc;
-    if (channel_compact) desc.push_back("Channel_Compact");  // compactify channels
-    if (ycocg) desc.push_back("YCoCg");  // convert RGB(A) to YCoCg(A)
-    desc.push_back("Bounds");  // get the bounds of the color spaces
-    desc.push_back("Palette_Alpha");  // try palette (including alpha)
-    desc.push_back("Palette");  // try palette (without alpha)
-    if (acb) {
-      desc.push_back("Color_Buckets");  // try auto color buckets if forced
-    }
-    desc.push_back("Duplicate_Frame");  // find duplicate frames
-    if (frame_shape) desc.push_back("Frame_Shape");  // get the shapes of the frames
-    if (lookback) desc.push_back("Frame_Lookback");  // make a "deep" alpha channel (negative values are transparent to some previous frame)
+    transformations(desc);
 
     if(!flif_encode(io, images, desc,
         interlaced != 0 ? flifEncoding::interlaced : flifEncoding::nonInterlaced,

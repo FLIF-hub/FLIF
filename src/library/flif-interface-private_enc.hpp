@@ -48,5 +48,6 @@ struct FLIF_ENCODER
     int32_t chance_alpha;
 
 private:
+    void transformations(std::vector<std::string> &desc);
     std::vector<Image> images;
 };

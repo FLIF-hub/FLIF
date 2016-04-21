@@ -22,4 +22,8 @@
 #include "flif_dec.h"
 #include "flif_enc.h"
 
+// libflif version 0.2.0
+#define FLIF_VERSION ((0 << 16) | (0 << 8) | 2)
+#define FLIF_ABI_VERSION 0
+
 #endif // FLIF_INTERFACE_H
