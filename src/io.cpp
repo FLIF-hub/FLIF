@@ -18,7 +18,7 @@ limitations under the License.
 
 #include <stdio.h>
 #include <stdarg.h>
-#ifdef WIN32
+#ifdef _WIN32
 #include <io.h>
 #else
 #include <unistd.h>
@@ -54,7 +54,7 @@ void v_printf(const int v, const char *format, ...) {
 
 void v_printf_tty(const int v, const char *format, ...) {
     if (verbosity < v) return;
-#ifdef WIN32
+#ifdef _WIN32
     if(!_isatty(_fileno(stdout))) return;
 #else
     if(!isatty(STDOUT_FILENO)) return;
