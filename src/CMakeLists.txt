@@ -4,6 +4,41 @@ project(flif)
 find_package(PNG REQUIRED)
 include_directories(${PNG_INCLUDE_DIRS})
 
+# find SDL2
+
+find_package(PkgConfig QUIET)
+pkg_check_modules(PKG_SDL2 QUIET sdl2)
+
+find_path(SDL2_INCLUDE_DIR
+  NAMES SDL.h
+  HINTS
+    ${PKG_SDL2_INCLUDEDIR}
+    ${PKG_SDL2_INCLUDE_DIRS}
+  PATH_SUFFIXES SDL2
+)
+
+find_library(SDL2_LIBRARY
+  NAMES SDL2 SDL2main
+  HINTS
+    ${PKG_SDL2_LIBDIR}
+    ${PKG_SDL2_LIBRARY_DIRS}
+  PATH_SUFFIXES x64 x86
+)
+
+find_library(SDL2MAIN_LIBRARY
+  NAMES SDL2main
+  HINTS
+    ${PKG_SDL2_LIBDIR}
+    ${PKG_SDL2_LIBRARY_DIRS}
+  PATH_SUFFIXES x64 x86
+)
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(SDL2
+                                  REQUIRED_VARS SDL2_INCLUDE_DIR SDL2_LIBRARY SDL2MAIN_LIBRARY)
+
+# /find SDL2
+
 set(COMMON_SOURCES
     image/color_range.cpp
     image/crc32k.cpp
@@ -66,6 +101,16 @@ set_target_properties(flif_lib_dec PROPERTIES OUTPUT_NAME flif_dec)
 
 target_compile_definitions(flif_lib PRIVATE FLIF_BUILD_DLL)
 target_compile_definitions(flif_lib_dec PRIVATE FLIF_BUILD_DLL DECODER_ONLY)
+
+# viewflif
+
+if(${SDL2_FOUND})
+    add_executable(viewflif viewflif.c)
+    set_source_files_properties(viewflif.c PROPERTIES LANGUAGE CXX)
+    target_link_libraries(viewflif flif_lib_dec ${SDL2_LIBRARY} ${SDL2MAIN_LIBRARY})
+    target_include_directories(viewflif PRIVATE "library" ${SDL2_INCLUDE_DIR})
+    target_compile_definitions(viewflif PRIVATE FLIF_USE_DLL)
+endif()
 
 # test
 
