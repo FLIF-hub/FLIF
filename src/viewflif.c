@@ -6,10 +6,25 @@
  https://creativecommons.org/publicdomain/zero/1.0/legalcode
 */
 
+
 #include <flif_dec.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <SDL.h>
+
+// SDL2 for Visual Studio C++ 2015
+
+#if _MSC_VER >= 1900
+FILE _iob[] = {*stdin, *stdout, *stderr};
+extern "C" FILE * __cdecl __iob_func(void)
+{
+    return _iob;
+}
+void HackToReferencePrintEtc()
+{
+    fprintf(stderr, "");
+}
+#endif
 
 // comment out to not decode progressively
 #define PROGRESSIVE_DECODING
