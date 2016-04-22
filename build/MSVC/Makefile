@@ -46,7 +46,7 @@ libflif_dec.dll: $(OBJDIR) $(LIBOBJS)
 	copy "$(LibDir)\$@" $@
 
 viewflif.exe: libflif_dec.dll
-	cl $(CFLAGS) /I$(SrcDir)\ /I$(SrcDir)\library\ /I$(sdl2dir)\include /Tp $(SrcDir)\viewflif.c /FI..\build\MSVC\$(Incdir)\sdl2v140.h /DFLIF_USE_DLL /Fd$O /Fo$O -c
+	cl $(CFLAGS) /I$(SrcDir)\ /I$(SrcDir)\library\ /I$(sdl2dir)\include /Tp $(SrcDir)\viewflif.c /DFLIF_USE_DLL /Fd$O /Fo$O -c
 	link /out:$(LibDir)\$@ $Oviewflif.obj libflif_dec.lib SDL2.lib SDL2main.lib $(LDFLAGS) /SUBSYSTEM:CONSOLE /LIBPATH:$(LibDir) /LIBPATH:$(sdl2dir)\lib\$(PLATFORM)\ 
 	copy "$(LibDir)\$@" $@
 	copy $(sdl2dir)\lib\$(PLATFORM)\SDL2.dll SDL2.dll

@@ -18,7 +18,11 @@ limitations under the License.
 
 #include <stdio.h>
 #include <stdarg.h>
+#ifdef _WIN32
+#include <io.h>
+#else
 #include <unistd.h>
+#endif
 
 #include "io.hpp"
 
@@ -50,7 +54,11 @@ void v_printf(const int v, const char *format, ...) {
 
 void v_printf_tty(const int v, const char *format, ...) {
     if (verbosity < v) return;
-    if(!isatty(1)) return;
+#ifdef _WIN32
+    if(!_isatty(_fileno(stdout))) return;
+#else
+    if(!isatty(STDOUT_FILENO)) return;
+#endif
     va_list args;
     va_start(args, format);
     vfprintf(stdout, format, args);
