@@ -262,7 +262,7 @@ void flif_decode_FLIF2_inner_interpol(Images &images, const ColorRanges *ranges,
 
     // undo palette before doing the rest of interpolation
     if (images[0].palette && scale == 1) {
-      while(images[0].palette) { transforms.back()->invData(images); transforms.pop_back(); ranges = ranges->previous();}
+      while(images[0].palette && transforms.size()>0) { transforms.back()->invData(images); transforms.pop_back(); ranges = ranges->previous();}
       zoomlevels[0] = zoomlevels[1];
       zoomlevels[2] = zoomlevels[1];
       zoomlevels[3] = zoomlevels[1];
@@ -657,13 +657,11 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
 //        ConstantPlane null_alpha(1);
 //        GeneralPlane &alpha = nump > 3 ? images[0].getPlane(3) : null_alpha;
         if (z % 2 == 0) {
-//                if (alpha.is_constant()) { if (!flif_decode_FLIF2_inner_horizontal_p<IO,Rac,Coder,ConstantPlane,ranges_t>(p,io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z)) return false; }
                 if (images[0].getDepth() <= 8) { if (!flif_decode_FLIF2_inner_horizontal_p<IO,Rac,Coder,Plane<ColorVal_intern_8>,ranges_t>(p,io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z, predictor, zoomlevels, transforms, invisible_predictor)) return false;}
 #ifdef SUPPORT_HDR
                 else if (images[0].getDepth() > 8) { if (!flif_decode_FLIF2_inner_horizontal_p<IO,Rac,Coder,Plane<ColorVal_intern_16u>,ranges_t>(p,io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z, predictor, zoomlevels, transforms, invisible_predictor)) return false; }
 #endif
         } else {
-//                if (alpha.is_constant()) { if (!flif_decode_FLIF2_inner_vertical_p<IO,Rac,Coder,ConstantPlane,ranges_t>(p,io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z)) return false;
                 if (images[0].getDepth() <= 8) { if (!flif_decode_FLIF2_inner_vertical_p<IO,Rac,Coder,Plane<ColorVal_intern_8>,ranges_t>(p,io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z, predictor, zoomlevels, transforms, invisible_predictor)) return false;}
 #ifdef SUPPORT_HDR
                 else if (images[0].getDepth() > 8) { if (!flif_decode_FLIF2_inner_vertical_p<IO,Rac,Coder,Plane<ColorVal_intern_16u>,ranges_t>(p,io, rac, coders, images, ranges, beginZL, endZL, quality, scale, i, z, predictor, zoomlevels, transforms, invisible_predictor)) return false;}
@@ -674,21 +672,23 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
           v_printf(3,"    read %li bytes   ", io.ftell());
           v_printf(5,"\n");
         }
+        zoomlevels[p]--;
         int qual = 10000*pixels_done/pixels_todo;
         if (callback && p<4 && (endZL==0 || i+1 == plane_zoomlevels(images[0], beginZL, endZL)) && qual >= progressive_qual_target) {
           for (unsigned int n=0; n < images.size(); n++) partial_images[n] = images[n].clone(); // make a copy to work with
           int64_t pixels_really_done = pixels_done;
-          flif_decode_FLIF2_inner_interpol(partial_images, ranges, 0, beginZL, endZL, -1, scale, zoomlevels, transforms);
-          if (endZL>0) flif_decode_FLIF2_inner_interpol(partial_images, ranges, 0, endZL-1, 0, -1, scale, zoomlevels, transforms);
+          std::vector<Transform<IO>*> transforms_copy = transforms;
+          std::vector<int> zoomlevels_copy = zoomlevels;
+          flif_decode_FLIF2_inner_interpol(partial_images, ranges, 0, beginZL, endZL, -1, scale, zoomlevels_copy, transforms_copy);
+          if (endZL>0) flif_decode_FLIF2_inner_interpol(partial_images, ranges, 0, endZL-1, 0, -1, scale, zoomlevels_copy, transforms_copy);
           pixels_done = pixels_really_done;
           for (Image& image : partial_images) image.normalize_scale();
-          for (int i=transforms.size()-1; i>=0; i--) if (transforms[i]->undo_redo_during_decode()) transforms[i]->invData(partial_images);
+          for (int i=transforms_copy.size()-1; i>=0; i--) if (transforms_copy[i]->undo_redo_during_decode()) transforms_copy[i]->invData(partial_images);
           progressive_qual_shown = qual;
           progressive_qual_target = callback(qual,io.ftell());
           if (qual >= progressive_qual_target) return false;
         }
-      }
-      zoomlevels[p]--;
+      } else zoomlevels[p]--;
     }
     return true;
 }
