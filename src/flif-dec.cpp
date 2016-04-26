@@ -67,7 +67,7 @@ void flif_decode_scanline_plane(plane_t &plane, Coder &coder, Images &images, co
         }
     } else if (image.numPlanes()>3 && p<3) { begin=0; end=image.cols(); }
     //decode actual pixel data
-#ifdef LARGE_BINARY
+#if LARGE_BINARY > 0
     if (r > 1 && !FRA && begin == 0 && end > 3) {
       uint32_t c = begin;
       for (; c < 2; c++) {
@@ -332,7 +332,7 @@ void flif_decode_plane_zoomlevel_horizontal(plane_t &plane, Coder &coder, Images
     } else {
         if (image.numPlanes()>3 && p<3) {begin=0; end=image.cols(z);}
     }
-#ifdef LARGE_BINARY
+#if LARGE_BINARY > 0
     // avoid branching for border cases
     if (r > 1 && r < image.rows(z)-1 && !FRA && begin == 0 && end > 3) {
       for (uint32_t c = begin; c < 2; c++) {
@@ -403,7 +403,7 @@ void flif_decode_plane_zoomlevel_vertical(plane_t &plane, Coder &coder, Images &
     } else {
         if (image.numPlanes()>3 && p<3) {begin=1; end=image.cols(z);}
     }
-#ifdef LARGE_BINARY
+#if LARGE_BINARY > 0
     // avoid branching for border cases
     if (r > 1 && r < image.rows(z)-1 && !FRA && end == image.cols(z) && end > 5 && begin == 1) {
       uint32_t c = begin;
