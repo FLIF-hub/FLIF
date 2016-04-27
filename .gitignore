@@ -23,6 +23,7 @@ src/libflif.dbg.so
 src/libflif.so
 src/test-interface
 src/viewflif
+src/dflif
 
 *.png
 *.xcworkspace/*
