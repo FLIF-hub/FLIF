@@ -71,6 +71,7 @@ $(OBJDIR):
 	@if not exist "$(@)/" mkdir "$(@)"
 
 $(LibDir)\zlib.lib: $(OBJDIR)
+	@if not exist include mkdir include
 	cd $(zlibdir)
 	@nmake -f win32\Makefile.msc clean
 	nmake -f win32\Makefile.msc zlib.lib CFLAGS="$(CFLAGS) /TC /Fdzlib" ARFLAGS="$(LDFLAGS)"
@@ -80,6 +81,7 @@ $(LibDir)\zlib.lib: $(OBJDIR)
 	cd ..
 
 $(LibDir)\libpng.lib: $(LibDir)\zlib.lib
+	@if not exist include mkdir include
 	cd $(lpngdir)
 	@nmake -f scripts\Makefile.vcwin32 clean
 	nmake -f scripts\Makefile.vcwin32 libpng.lib CPPFLAGS="/I..\$(Incdir) " CFLAGS="$(CFLAGS) /TC /D_CRT_SECURE_NO_DEPRECATE /D_CRT_SECURE_NO_WARNINGS" ARFLAGS="$(LDFLAGS)"
