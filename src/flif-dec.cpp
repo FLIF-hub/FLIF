@@ -766,8 +766,8 @@ bool flif_decode_main(RacIn<IO>& rac, IO& io, Images &images, const ColorRanges 
         return false;
       }
     }
-    if (encoding == 2 && (quality <= 0 || pixels_done >= pixels_todo)) {
-      v_printf(3,"Not decoding MANIAC tree\n");
+    if (encoding == 2 && (quality <= 0 || pixels_done >= pixels_todo) && pixels_todo > 1) {
+      v_printf(3,"Not decoding MANIAC tree (%i pixels done, had %i pixels to do)\n", pixels_done, pixels_todo);
       std::vector<int> zoomlevels(ranges->numPlanes(),roughZL);
       flif_decode_FLIF2_inner_interpol(images, ranges, 0, roughZL, 0, -1, scale, zoomlevels, transforms);
       return pixels_done >= pixels_todo;
