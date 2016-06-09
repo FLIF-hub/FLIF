@@ -159,7 +159,7 @@ inline ColorVal predict_plane_horizontal(const plane_t &plane, int z, int p, uin
       ColorVal left = (c>0 ? plane.get(z,r,c-1) : top);
       ColorVal topleft = (c>0 ? plane.get(z,r-1,c-1) : top);
       ColorVal bottomleft = (c>0 && r+1 < rows ? plane.get(z,r+1,c-1) : left);
-      return median3(avg, left+top-topleft, left+bottom-bottomleft);
+      return median3(avg, (ColorVal)(left+top-topleft), (ColorVal)(left+bottom-bottomleft));
     } else { // if (predictor == 2) {
       ColorVal left = (c>0 ? plane.get(z,r,c-1) : top);
       return median3(top,bottom,left);
@@ -180,7 +180,7 @@ inline ColorVal predict_plane_vertical(const plane_t &plane, int z, int p, uint3
       ColorVal top = (r>0 ? plane.get(z,r-1,c) : left);
       ColorVal topleft = (r>0 ? plane.get(z,r-1,c-1) : left);
       ColorVal topright = (r>0 && c+1 < cols ? plane.get(z,r-1,c+1) : top);
-      return median3(avg, left+top-topleft, right+top-topright);
+      return median3(avg, (ColorVal)(left+top-topleft), (ColorVal)(right+top-topright));
     } else { // if (predictor == 2) {
       ColorVal top = (r>0 ? plane.get(z,r-1,c) : left);
       return median3(top,left,right);
@@ -251,7 +251,7 @@ ColorVal predict_and_calcProps_plane(Properties &properties, const ranges_t *ran
         const ColorVal bottom = (nobordercases || bottomPresent ? PIXEL(z,r+1,c) : left);
         const ColorVal avg = (top + bottom)>>1;
         const ColorVal topleftgradient = left+top-topleft;
-        const ColorVal median = median3(avg, topleftgradient, left+bottom-bottomleft);
+        const ColorVal median = median3(avg, topleftgradient, (ColorVal)(left+bottom-bottomleft));
         int which = 2;
         if (median == avg) which = 0;
         else if (median == topleftgradient) which = 1;
@@ -279,7 +279,7 @@ ColorVal predict_and_calcProps_plane(Properties &properties, const ranges_t *ran
         const ColorVal right = (nobordercases || rightPresent ? PIXEL(z,r,c+1) : top);
         const ColorVal avg = (left + right)>>1;
         const ColorVal topleftgradient = left+top-topleft;
-        const ColorVal median = median3(avg, topleftgradient, right+top-topright);
+        const ColorVal median = median3(avg, topleftgradient, (ColorVal)(right+top-topright));
         int which = 2;
         if (median == avg) which = 0;
         else if (median == topleftgradient) which = 1;
