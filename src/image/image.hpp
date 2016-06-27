@@ -237,7 +237,7 @@ public:
     void set(const uint32_t r, const uint32_t c, const ColorVal x) override {
 //        const uint32_t sr = r>>s, sc = c>>s;
         const uint32_t sr = r, sc = c;
-        assert(s==0);
+//        assert(s==0);  // can also be used when using downscaled plane; in this case you have to make sure to use downscaled r,c !
         assert(sr<height); assert(sc<width);
         data[sr*width + sc] = x;
     }
@@ -245,7 +245,7 @@ public:
 //        if (r >= height || r < 0 || c >= width || c < 0) {printf("OUT OF RANGE!\n"); return 0;}
 //        const uint32_t sr = r>>s, sc = c>>s;
         const uint32_t sr = r, sc = c;
-        assert(s==0);
+//        assert(s==0);  // can also be used when using downscaled plane; in this case you have to make sure to use downscaled r,c !
         assert(sr<height); assert(sc<width);
         return data[sr*width + sc];
     }
@@ -736,6 +736,7 @@ public:
     ColorVal max(int) const { return maxval; }
     uint32_t rows() const { return height; }
     uint32_t cols() const { return width; }
+    int getscale() const { return scale; }
 
     // access pixel by zoomlevel coordinate
     uint32_t zoom_rowpixelsize(int zoomlevel) const {
