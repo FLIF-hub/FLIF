@@ -475,8 +475,8 @@ class Image {
       if (p>4) planes[4] = make_unique<Plane<ColorVal_intern_8>>(width, height, 0, scale); // FRA
       }
       for(int p=0; p<num; p++)
-          for (uint32_t r=0; r<height; r++)
-             for (uint32_t c=0; c<width; c++)
+          for (uint32_t r=0; r<SCALED(height); r++)
+             for (uint32_t c=0; c<SCALED(width); c++)
                  set(p,r,c,other.operator()(p,r,c));
 
       return *this;
