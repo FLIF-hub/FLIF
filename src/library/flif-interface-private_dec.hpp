@@ -39,6 +39,7 @@ struct FLIF_DECODER
     uint32_t rw;
     uint32_t rh;
     int32_t crc_check;
+    bool fit;
 
 private:
     Images internal_images;

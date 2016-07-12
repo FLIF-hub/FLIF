@@ -160,7 +160,7 @@ int plane_zoomlevels(const Image &image, const int beginZL, const int endZL) {
     return image.numPlanes() * (beginZL - endZL + 1);
 }
 
-std::pair<int, int> plane_zoomlevel(const Image &image, const int beginZL, const int endZL, int i) {
+std::pair<int, int> plane_zoomlevel(const Image &image, const int beginZL, const int endZL, int i, const ColorRanges *ranges) {
     assert(i >= 0);
     assert(i < plane_zoomlevels(image, beginZL, endZL));
     // simple order: interleave planes, zoom in
@@ -168,8 +168,14 @@ std::pair<int, int> plane_zoomlevel(const Image &image, const int beginZL, const
 //    int zl = beginZL - (i / image.numPlanes());
 
     // more advanced order: give priority to more important plane(s)
-    // assumption: plane 0 is Y, plane 1 is I, plane 2 is Q, plane 3 is perhaps alpha, plane 4 are frame lookbacks (FRA transform, animation only)
-    const int max_behind[] = {0, 2, 4, 0, 0};
+    // assumption: plane 0 is luma, plane 1 is chroma, plane 2 is less important chroma, plane 3 is perhaps alpha, plane 4 are frame lookbacks (FRA transform, animation only)
+    int max_behind[] = {0, 2, 4, 0, 0};
+
+    // if there is no info in the luma plane, there's no reason to lag chroma behind luma
+    // (this also happens for palette images)
+    if (ranges->min(0) >= ranges->max(0)) {
+        max_behind[1] = max_behind[2] = 0;
+    }
     int np = image.numPlanes();
     if (np>5) {
       // too many planes, do something simple

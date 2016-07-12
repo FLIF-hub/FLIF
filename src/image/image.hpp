@@ -483,6 +483,7 @@ class Image {
     }
 
 
+
 public:
     bool palette;
     int frame_delay;
@@ -546,6 +547,49 @@ public:
       other.alpha_zero_special = true;
       other.seen_before = 0;
       return *this;
+    }
+
+    // downsampling copy constructor
+    Image(const Image& other, int new_w, int new_h) {
+      width = new_w;
+      height = new_h;
+      minval = other.minval;
+      maxval = other.maxval;
+      num = other.num;
+      scale = 0;
+#ifdef SUPPORT_HDR
+      depth = other.depth;
+#endif
+      palette = other.palette;
+      frame_delay = other.frame_delay;
+      col_begin = other.col_begin;
+      col_end = other.col_end;
+      seen_before = other.seen_before;
+      fully_decoded = other.fully_decoded;
+      clear();
+      {
+      int p=num;
+      if (depth <= 8) {
+        if (p>0) planes[0] = make_unique<Plane<ColorVal_intern_8>>(width, height, 0, scale); // R,Y
+        if (p>1) planes[1] = make_unique<Plane<ColorVal_intern_16>>(width, height, 0, scale); // G,I
+        if (p>2) planes[2] = make_unique<Plane<ColorVal_intern_16>>(width, height, 0, scale); // B,Q
+        if (p>3) planes[3] = make_unique<Plane<ColorVal_intern_8>>(width, height, 0, scale); // A
+#ifdef SUPPORT_HDR
+      } else {
+        if (p>0) planes[0] = make_unique<Plane<ColorVal_intern_16u>>(width, height, 0, scale); // R,Y
+        if (p>1) planes[1] = make_unique<Plane<ColorVal_intern_32>>(width, height, 0, scale); // G,I
+        if (p>2) planes[2] = make_unique<Plane<ColorVal_intern_32>>(width, height, 0, scale); // B,Q
+        if (p>3) planes[3] = make_unique<Plane<ColorVal_intern_16u>>(width, height, 0, scale); // A
+#endif
+      }
+      if (p>4) planes[4] = make_unique<Plane<ColorVal_intern_8>>(width, height, 0, scale); // FRA
+      }
+      // this is stupid downsampling
+      // TODO: replace this with more accurate downscaling
+      for(int p=0; p<num; p++)
+          for (uint32_t r=0; r<height; r++)
+             for (uint32_t c=0; c<width; c++)
+                 set(p,r,c,other.operator()(p,r*other.height/height,c*other.width/width));
     }
 
     bool init(uint32_t w, uint32_t h, ColorVal min, ColorVal max, int p) {

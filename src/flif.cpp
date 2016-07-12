@@ -113,6 +113,7 @@ void show_help(int mode) {
     v_printf(1,"   -q, --quality=N            lossy decode quality percentage; default -q100\n");
     v_printf(1,"   -s, --scale=N              lossy downscaled image at scale 1:N (2,4,8,16,32); default -s1\n");
     v_printf(1,"   -r, --resize=WxH           lossy downscaled image to fit inside WxH (but typically smaller)\n");
+    v_printf(1,"   -f, --fit=WxH              lossy downscaled image to exactly WxH\n");
     }
 }
 
@@ -137,7 +138,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  ____ _(_)____\n");
-    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc16 [14 Apr 2016]\n");
+    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc17 [12 July 2016]\n");
     v_printf(3,"  (__ | |_| __)    ");v_printf(3,"Copyright (C) 2016 Jon Sneyers and Pieter Wuille\n");
     v_printf(3,"    (_|___|_)      ");
 #ifdef HAS_ENCODER
@@ -302,18 +303,18 @@ bool handle_encode(int argc, char **argv, Images &images, int palette_size, int 
 }
 #endif
 
-bool decode_flif(char **argv, Images &images, int quality, int scale, int resize_width, int resize_height, int crc_check) {
+bool decode_flif(char **argv, Images &images, int quality, int scale, int resize_width, int resize_height, int crc_check, bool fit) {
     FILE *file = fopen(argv[0],"rb");
     if(!file) return false;
     FileIO fio(file, argv[0]);
-    return flif_decode(fio, images, quality, scale, resize_width, resize_height, crc_check);
+    return flif_decode(fio, images, quality, scale, resize_width, resize_height, crc_check, fit);
 }
 
-int handle_decode(int argc, char **argv, Images &images, int quality, int scale, int resize_width, int resize_height, int crc_check) {
+int handle_decode(int argc, char **argv, Images &images, int quality, int scale, int resize_width, int resize_height, int crc_check, bool fit) {
     if (scale < 0) {
         // just identify the file(s), don't actually decode
         while (argc>0) {
-            decode_flif(argv, images, quality, scale, resize_width, resize_height, crc_check);
+            decode_flif(argv, images, quality, scale, resize_width, resize_height, crc_check, fit);
             argv++; argc--;
         }
         return 0;
@@ -323,7 +324,7 @@ int handle_decode(int argc, char **argv, Images &images, int quality, int scale,
         e_printf("Error: expected \".png\", \".pnm\" or \".pam\" file name extension for output file\n");
         return 1;
     }
-    if (!decode_flif(argv, images, quality, scale, resize_width, resize_height, crc_check)) {
+    if (!decode_flif(argv, images, quality, scale, resize_width, resize_height, crc_check, fit)) {
         e_printf("Error: could not decode FLIF file\n"); return 3;
     }
     if (!strcmp(argv[1],"null:")) return 0;
@@ -378,6 +379,7 @@ int main(int argc, char **argv)
     int quality = 100; // 100 = everything, positive value: partial decode, negative value: only rough data
     int scale = 1;
     int resize_width = 0, resize_height = 0;
+    bool fit=false;
     bool showhelp = false;
     if (strcmp(argv[0],"cflif") == 0) mode = 0;
     if (strcmp(argv[0],"dflif") == 0) mode = 1;
@@ -391,6 +393,7 @@ int main(int argc, char **argv)
         {"quality", 1, NULL, 'q'},
         {"scale", 1, NULL, 's'},
         {"resize", 1, NULL, 'r'},
+        {"fit", 1, NULL, 'f'},
         {"identify", 0, NULL, 'i'},
         {"version", 0, NULL, 'V'},
 #ifdef HAS_ENCODER
@@ -423,9 +426,9 @@ int main(int argc, char **argv)
     };
     int i,c;
 #ifdef HAS_ENCODER
-    while ((c = getopt_long (argc, argv, "hdvciVq:s:r:etINnF:KP:ABYCL:SR:D:M:T:X:Z:Q:UG:H:E:", optlist, &i)) != -1) {
+    while ((c = getopt_long (argc, argv, "hdvciVq:s:r:f:etINnF:KP:ABYCL:SR:D:M:T:X:Z:Q:UG:H:E:", optlist, &i)) != -1) {
 #else
-    while ((c = getopt_long (argc, argv, "hdvciVq:s:r:", optlist, &i)) != -1) {
+    while ((c = getopt_long (argc, argv, "hdvciVq:s:r:f:", optlist, &i)) != -1) {
 #endif
         switch (c) {
         case 'd': mode=1; break;
@@ -438,8 +441,15 @@ int main(int argc, char **argv)
         case 's': scale=atoi(optarg);
                   if (scale < 1 || scale > 128) {e_printf("Not a sensible number for option -s\n"); return 1; }
                   break;
-        case 'r': if (sscanf(optarg,"%ix%i", &resize_width, &resize_height) < 1) {e_printf("Not a sensible value for option -r (expected WxH)\n"); return 1; }
+        case 'r': if (sscanf(optarg,"%ix%i", &resize_width, &resize_height) < 1) {
+                    if (sscanf(optarg,"x%i", &resize_height) < 1) {e_printf("Not a sensible value for option -r (expected WxH)\n"); return 1; }
+                  }
                   if (!resize_height) resize_height = resize_width;
+                  break;
+        case 'f': if (sscanf(optarg,"%ix%i", &resize_width, &resize_height) < 1) {
+                    if (sscanf(optarg,"x%i", &resize_height) < 1) {e_printf("Not a sensible value for option -f (expected WxH)\n"); return 1; }
+                  }
+                  fit=true;
                   break;
         case 'i': scale = -1; break;
 #ifdef HAS_ENCODER
@@ -611,11 +621,11 @@ int main(int argc, char **argv)
         if (!handle_encode(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, alpha_zero_special, frs, cutoff, alpha, crc_check, loss, predictor, invisible_predictor)) return 2;
     } else if (mode == 1) {
 #endif
-        return handle_decode(argc, argv, images, quality, scale, resize_width, resize_height, crc_check);
+        return handle_decode(argc, argv, images, quality, scale, resize_width, resize_height, crc_check, fit);
 #ifdef HAS_ENCODER
     } else if (mode == 2) {
 //        if (scale > 1) {e_printf("Not yet supported: transcoding downscaled image; use decode + encode!\n");}
-        if (!decode_flif(argv, images, quality, scale, resize_width, resize_height, crc_check)) return 2;
+        if (!decode_flif(argv, images, quality, scale, resize_width, resize_height, crc_check, fit)) return 2;
         argc--; argv++;
         if (!encode_flif(argc, argv, images, palette_size, acb, method, lookback, learn_repeats, frame_delay, divisor, min_size, split_threshold, yiq, plc, frs, cutoff, alpha, crc_check, loss, predictor, invisible_predictor)) return 2;
     }

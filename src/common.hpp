@@ -323,7 +323,7 @@ ColorVal predict_and_calcProps(Properties &properties, const ColorRanges *ranges
 
 int plane_zoomlevels(const Image &image, const int beginZL, const int endZL);
 
-std::pair<int, int> plane_zoomlevel(const Image &image, const int beginZL, const int endZL, int i);
+std::pair<int, int> plane_zoomlevel(const Image &image, const int beginZL, const int endZL, int i, const ColorRanges *ranges);
 
 inline std::vector<ColorVal> computeGreys(const ColorRanges *ranges) {
     std::vector<ColorVal> greys; // a pixel with values in the middle of the bounds

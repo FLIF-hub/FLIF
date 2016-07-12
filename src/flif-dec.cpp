@@ -605,7 +605,7 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
     for (int i = 0; i < plane_zoomlevels(images[0], beginZL, endZL); i++) {
       int p;
       if (default_order) {
-        std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i);
+        std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i, ranges);
         p = pzl.first;
         assert(zoomlevels[p] == pzl.second);
       } else {
@@ -774,7 +774,7 @@ bool flif_decode_main(RacIn<IO>& rac, IO& io, Images &images, const ColorRanges 
 }
 
 template <typename IO>
-bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int first_callback_quality, Images &partial_images, int rw, int rh, int crc_check) {
+bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int first_callback_quality, Images &partial_images, int rw, int rh, int crc_check, bool fit) {
     bool just_identify = false;
     if (scale == -1) just_identify=true;
     else if (scale != 1 && scale != 2 && scale != 4 && scale != 8 && scale != 16 && scale != 32 && scale != 64 && scale != 128) {
@@ -890,11 +890,20 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
         // ignored for now (assuming loop forever)
         metaCoder.read_int(0, 100); // repeats (0=infinite)
     }
+    if (rw < 0 || rh < 0) { e_printf("Negative target dimension? Really?\n"); return false; }
+    int target_w = rw, target_h = rh;
+    if (fit) {
+        if (rw <= 0 && rh <= 0) { e_printf("Invalid target dimensions.\n"); return false;}
+        // use larger decode dimensions to make sure we have good chroma
+        rw = rw*2-1; rh = rh*2-1;
+        // don't upscale
+        if (target_w > width) target_w = width;
+        if (target_h > height) target_h = height;
+    }
     if (rw || rh) {
       if (scale > 1) e_printf("Don't use -s and (-r or -f) at the same time! Ignoring -s...\n");
       scale = 1;
-      if (rw < 0 || rh < 0) { e_printf("Negative target dimension? Really?\n"); return false; }
-      while ( (rw && (((width-1)/scale)+1) > rw)   || (rh && (((height-1)/scale)+1) > rh) ) scale *= 2;
+      while ( (rw>0 && (((width-1)/scale)+1) > rw)   || (rh>0 && (((height-1)/scale)+1) > rh) ) scale *= 2;
     }
     if (scale != 1 && encoding==1) { v_printf(1,"Cannot decode non-interlaced FLIF file at lower scale! Ignoring resize target...\n"); scale = 1;}
 
@@ -1086,6 +1095,15 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     }
 
 
+    // downscale to target_w, target_h
+    if (fit) {
+        if (target_w <= 0) target_w = target_h*width/height;
+        if (target_h <= 0) target_h = target_w*height/width;
+        if (target_w != (int)images[0].cols() || target_h != (int)images[0].rows()) {
+          v_printf(3,"Downscaling to %ix%i\n",target_w,target_h);
+          for (unsigned int n=0; n < images.size(); n++) images[n] = Image(images[n],target_w,target_h);
+        }
+    }
 
     // ensure that the callback gets called even if the image is completely constant
     if (progressive_qual_target > 10000) progressive_qual_target = 10000;
@@ -1098,5 +1116,5 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
 }
 
 
-template bool flif_decode(FileIO& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int, Images &partial_images, int, int, int);
-template bool flif_decode(BlobReader& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int, Images &partial_images, int, int, int);
+template bool flif_decode(FileIO& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int, Images &partial_images, int, int, int, bool);
+template bool flif_decode(BlobReader& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int, Images &partial_images, int, int, int, bool);

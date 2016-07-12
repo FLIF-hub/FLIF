@@ -192,7 +192,7 @@ void flif_encode_FLIF2_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const
     metaCoder.write_int(0, 1, (default_order? 1 : 0)); // we're using the default zoomlevel/plane ordering
     for (int p=0; p<nump; p++) metaCoder.write_int(-1, MAX_PREDICTOR, the_predictor[p]);
     for (int i = 0; i < plane_zoomlevels(images[0], beginZL, endZL); i++) {
-      std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i);
+      std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i, ranges);
       int p = pzl.first;
       int z = pzl.second;
       if (!default_order) metaCoder.write_int(0, nump-1, p);
@@ -302,7 +302,7 @@ void flif_encode_FLIF2_interpol_zero_alpha(Images &images, const ColorRanges * r
        image.set(2,0,0,greys[2]);
      }
      for (int i = 0; i < plane_zoomlevels(image, beginZL, endZL); i++) {
-      std::pair<int, int> pzl = plane_zoomlevel(image, beginZL, endZL, i);
+      std::pair<int, int> pzl = plane_zoomlevel(image, beginZL, endZL, i, ranges);
       int p = pzl.first;
       int z = pzl.second;
       if (p >= 3) continue;
@@ -441,7 +441,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
 
     // preprocessing step: compensate for anticipated loss in final zoomlevels (assuming predictor 0)
     for (int i = 0; i < plane_zoomlevels(images[0], beginZL, endZL); i++) {
-      std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i);
+      std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i, ranges);
       int p = pzl.first;
       int z = pzl.second;
       if (z>0) continue;
@@ -489,7 +489,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
           }
     }
     for (int i = 0; i < plane_zoomlevels(images[0], beginZL, endZL); i++) {
-      std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i);
+      std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i, ranges);
       int p = pzl.first;
       int z = pzl.second;
       if (z!=1) continue;
@@ -533,7 +533,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
 
     // add loss
     for (int i = 0; i < plane_zoomlevels(images[0], beginZL, endZL); i++) {
-      std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i);
+      std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i, ranges);
       int p = pzl.first;
       int z = pzl.second;
       if (ranges->min(p) >= ranges->max(p)) continue;
@@ -623,7 +623,6 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
       }
     }
 }
-
 
 template<typename IO, typename BitChance, typename Rac> void flif_encode_tree(IO& io, Rac &rac, const ColorRanges *ranges, const std::vector<Tree> &forest, const flifEncoding encoding)
 {
@@ -892,6 +891,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
       v_printf(3,"Introducing loss to improve compression. Amount of loss: %i\n", loss);
       switch(encoding) {
         case flifEncoding::nonInterlaced:
+            // this is probably a bad idea, the artifacts are ugly
             flif_make_lossy_scanlines(images,ranges,loss,adaptive,adaptive_map);
             if (alphazero && ranges->numPlanes() > 3 && ranges->min(3) <= 0) flif_encode_scanlines_interpol_zero_alpha(images, ranges);
             break;
@@ -935,11 +935,12 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
     }
 
     if (crc_check && !loss && (crc_check>0 || io.ftell() > 100)) {
-      //v_printf(2,"Writing checksum: %X\n", checksum);
+      v_printf(2,"Writing checksum: %X\n", checksum);
       metaCoder.write_int(0,1,1);
       metaCoder.write_int(16, (checksum >> 16) & 0xFFFF);
       metaCoder.write_int(16, checksum & 0xFFFF);
     } else {
+      v_printf(2,"Not writing checksum\n");
       metaCoder.write_int(0,1,0); // don't write checksum for tiny images or when asked not to
     }
     rac.flush();
