@@ -5,9 +5,12 @@ LDFLAGS := $(shell pkg-config --libs libpng)
 OSNAME := $(shell uname -s)
 SONAME = -soname
 LIBEXT = .so
+SOVERSION = 0
+LIBEXTV = $(LIBEXT).$(SOVERSION)
 ifeq ($(OSNAME),Darwin)
   SONAME = -install_name
   LIBEXT = .dylib
+  LIBEXTV = .$(SOVERSION)$(LIBEXT)
 endif
 
 # for running interface-test
@@ -43,16 +46,16 @@ dflif: $(FILES_H) $(FILES_CPP) flif.cpp
 libflif_dec$(LIBEXT): $(FILES_H) $(FILES_CPP) library/flif_dec.h library/flif-interface-private_dec.hpp library/flif-interface_dec.cpp
 	echo $(OS)
 	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -DDECODER_ONLY -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface_dec.cpp $(LDFLAGS) -Wl,$(SONAME),libflif_dec$(LIBEXT).0 -o libflif_dec$(LIBEXT).0
-	ln -sf libflif_dec$(LIBEXT).0 libflif_dec$(LIBEXT)
+	ln -sf libflif_dec$(LIBEXTV) libflif_dec$(LIBEXT)
 
 # Decoder + encoder library - LGPL
 libflif$(LIBEXT): $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/*.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -Wl,$(SONAME),libflif$(LIBEXT).0 -o libflif$(LIBEXT).0
-	ln -sf libflif$(LIBEXT).0 libflif$(LIBEXT)
+	ln -sf libflif$(LIBEXTV) libflif$(LIBEXT)
 
 libflif.dbg$(LIBEXT): $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/*.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) -O1 -ggdb3 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -Wl,$(SONAME),libflif$(LIBEXT).0 -o libflif.dbg$(LIBEXT).0
-	ln -sf libflif.dbg$(LIBEXT).0 libflif.dbg$(LIBEXT)
+	ln -sf libflif.dbg$(LIBEXTV) libflif.dbg$(LIBEXT)
 
 # Example application: simple FLIF viewer - public domain
 viewflif: libflif$(LIBEXT) viewflif.c
@@ -62,7 +65,7 @@ viewflif: libflif$(LIBEXT) viewflif.c
 install: all
 	install -d $(PREFIX)/bin $(PREFIX)/lib $(PREFIX)/share/man/man1
 	install -s -m 755 flif viewflif $(PREFIX)/bin
-	install -s -m 755 libflif$(LIBEXT)* $(PREFIX)/lib
+	install -s -m 755 libflif$(LIBEXT) libflif$(LIBEXTV) $(PREFIX)/lib
 	install -m 644 ../doc/flif.1 $(PREFIX)/share/man/man1
 	install -m 755 ../tools/gif2flif $(PREFIX)/bin
 	install -m 755 ../tools/apng2flif $(PREFIX)/bin
@@ -73,7 +76,7 @@ install-dev:
 
 install-decoder: decoder
 	install -s -m 755 dflif $(PREFIX)/bin
-	install -s -m 755 libflif_dec$(LIBEXT)* $(PREFIX)/lib
+	install -s -m 755 libflif_dec$(LIBEXT) libflif_dec$(LIBEXTV) $(PREFIX)/lib
 
 magic:
 	if ! grep -q FLIF /etc/magic; then cat ../doc/flif.magic >> /etc/magic; fi
@@ -85,8 +88,8 @@ uninstall:
 	rm -f $(PREFIX)/bin/apng2flif
 	rm -f $(PREFIX)/lib/libflif$(LIBEXT)
 	rm -f $(PREFIX)/lib/libflif_dec$(LIBEXT)
-	rm -f $(PREFIX)/lib/libflif$(LIBEXT).0
-	rm -f $(PREFIX)/lib/libflif_dec$(LIBEXT).0
+	rm -f $(PREFIX)/lib/libflif$(LIBEXTV)
+	rm -f $(PREFIX)/lib/libflif_dec$(LIBEXTV)
 	rm -f $(PREFIX)/share/man/man1/flif.1
 
 clean:
