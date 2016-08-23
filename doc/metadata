@@ -1,0 +1,42 @@
+
+
+Chunks are defined similar to PNG chunks, except the chunk size is encoded with a variable number of bytes, and there is no chunk CRC.
+Also, the last chunk (which is always "FLIF") has no explicit chunk size.
+
+Chunk size encoding:
+  An unsigned integer (Big-Endian, MSB first) stored on a variable number of bytes.
+  All the bytes except the last one have a '1' as their first bit.
+  The unsigned integer is represented as the concatenation of the remaining 7 bit codewords.
+
+The convention of using upper and lower case ASCII letters is kept, but the meaning of the bits is slightly different.
+- First letter: uppercase=critical, lowercase=non-critical --> non-critical chunks can be stripped while keeping a valid file (it might be rendered differently though)
+- Second letter: uppercase=public, lowercase=private
+- Third letter: uppercase=needed to correctly display the image (e.g. a color profile), lowercase=can be stripped safely without changing anything visually
+- Fourth letter: uppercase=safe to copy blindly (when editing the actual image data), lowercase=may depend on image data (e.g. contain a thumbnail)
+
+The simplest FLIF file is simply a FLIF chunk (the FLIM chunk is optional in this case).
+If any metadata is involved, the file has to start with a FLIM chunk.
+
+Chunk name: FLIM
+Obligatory: no (yes if there is any optional chunk present)
+Description: header chunk ("Free Lossless Image with Metadata"), needs to have chunk size zero for now
+
+Chunk name: iCCP
+Obligatory: no
+Description: ICC color profile. If this chunk is not present, the color profile is implicitly sRGB.
+Contents:
+    first a name (like in PNG), which is supposed to be ASCII-only, maximum 79 characters, and zero-terminated.
+    then the raw ICC color profile data
+
+Chunk name: eXif
+Obligatory: no
+Description: Exif metadata
+
+Chunk name: eXmp
+Obligatory: no
+Description: XMP metadata
+
+Chunk name: FLIF
+Obligatory: yes
+Chunk size: unspecified
+Has to be the last chunk in the stream
