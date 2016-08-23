@@ -774,9 +774,54 @@ bool flif_decode_main(RacIn<IO>& rac, IO& io, Images &images, const ColorRanges 
 }
 
 template <typename IO>
+size_t read_big_endian_varint(IO& io) {
+    int number;
+    size_t result = 0;
+    int bytes_read = 0;
+    while (bytes_read++ < 10) {
+      number = io.getc();
+      if (number < 0) break;
+      if (number < 128) return result+number;
+      number -= 128;
+      result += number;
+      result <<= 7;
+    }
+    e_printf("Invalid number encountered!\n");
+    return 0;
+}
+
+template <typename IO>
+int read_chunk(IO& io, MetaData& metadata) {
+    metadata.name[0] = io.getc();
+//    printf("chunk: %s\n", metadata.name);
+    if (metadata.name[0] < 32) {
+      if (metadata.name[0] > 0) e_printf("This is not a FLIF16 image, but a more recent FLIF file. Please update your FLIF decoder.\n");
+      return 1; // final chunk, stop reading!
+    }
+    io.gets(metadata.name+1,4);
+    if (strcmp(metadata.name,"iCCP")
+     && strcmp(metadata.name,"eXif")
+     && strcmp(metadata.name,"eXmp")
+    ) {
+        e_printf("Unknown chunk: %s\n",metadata.name);
+        return -1;
+    }
+    metadata.length = read_big_endian_varint(io);
+//    printf("chunk length: %lu\n", metadata.length);
+    metadata.contents.resize(metadata.length);
+    for(size_t i = 0; i < metadata.length; i++) {
+        metadata.contents[i] = io.getc();
+    }
+    return 0; // read next chunk
+}
+
+
+template <typename IO>
 bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int first_callback_quality, Images &partial_images, int rw, int rh, int crc_check, bool fit) {
     bool just_identify = false;
+    bool just_metadata = false;
     if (scale == -1) just_identify=true;
+    else if (scale == -2) just_metadata=true;
     else if (scale != 1 && scale != 2 && scale != 4 && scale != 8 && scale != 16 && scale != 32 && scale != 64 && scale != 128) {
                 e_printf("Invalid scale down factor: %i\n", scale);
                 return false;
@@ -803,8 +848,13 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
           }
        }
     }
-    if (strcmp(buff,"FLIF")) { e_printf("%s is not a FLIF file\n",io.getName()); return false; }
+    std::vector<MetaData> metadata;
     int c;
+
+
+    if (strcmp(buff,"FLIF")) { e_printf("%s is not a FLIF file\n",io.getName()); return false; }
+
+
     if (!ioget_int_8bit (io, &c))
         return false;
     if (c < ' ' || c > ' '+32+15+32) { e_printf("Invalid or unknown FLIF format byte\n"); return false;}
@@ -812,14 +862,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     int numFrames=1;
     if (c > 47) {
         c -= 32;
-        if (!ioget_int_8bit (io, &numFrames))
-            return false;
-        if (numFrames < 2 || numFrames >= 256) return false;
-        if (numFrames == 0xff) {
-          if (!ioget_int_16bit_bigendian (io, &numFrames))
-            return false;
-          if (numFrames < 2) return false;
-        }
+        numFrames = 2; // animation
     }
     const int encoding=c/16;
     if (encoding < 1 || encoding > 2) { e_printf("Invalid or unknown FLIF encoding method\n"); return false;}
@@ -831,22 +874,36 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
         return false;
     if (c < '0' || c > '2')  {e_printf("Invalid FLIF header (unsupported color depth)\n"); return false;}
 
-    int width;
-    int height;
-    if (!ioget_int_16bit_bigendian (io, &width))
-        return false;
-    if (!ioget_int_16bit_bigendian (io, &height))
-        return false;
+    int width = read_big_endian_varint(io) + 1;
+    int height = read_big_endian_varint(io) + 1;
     if (width < 1 || height < 1) {e_printf("Invalid FLIF header\n"); return false;}
+
+    if (numFrames > 1) numFrames = read_big_endian_varint(io)+2;
+
+    MetaData chunk;
+    int result = 0;
+    while (!(result = read_chunk(io, chunk))) {
+        metadata.push_back(chunk);
+    }
+    if (result != 1) {
+        e_printf("Invalid FLIF file.\n"); return false;
+    }
+
+    if (just_metadata) {
+        images.push_back(Image());
+        images[0].metadata = metadata;
+        return true;
+    }
+
 
     RacIn<IO> rac(io);
 //    SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> metaCoder(rac);
     UniformSymbolCoder<RacIn<IO>> metaCoder(rac);
 
-    if (metaCoder.read_int(0,1)) {
-        e_printf("This is not a FLIF16 image, but a more recent FLIF file. Please update your FLIF decoder.\n");
-        return false;
-    }
+//    if (metaCoder.read_int(0,1)) {
+//        e_printf("This is not a FLIF16 image, but a more recent FLIF file. Please update your FLIF decoder.\n");
+//        return false;
+//    }
 
 //    image.init(width, height, 0, 0, 0);
     v_printf(3,"Decoding %ux%u image, channels:",width,height);
@@ -919,6 +976,7 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
       images.push_back(Image(scale_shift));
       if (!images[i].init(width,height,0,maxmax,numPlanes)) return false;
       images[i].alpha_zero_special = alphazero;
+      images[i].metadata = metadata;
       if (numFrames>1) images[i].frame_delay = metaCoder.read_int(0, 60000); // time in ms between frames
       if (callback) partial_images.push_back(Image(scale_shift));
       //if (numFrames>1) partial_images[i].frame_delay = images[i].frame_delay;

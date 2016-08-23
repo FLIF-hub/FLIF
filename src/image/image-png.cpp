@@ -206,6 +206,23 @@ int image_load_png(const char *filename, Image &image) {
     }
   } else e_printf("Should not happen: unsupported PNG bit depth: %i!\n",bit_depth);
 
+  {
+      png_charp name;
+      int comp_type;
+#if ((PNG_LIBPNG_VER_MAJOR << 8) | PNG_LIBPNG_VER_MINOR << 0) < \
+    ((1 << 8) | (5 << 0))
+      png_charp profile;
+#else  // >= libpng 1.5.0
+      png_bytep profile;
+#endif
+      png_uint_32 len;
+
+      if (png_get_iCCP(png_ptr, info_ptr,
+                       &name, &comp_type, &profile, &len) == PNG_INFO_iCCP) {
+        image.set_metadata("iCCP", (const char*)profile, len);
+      }
+  }
+
   png_destroy_read_struct(&png_ptr,&info_ptr,(png_infopp) NULL);
   fclose(fp);
 
@@ -274,6 +291,19 @@ int image_save_png(const char *filename, const Image &image) {
   if (image.max(0) > 255) {bit_depth = 16; bytes_per_value=2;}
   png_set_IHDR(png_ptr,info_ptr,image.cols(),image.rows(),bit_depth,colortype,PNG_INTERLACE_NONE,PNG_COMPRESSION_TYPE_DEFAULT,
       PNG_FILTER_TYPE_DEFAULT);
+
+  {
+   size_t length;
+#if ((PNG_LIBPNG_VER_MAJOR << 8) | PNG_LIBPNG_VER_MINOR << 0) < \
+    ((1 << 8) | (5 << 0))
+      png_charp profile;
+#else  // >= libpng 1.5.0
+      png_bytep profile;
+#endif
+   if (image.get_metadata("iCCP", (const char **) (&profile), &length)) {
+    png_set_iCCP(png_ptr, info_ptr,  (png_charp) "icc", 0, profile, length);
+   }
+  }
 
   png_write_info(png_ptr,info_ptr);
 

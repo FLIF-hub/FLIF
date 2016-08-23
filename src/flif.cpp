@@ -129,7 +129,7 @@ bool file_is_flif(const char * filename){
         char buff[5];
         bool result=true;
         if (!fgets(buff,5,file)) result=false;
-        else if (strcmp(buff,"FLIF") && strcmp(buff,"!<ar")) result=false;  // assuming that it might be a FLIF file if it looks like an ar
+        else if (strcmp(buff,"FLIF") && strcmp(buff,"FLIM") && strcmp(buff,"!<ar")) result=false;  // assuming that it might be a FLIF file if it looks like an ar
         fclose(file);
         return result;
 }
@@ -138,7 +138,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  ____ _(_)____\n");
-    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc17 [12 July 2016]\n");
+    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc18 [23 Aug 2016]\n");
     v_printf(3,"  (__ | |_| __)    ");v_printf(3,"Copyright (C) 2016 Jon Sneyers and Pieter Wuille\n");
     v_printf(3,"    (_|___|_)      ");
 #ifdef HAS_ENCODER
@@ -175,6 +175,15 @@ bool check_compatible_extension (char *ext) {
         return true;
     }
 }
+bool check_metadata_extension (char *ext) {
+    if (!(ext && (
+                   !strcasecmp(ext,".icc")
+                  ))) {
+        return false;
+    } else {
+        return true;
+    }
+}
 
 #ifdef HAS_ENCODER
 
@@ -187,6 +196,7 @@ union flifEncodingOptional {
 
 bool encode_load_input_images(int argc, char **argv, Images &images) {
     int nb_input_images = argc-1;
+    int nb_actual_images = 0;
     while(argc>1) {
         Image image;
         v_printf_tty(2,"\r");
@@ -194,27 +204,39 @@ bool encode_load_input_images(int argc, char **argv, Images &images) {
             e_printf("Could not read input file: %s\n", argv[0]);
             return false;
         };
-        images.push_back(std::move(image));
-        Image& last_image = images.back();
-        if (last_image.rows() != images[0].rows() || last_image.cols() != images[0].cols()) {
+        if (image.numPlanes() > 0) {
+          nb_actual_images++;
+          images.push_back(std::move(image));
+          Image& last_image = images.back();
+          if (last_image.rows() != images[0].rows() || last_image.cols() != images[0].cols()) {
             e_printf("Dimensions of all input images should be the same!\n");
             e_printf("  First image is %ux%u\n",images[0].cols(),images[0].rows());
             e_printf("  This image is %ux%u: %s\n",last_image.cols(),last_image.rows(),argv[0]);
             return false;
-        }
-        if (last_image.numPlanes() < images[0].numPlanes()) {
+          }
+          if (last_image.numPlanes() < images[0].numPlanes()) {
             if (images[0].numPlanes() == 3) last_image.ensure_chroma();
             else if (images[0].numPlanes() == 4) last_image.ensure_alpha();
             else { e_printf("Problem while loading input images, please report this.\n"); return false; }
-        } else if (last_image.numPlanes() > images[0].numPlanes()) {
+          } else if (last_image.numPlanes() > images[0].numPlanes()) {
             if (last_image.numPlanes() == 3) { for (Image& i : images) i.ensure_chroma(); }
             else if (last_image.numPlanes() == 4) { for (Image& i : images) i.ensure_alpha(); }
             else { e_printf("Problem while loading input images, please report this.\n"); return false; }
+          }
+        } else {
+          if (images.size() == 0) {
+            e_printf("First specify the actual image(s), then the metadata.\n");
+            return false;
+          }
+          for (size_t i=0; i<image.metadata.size(); i++)
+              images[0].metadata.push_back(image.metadata[i]);
         }
         argc--; argv++;
         if (nb_input_images>1) {v_printf(2,"    (%i/%i)         ",(int)images.size(),nb_input_images); v_printf(4,"\n");}
     }
-    return true;
+    if (nb_actual_images > 0) return true;
+    e_printf("Error: no actual input images to be encoded!\n");
+    return false;
 }
 bool encode_flif(int argc, char **argv, Images &images, int palette_size, int acb, flifEncodingOptional method, int lookback,
                  int learn_repeats, std::vector<int> &frame_delay, int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE,
@@ -320,6 +342,12 @@ int handle_decode(int argc, char **argv, Images &images, int quality, int scale,
         return 0;
     }
     char *ext = strrchr(argv[1],'.');
+    if (check_metadata_extension(ext)) {
+        // only requesting metadata, no need to actually decode the file
+        decode_flif(argv, images, quality, -2, resize_width, resize_height, crc_check, fit);
+        if (!images[0].save(argv[1])) return 2;
+        return 0;
+    }
     if (!check_compatible_extension(ext) && strcmp(argv[1],"null:")) {
         e_printf("Error: expected \".png\", \".pnm\" or \".pam\" file name extension for output file\n");
         return 1;

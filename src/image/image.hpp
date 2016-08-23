@@ -21,6 +21,7 @@ limitations under the License.
 #include <vector>
 #include <assert.h>
 #include <stdint.h>
+#include <string.h>
 #include <vector>
 #include <memory>
 #include "crc32k.hpp"
@@ -422,6 +423,11 @@ void copy_row_range(plane_t &plane, const GeneralPlane &other, const uint32_t r,
     }
 }
 
+struct MetaData {
+    char name[5];               // name of the chunk (every chunk is assumed to be unique, 4 ascii letters plus terminating 0)
+    size_t length;              // length of the chunk contents
+    std::vector<char> contents;
+};
 
 class Image {
     std::unique_ptr<GeneralPlane> planes[5]; // Red/Y, Green/Co, Blue/Cg, Alpha, Frame-Lookback(animation only)
@@ -440,6 +446,7 @@ class Image {
       operator=(other);
     }
 
+
     Image& operator=(const Image& other) {
       width = other.width;
       height = other.height;
@@ -450,6 +457,7 @@ class Image {
 #ifdef SUPPORT_HDR
       depth = other.depth;
 #endif
+      metadata = other.metadata;
       palette = other.palette;
       frame_delay = other.frame_delay;
       col_begin = other.col_begin;
@@ -492,6 +500,7 @@ public:
     std::vector<uint32_t> col_end;
     int seen_before;
     bool fully_decoded;
+    std::vector<MetaData> metadata;
 
     Image(uint32_t width, uint32_t height, ColorVal min, ColorVal max, int planes, int s=0) : scale(s) {
         init(width, height, min, max, planes);
@@ -530,6 +539,7 @@ public:
       depth = other.depth;
       other.depth = 0;
 #endif
+      metadata = other.metadata;
 
       other.width = other.height = 0;
       other.minval = other.maxval = 0;
@@ -560,6 +570,7 @@ public:
 #ifdef SUPPORT_HDR
       depth = other.depth;
 #endif
+      metadata = other.metadata;
       palette = other.palette;
       frame_delay = other.frame_delay;
       col_begin = other.col_begin;
@@ -866,6 +877,25 @@ public:
     }
     void abort_decoding() {
         width = 0; // this is used to signal the decoder to stop
+    }
+
+    bool get_metadata(const char * chunkname, const char ** data, size_t * length) const {
+        for(size_t i=0; i<metadata.size(); i++) {
+            if (!strncmp(metadata[i].name, chunkname, 4)) {
+                *data = metadata[i].contents.data();
+                *length = metadata[i].length;
+                return true;
+            }
+        }
+        return false;  // metadata not found
+    }
+    void set_metadata(const char * chunkname, const char * data, size_t length) {
+        MetaData foo;
+        strcpy(foo.name, chunkname);
+        foo.contents.resize(length);
+        memcpy(foo.contents.data(), data, length);
+        foo.length = length;
+        metadata.push_back(foo);
     }
 
 };

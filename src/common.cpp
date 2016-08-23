@@ -174,7 +174,8 @@ std::pair<int, int> plane_zoomlevel(const Image &image, const int beginZL, const
     // if there is no info in the luma plane, there's no reason to lag chroma behind luma
     // (this also happens for palette images)
     if (ranges->min(0) >= ranges->max(0)) {
-        max_behind[1] = max_behind[2] = 0;
+        max_behind[1] = 0;
+        max_behind[2] = 1;
     }
     int np = image.numPlanes();
     if (np>5) {

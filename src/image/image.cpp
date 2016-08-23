@@ -5,6 +5,7 @@
 #include "image-pnm.hpp"
 #include "image-pam.hpp"
 #include "image-rggb.hpp"
+#include "image-metadata.hpp"
 
 #ifdef _MSC_VER
 #define strcasecmp stricmp
@@ -37,6 +38,9 @@ bool Image::load(const char *filename)
     if (ext && !strcasecmp(ext,".rggb")) {
         return image_load_rggb(filename,*this);
     }
+    if (ext && !strcasecmp(ext,".icc")) {
+        return image_load_metadata(filename,*this,"iCCP");
+    }
     if (image_load_pnm(filename,*this) || !image_load_png(filename,*this)) return true;
     e_printf("ERROR: Unknown input file type to read from: %s\n",ext ? ext : "(none)");
     return false;
@@ -65,6 +69,9 @@ bool Image::save(const char *filename) const
     }
     if (ext && !strcasecmp(ext,".rggb")) {
         return image_save_rggb(filename,*this);
+    }
+    if (ext && !strcasecmp(ext,".icc")) {
+        return image_save_metadata(filename,*this,"iCCP");
     }
     e_printf("ERROR: Unknown extension to write to: %s\n",ext ? ext : "(none)");
     return false;

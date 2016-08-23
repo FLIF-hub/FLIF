@@ -13,6 +13,8 @@ flif \- convert a image files from or to FLIF
 .SH DESCRIPTION
 This program can encode and decode images in the \fBFree Lossless Image Format\fP (FLIF).
 Input and output formats can be either PNG, PAM, PNM (PPM, PGM, PBM) or FLIF.
+Metadata can be extracted or inserted using input/output files with specific extensions;
+for now, only ICC color profiles are supported (with extension \fI.icc\fR).
 .PP
 .B flif
 will automatically deduce the action (encode, decode or transcode) from the names and
@@ -47,6 +49,9 @@ otherwise a PPM (P6) or PGM (P5) is produced.
 \fI.rggb\fR
 This is a non-standard format which is used to represent raw camera image with RGGB data
 (i.e. raw Bayer CFA sensor data). It is actually a PGM image as produced by \fBdcraw -E -4\fR.
+.TP
+\fI.icc\fR
+Saves just the ICC color profile, if there is any.
 .PP
 Alternatively, the special output filename \fBnull:\fR can be used if the decoded output does not need to be saved.
 This might be useful to verify the integrity of a FLIF image, or to benchmark the decode time.
@@ -312,6 +317,9 @@ http://github.com/FLIF-hub/FLIF/issues/
 .TP
 \fBflif picture.png picture.flif\fR
 Encode the PNG file \fBpicture.png\fR to a FLIF file \fBpicture.flif\fR
+.TP
+\fBflif picture.ppm profile.icc picture.flif\fR
+Encode the PPM file \fBpicture.ppm\fR and the ICC color profile \fBprofile.icc\fR to a FLIF file \fBpicture.flif\fR
 .TP
 \fBflif frame-*.png -F40 -L10 animation.flif\fR
 Encode a sequence of PNG files (\fBframe-*.png\fR)
