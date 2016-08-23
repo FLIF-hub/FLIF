@@ -1,32 +1,50 @@
 
 
 Chunks are defined similar to PNG chunks, except the chunk size is encoded with a variable number of bytes, and there is no chunk CRC.
-Also, the last chunk (which is always "FLIF") has no explicit chunk size.
+Also, the first chunk (which is always "FLIF") has no explicit chunk size.
 
-Chunk size encoding:
-  An unsigned integer (Big-Endian, MSB first) stored on a variable number of bytes.
-  All the bytes except the last one have a '1' as their first bit.
-  The unsigned integer is represented as the concatenation of the remaining 7 bit codewords.
+Chunk names are either 4 letters (4 bytes), or 1 byte with a value below 32.
 
-The convention of using upper and lower case ASCII letters is kept, but the meaning of the bits is slightly different.
+The convention of using upper and lower case letters is kept, but the meaning of the bits is slightly different.
 - First letter: uppercase=critical, lowercase=non-critical --> non-critical chunks can be stripped while keeping a valid file (it might be rendered differently though)
 - Second letter: uppercase=public, lowercase=private
 - Third letter: uppercase=needed to correctly display the image (e.g. a color profile), lowercase=can be stripped safely without changing anything visually
 - Fourth letter: uppercase=safe to copy blindly (when editing the actual image data), lowercase=may depend on image data (e.g. contain a thumbnail)
 
-The simplest FLIF file is simply a FLIF chunk (the FLIM chunk is optional in this case).
-If any metadata is involved, the file has to start with a FLIM chunk.
+Variable-size integer encoding:
+  An unsigned integer (Big-Endian, MSB first) stored on a variable number of bytes.
+  All the bytes except the last one have a '1' as their first bit.
+  The unsigned integer is represented as the concatenation of the remaining 7 bit codewords.
 
-Chunk name: FLIM
-Obligatory: no (yes if there is any optional chunk present)
-Description: header chunk ("Free Lossless Image with Metadata"), needs to have chunk size zero for now
+
+The simplest FLIF file is simply a FLIF chunk followed by a \0 chunk with the actual image data.
+
+
+Chunk name: FLIF
+Obligatory: yes
+Description: header chunk
+Contents:
+First byte (byte 5 in the file) : encodes number of channels, animation or not
+Second byte (byte 6) : encodes color depth ("1" = 8-bit, "2" = 16-bit, "0" = custom)
+Next the image width - 1, encoded in a variable number of bytes
+Next the image height - 1, encoded in a variable number of bytes
+If it's an animation, then the number of frames - 2, encoded in a variable number of bytes
+
+
+Chunk name: tRko
+Obligatory: no
+Description: list of truncation offsets
+Contents:
+To be defined.
+Will contain a list of offsets which correspond to good truncation points,
+e.g. for use on a web server that uses Client Hints to send truncated FLIF files.
+
 
 Chunk name: iCCP
 Obligatory: no
 Description: ICC color profile. If this chunk is not present, the color profile is implicitly sRGB.
 Contents:
-    first a name (like in PNG), which is supposed to be ASCII-only, maximum 79 characters, and zero-terminated.
-    then the raw ICC color profile data
+    the raw ICC color profile data
 
 Chunk name: eXif
 Obligatory: no
@@ -36,7 +54,9 @@ Chunk name: eXmp
 Obligatory: no
 Description: XMP metadata
 
-Chunk name: FLIF
+Chunk name: \0
 Obligatory: yes
+Description: image data encoded in the FLIF16 format (future revisions of the format will use a different name, we have room for 30 revisions)
 Chunk size: unspecified
 Has to be the last chunk in the stream
+Contains actual image data
