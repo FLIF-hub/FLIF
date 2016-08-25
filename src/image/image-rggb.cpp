@@ -12,7 +12,7 @@
 #define PPMREADBUFLEN 256
 
 #ifdef HAS_ENCODER
-bool image_load_rggb(const char *filename, Image& image)
+bool image_load_rggb(const char *filename, Image& image, metadata_options &md)
 {
 	FILE *fp = fopen(filename,"rb");
 	char buf[PPMREADBUFLEN], *t;
@@ -85,7 +85,7 @@ bool image_load_rggb(const char *filename, Image& image)
 					return false;
 				}
 				fclose(fp);
-				return !image_load_png(filename, image);
+				return !image_load_png(filename, image, md);
 				break;
 		case 'I' :	// Look like a TIFF/DNG
 				e_printf("TODO: Improving TIFF/DNG magic number detection.\n");
@@ -124,7 +124,7 @@ bool image_load_rggb(const char *filename, Image& image)
 			else strcpy(comments, buf);
 		}
 	} while ( strncmp(buf, "#", 1) == 0 || strncmp(buf, "\n", 1) == 0);
-	v_printf(4,"Commentaires:\n%s", comments);
+	v_printf(4,"Comments:\n%s", comments);
 	r = sscanf(buf, "%u %u", &width, &height);
 	if ( r < 2 ) {
 		fclose(fp);

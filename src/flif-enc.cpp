@@ -781,8 +781,10 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
         write_big_endian_varint(io, numFrames - 2);
     }
 
-    for(size_t i=0; i<images[0].metadata.size(); i++)
+    for(size_t i=0; i<images[0].metadata.size(); i++) {
             write_chunk(io,images[0].metadata[i]);
+            v_printf(3,"Encoded metadata chunk: %s\n",images[0].metadata[i].name);
+    }
 
     // marker to indicate FLIF version (version 0 aka FLIF16 in this case)
     io.fputc(0);

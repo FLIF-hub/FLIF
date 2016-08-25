@@ -817,7 +817,7 @@ int read_chunk(IO& io, MetaData& metadata) {
 
 
 template <typename IO>
-bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int first_callback_quality, Images &partial_images, int rw, int rh, int crc_check, bool fit) {
+bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int first_callback_quality, Images &partial_images, int rw, int rh, int crc_check, bool fit, metadata_options &md) {
     bool just_identify = false;
     bool just_metadata = false;
     if (scale == -1) just_identify=true;
@@ -883,6 +883,10 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     MetaData chunk;
     int result = 0;
     while (!(result = read_chunk(io, chunk))) {
+        if (!md.icc && !strcmp(chunk.name, "iCCP")) continue;
+        if (!md.exif && !strcmp(chunk.name, "eXif")) continue;
+        if (!md.xmp && !strcmp(chunk.name, "eXmp")) continue;
+        v_printf(3,"Read metadata chunk: %s\n",chunk.name);
         metadata.push_back(chunk);
     }
     if (result != 1) {
@@ -941,6 +945,16 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
         if (encoding == 1) v_printf(1,", non-interlaced");
         else if (encoding == 2) v_printf(1,", interlaced");
         v_printf(1,"\n");
+        if (metadata.size() > 0) {
+            v_printf(1, "Contains metadata: ");
+            for (size_t i=0; i<metadata.size(); i++) {
+                if (!strcmp(metadata[i].name,"iCCP")) v_printf(1, "ICC color profile");
+                else if (!strcmp(metadata[i].name,"eXif")) v_printf(1, "Exif");
+                else if (!strcmp(metadata[i].name,"eXmp")) v_printf(1, "XMP");
+                else v_printf(1, "Unknown: %s", metadata[i].name);
+                if (i+1 < metadata.size()) v_printf(1, ", ");
+            }
+        }
         return true;
     }
     if (numFrames>1) {
@@ -1174,5 +1188,5 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
 }
 
 
-template bool flif_decode(FileIO& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int, Images &partial_images, int, int, int, bool);
-template bool flif_decode(BlobReader& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int, Images &partial_images, int, int, int, bool);
+template bool flif_decode(FileIO& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int, Images &partial_images, int, int, int, bool, metadata_options &);
+template bool flif_decode(BlobReader& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int, Images &partial_images, int, int, int, bool, metadata_options &);

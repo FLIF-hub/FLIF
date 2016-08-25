@@ -30,7 +30,23 @@ Increases verbosity. By default, \fBflif\fP is silent (unless there is a problem
 Adding one or more \fB-v\fR will produce more output.
 .TP
 \fB\-h\fR, \fB\-\-help\fR
-Display help and quit. Use in combination with \fB-v\fP for advanced help.
+Display help and quit. Use in combination with \fB-v\fP for help on advanced features.
+.TP
+\fB\-c\fR, \fB\-\-no\-crc\fR
+FLIF files can optionally contain a CRC to verify the integrity of the image data.
+The default is to check the CRC when decoding, and to include a CRC when encoding (unless the image is tiny).
+This option changes the default behavior as follows:
+When decoding: don't check the CRC.
+When encoding: don't include a CRC.
+.TP
+\fB\-p\fR, \fB\-\-no\-color\-profile\fR
+FLIF files can optionally include an ICC color profile. When converting to or from PNG, the color profile
+will be copied (if there is any).
+This option forces the encoder/decoder to strip the color profile.
+.TP
+\fB\-m\fR, \fB\-\-no\-metadata\fR
+FLIF files can optionally include metadata (Exif and/or XMP).
+This option forces the encoder/decoder to strip metadata.
 
 .SH DECODING
 To decode a FLIF image, the output filename must have one of the following extensions:
@@ -52,6 +68,12 @@ This is a non-standard format which is used to represent raw camera image with R
 .TP
 \fI.icc\fR
 Saves just the ICC color profile, if there is any.
+.TP
+\fI.exif\fR
+Saves just the Exif metadata, if there is any.
+.TP
+\fI.xmp\fR
+Saves just the XMP metadata, if there is any.
 .PP
 Alternatively, the special output filename \fBnull:\fR can be used if the decoded output does not need to be saved.
 This might be useful to verify the integrity of a FLIF image, or to benchmark the decode time.
@@ -109,8 +131,14 @@ and color depth. You can specify multiple input files when this option is used.
 
 .SH ENCODING
 To encode an image to FLIF, the input file(s) can be in any of the output formats supported by the decoder:
-PNG, PAM, or PNM. Additionally it is possible to transcode from FLIF to FLIF, which might be useful when
+PNG, PAM, or PNM.
+Additionally it is possible to transcode from FLIF to FLIF, which might be useful when
 using non-default encoder settings.
+.PP
+If the input file contains Exif/XMP metadata or an ICC color profile, it will also
+be included in the output FLIF file, unless the option \fB\-m\fR (for metadata) and/or \fB\-p\fR (for the color profile)
+is specified. You can also explicitly add metadata by providing (an) input file(s) with the extension \fI.exif\fR
+\fI.xmp\fR, and/or \fI.icc\fR.
 .PP
 All of the encode options are optional; the defaults are supposed to be OK.
 If progressive decoding is not useful in your particular use case, then \fB\-N\fR might be a good idea,

@@ -429,6 +429,12 @@ struct MetaData {
     std::vector<char> contents;
 };
 
+struct metadata_options {
+    bool icc;
+    bool exif;
+    bool xmp;
+};
+
 class Image {
     std::unique_ptr<GeneralPlane> planes[5]; // Red/Y, Green/Co, Blue/Cg, Alpha, Frame-Lookback(animation only)
     uint32_t width, height;
@@ -776,7 +782,7 @@ public:
     }
 
 #ifdef HAS_ENCODER
-    bool load(const char *name);
+    bool load(const char *name, metadata_options &options);
 #endif
     bool save(const char *name) const;
 

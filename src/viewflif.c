@@ -188,6 +188,9 @@ static int decodeThread(void * arg) {
     flif_decoder_set_scale(d, 1);                 // this is the default, so can be omitted
     // set the maximum size to twice the screen resolution; if an image is larger, a downsampled preview will be decoded
     flif_decoder_set_resize(d, dm.w*2, dm.h*2);   // the default is to not have a maximum size
+
+    // alternatively, set the decode width to exactly the screen width (the height will be set to respect aspect ratio)
+    // flif_decoder_set_fit(d, dm.w, 0);   // the default is to not have a maximum size
 #ifdef PROGRESSIVE_DECODING
     // set the callback function to render the partial (and final) decoded images
     flif_decoder_set_callback(d, &(progressive_render));  // the default is "no callback"; decode completely until quality/scale/size target is reached
