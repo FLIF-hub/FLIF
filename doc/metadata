@@ -16,7 +16,7 @@ Variable-size integer encoding:
   All the bytes except the last one have a '1' as their first bit.
   The unsigned integer is represented as the concatenation of the remaining 7 bit codewords.
 
-All non-obligatory chunks have a contents that is zlib-compressed.
+All non-obligatory chunks have a contents that is compressed with DEFLATE.
 
 The simplest FLIF file is simply a FLIF chunk followed by a \0 chunk with the actual image data.
 

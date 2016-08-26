@@ -893,7 +893,8 @@ public:
             if (!strncmp(metadata[i].name, chunkname, 4)) {
                 *data = NULL;
                 *length = 0;
-                lodepng_zlib_decompress(data, length, metadata[i].contents.data(), metadata[i].length, &lodepng_default_decompress_settings);
+//                lodepng_zlib_decompress(data, length, metadata[i].contents.data(), metadata[i].length, &lodepng_default_decompress_settings);
+                lodepng_inflate(data, length, metadata[i].contents.data(), metadata[i].length, &lodepng_default_decompress_settings);
                 return true;
             }
         }
@@ -904,7 +905,8 @@ public:
         strcpy(foo.name, chunkname);
         unsigned char * compressed = NULL;
         size_t compressed_length = 0;
-        lodepng_zlib_compress(&compressed, &compressed_length, data, length, &lodepng_default_compress_settings);
+//        lodepng_zlib_compress(&compressed, &compressed_length, data, length, &lodepng_default_compress_settings);
+        lodepng_deflate(&compressed, &compressed_length, data, length, &lodepng_default_compress_settings);
         foo.contents.resize(compressed_length);
         memcpy(foo.contents.data(), compressed, compressed_length);
         free(compressed);
