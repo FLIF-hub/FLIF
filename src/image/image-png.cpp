@@ -221,7 +221,7 @@ int image_load_png(const char *filename, Image &image, metadata_options &options
 
       if (png_get_iCCP(png_ptr, info_ptr,
                        &name, &comp_type, &profile, &len) == PNG_INFO_iCCP) {
-        image.set_metadata("iCCP", (const char*)profile, len);
+        image.set_metadata("iCCP", (const unsigned char*)profile, len);
       }
   }
   // look for Exif/XMP metadata
@@ -266,11 +266,13 @@ int image_load_png(const char *filename, Image &image, metadata_options &options
               break;
         }
         if (rawprofile) {
-          char * buffer = NULL;
-          ProcessRawProfile(txt->text, length, &buffer);
-          image.set_metadata(chunkname, buffer, length);
+          unsigned char * buffer = NULL;
+          if (ProcessRawProfile(txt->text, length, &buffer)) {
+            image.set_metadata(chunkname, buffer, length);
+            free(buffer);
+          }
         } else {
-          image.set_metadata(chunkname, (const char*)txt->text, length);
+          image.set_metadata(chunkname, (const unsigned char*)txt->text, length);
         }
 
       }
@@ -354,10 +356,11 @@ int image_save_png(const char *filename, const Image &image) {
 #else  // >= libpng 1.5.0
       png_bytep profile;
 #endif
-   if (image.get_metadata("iCCP", (const char **) (&profile), &length)) {
+   if (image.get_metadata("iCCP", (unsigned char **) (&profile), &length)) {
     png_set_iCCP(png_ptr, info_ptr,  (png_charp) "icc", 0, profile, length);
+    free(profile);
    }
-   if (image.get_metadata("eXmp", (const char **) (&profile), &length)) {
+   if (image.get_metadata("eXmp", (unsigned char **) (&profile), &length)) {
 #ifdef PNG_iTXt_SUPPORTED
     png_text txt;
     txt.key = (png_charp) "XML:com.adobe.xmp";
@@ -368,6 +371,7 @@ int image_save_png(const char *filename, const Image &image) {
 #else
     v_printf(1,"Warning: could not write XMP metadata to PNG file because this version of libpng does not support iTXt.\n");
 #endif
+    free(profile);
    }
   }
 

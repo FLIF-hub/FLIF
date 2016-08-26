@@ -20,19 +20,20 @@ bool image_load_metadata(const char *filename, Image& image, const char *chunkna
     long fsize = ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
-    char *contents = (char *) malloc(fsize + 1);
+    unsigned char *contents = (unsigned char *) malloc(fsize + 1);
     if (!fread(contents, fsize, 1, fp)) {
         e_printf("Could not read file: %s\n", filename);
         return false;
     }
     fclose(fp);
     image.set_metadata(chunkname, contents, fsize);
+    free(contents);
     return true;
 }
 #endif
 
 bool image_save_metadata(const char *filename, const Image& image, const char *chunkname) {
-    const char * contents;
+    unsigned char * contents;
     size_t length;
     if (image.get_metadata(chunkname, &contents, &length)) {
       FILE *fp = fopen(filename,"wb");
@@ -41,6 +42,7 @@ bool image_save_metadata(const char *filename, const Image& image, const char *c
       }
       fwrite((void *) contents, length, 1, fp);
       fclose(fp);
+      free(contents);
       return true;
     } else {
       e_printf("Asking to write metadata of type %s to file %s, however no such metadata is present in the input file.\n", chunkname, filename);

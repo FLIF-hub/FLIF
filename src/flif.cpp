@@ -212,7 +212,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  ____ _(_)____\n");
-    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc18 [25 Aug 2016]\n");
+    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0rc19 [26 Aug 2016]\n");
     v_printf(3,"  (__ | |_| __)    ");v_printf(3,"Copyright (C) 2016 Jon Sneyers and Pieter Wuille\n");
     v_printf(3,"    (_|___|_)      ");
 #ifdef HAS_ENCODER
@@ -336,7 +336,7 @@ bool encode_flif(int argc, char **argv, Images &images, flif_options &options) {
       if (options.yiq) {
         desc.push_back("YCoCg");  // convert RGB(A) to YCoCg(A)
       }
-      desc.push_back("PermutePlanes");  // permute RGB to GRB
+      //desc.push_back("PermutePlanes");  // permute RGB to GRB
       desc.push_back("Bounds");  // get the bounds of the color spaces
     }
     if (!options.loss) {

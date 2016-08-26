@@ -11,12 +11,12 @@
 // 'expected_length'. NULL is returned if the processed length is less than
 // 'expected_length' or any character aside from those above is encountered.
 // The returned buffer must be freed by the caller.
-static char* HexStringToBytes(const char* hexstring,
+static unsigned char* HexStringToBytes(const char* hexstring,
                                  size_t expected_length) {
   const char* src = hexstring;
   size_t actual_length = 0;
-  char* const raw_data = (char*)malloc(expected_length);
-  char* dst;
+  unsigned char* const raw_data = (unsigned char*)malloc(expected_length);
+  unsigned char* dst;
 
   if (raw_data == NULL) return NULL;
 
@@ -40,7 +40,7 @@ static char* HexStringToBytes(const char* hexstring,
 }
 
 static int ProcessRawProfile(const char* profile, size_t profile_len,
-                             char ** payload) {
+                             unsigned char ** payload) {
   const char* src = profile;
   char* end;
   int expected_length;

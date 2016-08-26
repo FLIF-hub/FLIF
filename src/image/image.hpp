@@ -30,6 +30,9 @@ limitations under the License.
 #include "../config.h"
 #include "../compiler-specific.hpp"
 
+
+#include "../../extern/lodepng.h"
+
 #ifdef SUPPORT_HDR
 typedef int32_t ColorVal;  // used in computations
 #else
@@ -426,7 +429,7 @@ void copy_row_range(plane_t &plane, const GeneralPlane &other, const uint32_t r,
 struct MetaData {
     char name[5];               // name of the chunk (every chunk is assumed to be unique, 4 ascii letters plus terminating 0)
     size_t length;              // length of the chunk contents
-    std::vector<char> contents;
+    std::vector<unsigned char> contents;
 };
 
 struct metadata_options {
@@ -885,22 +888,27 @@ public:
         width = 0; // this is used to signal the decoder to stop
     }
 
-    bool get_metadata(const char * chunkname, const char ** data, size_t * length) const {
+    bool get_metadata(const char * chunkname, unsigned char ** data, size_t * length) const {
         for(size_t i=0; i<metadata.size(); i++) {
             if (!strncmp(metadata[i].name, chunkname, 4)) {
-                *data = metadata[i].contents.data();
-                *length = metadata[i].length;
+                *data = NULL;
+                *length = 0;
+                lodepng_zlib_decompress(data, length, metadata[i].contents.data(), metadata[i].length, &lodepng_default_decompress_settings);
                 return true;
             }
         }
         return false;  // metadata not found
     }
-    void set_metadata(const char * chunkname, const char * data, size_t length) {
+    void set_metadata(const char * chunkname, const unsigned char * data, size_t length) {
         MetaData foo;
         strcpy(foo.name, chunkname);
-        foo.contents.resize(length);
-        memcpy(foo.contents.data(), data, length);
-        foo.length = length;
+        unsigned char * compressed = NULL;
+        size_t compressed_length = 0;
+        lodepng_zlib_compress(&compressed, &compressed_length, data, length, &lodepng_default_compress_settings);
+        foo.contents.resize(compressed_length);
+        memcpy(foo.contents.data(), compressed, compressed_length);
+        free(compressed);
+        foo.length = compressed_length;
         metadata.push_back(foo);
     }
 

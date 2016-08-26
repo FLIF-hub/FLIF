@@ -16,6 +16,7 @@ Variable-size integer encoding:
   All the bytes except the last one have a '1' as their first bit.
   The unsigned integer is represented as the concatenation of the remaining 7 bit codewords.
 
+All non-obligatory chunks have a contents that is zlib-compressed.
 
 The simplest FLIF file is simply a FLIF chunk followed by a \0 chunk with the actual image data.
 
@@ -23,6 +24,7 @@ The simplest FLIF file is simply a FLIF chunk followed by a \0 chunk with the ac
 Chunk name: FLIF
 Obligatory: yes
 Description: header chunk
+Chunk size: not encoded
 Contents:
 First byte (byte 5 in the file) : encodes number of channels, animation or not
 Second byte (byte 6) : encodes color depth ("1" = 8-bit, "2" = 16-bit, "0" = custom)
@@ -57,6 +59,6 @@ Description: XMP metadata
 Chunk name: \0
 Obligatory: yes
 Description: image data encoded in the FLIF16 format (future revisions of the format will use a different name, we have room for 30 revisions)
-Chunk size: unspecified
+Chunk size: not encoded
 Has to be the last chunk in the stream
 Contains actual image data

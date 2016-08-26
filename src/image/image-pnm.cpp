@@ -85,6 +85,11 @@ bool image_load_pnm(const char *filename, Image& image) {
             for (unsigned int c=0; c<nbplanes; c++) {
                 ColorVal pixel= (fgetc(fp) << 8);
                 pixel += fgetc(fp);
+                if (pixel > (int)maxval) {
+                    fclose(fp);
+                    e_printf("Invalid PNM file: value %i is larger than declared maxval %u\n", pixel, maxval);
+                    return false;
+                }
                 image.set(c,y,x, pixel);
             }
           }
