@@ -366,7 +366,7 @@ int image_save_png(const char *filename, const Image &image) {
     txt.key = (png_charp) "XML:com.adobe.xmp";
     txt.compression = PNG_ITXT_COMPRESSION_zTXt;
     txt.text_length = 0;
-    txt.text = profile;
+    txt.text = (png_charp) profile;
     png_set_text(png_ptr, info_ptr, &txt, 1);
 #else
     v_printf(1,"Warning: could not write XMP metadata to PNG file because this version of libpng does not support iTXt.\n");
