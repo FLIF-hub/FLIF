@@ -115,9 +115,18 @@ public:
         SimpleSymbolCoder<SimpleBitChance, RacIn<IO>, 18> coder(rac);
         subtract = coder.read_int2(0, 1);
         if (subtract) v_printf(4,"Subtract");
+        bool from[4] = {false, false, false, false}, to[4] = {false, false, false, false};
         for (int p=0; p<srcRanges->numPlanes(); p++) {
             permutation[p] = coder.read_int2(0, srcRanges->numPlanes()-1);
             v_printf(5,"[%i->%i]",p,permutation[p]);
+            from[p] = true;
+            to[permutation[p]] = true;
+        }
+        for (int p=0; p<srcRanges->numPlanes(); p++) {
+            if (!from[p] || !to[p]) {
+                e_printf("\nNot a valid permutation!\n");
+                return false;
+            }
         }
         return true;
     }

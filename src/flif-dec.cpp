@@ -48,7 +48,7 @@ void flif_decode_scanline_plane(plane_t &plane, Coder &coder, Images &images, co
                                 const int p, const int fr, const uint32_t r, const ColorVal grey, const ColorVal minP, const bool alphazero, const bool FRA) {
     ColorVal min,max;
     Image& image = images[fr];
-    uint32_t begin=image.col_begin[r], end=image.col_end[r];
+    uint32_t begin=0, end=image.cols();
     //if this is a duplicate frame, copy the row from the frame being duplicated
     if (image.seen_before >= 0) { 
         copy_row_range(plane,images[image.seen_before].getPlane(p),r,0,image.cols());
@@ -57,6 +57,7 @@ void flif_decode_scanline_plane(plane_t &plane, Coder &coder, Images &images, co
     //if this is not the first or only frame, fill the beginning of the row before the actual pixel data
     if (fr > 0) {
         //if alphazero is on, fill with a predicted value, otherwise copy pixels from the previous frame
+        begin=image.col_begin[r]; end=image.col_end[r];
         if (alphazero && p < 3) {
             for (uint32_t c = 0; c < begin; c++)
                 if (alpha.get(r,c) == 0) plane.set(r,c,predictScanlines_plane(plane,r,c, grey));
@@ -314,8 +315,10 @@ void flif_decode_plane_zoomlevel_horizontal(plane_t &plane, Coder &coder, Images
         const uint32_t cs = image.zoom_colpixelsize(z)>>image.getscale(), rs = image.zoom_rowpixelsize(z)>>image.getscale();
         copy_row_range(plane,images[image.seen_before].getPlane(p),rs*r,0,cs*image.cols(z),cs); return;
     }
-    uint32_t begin=image.col_begin[r*image.zoom_rowpixelsize(z)]/image.zoom_colpixelsize(z), end=1+(image.col_end[r*image.zoom_rowpixelsize(z)]-1)/image.zoom_colpixelsize(z);
+    uint32_t begin=0, end=image.cols(z);
     if (fr>0) {
+        begin=image.col_begin[r*image.zoom_rowpixelsize(z)]/image.zoom_colpixelsize(z);
+        end=1+(image.col_end[r*image.zoom_rowpixelsize(z)]-1)/image.zoom_colpixelsize(z);
         if (alphazero && p < 3) {
             for (uint32_t c = 0; c < begin; c++)
                 if (alpha.get(z,r,c) == 0) plane.set(z,r,c, predict_plane_horizontal(plane,z,p,r,c, image.rows(z), invisible_predictor));
@@ -383,11 +386,12 @@ void flif_decode_plane_zoomlevel_vertical(plane_t &plane, Coder &coder, Images &
         const uint32_t cs = image.zoom_colpixelsize(z)>>image.getscale(), rs = image.zoom_rowpixelsize(z)>>image.getscale();
         copy_row_range(plane, images[image.seen_before].getPlane(p),rs*r,cs*1,cs*image.cols(z),cs*2); return;
     }
-    uint32_t begin=(image.col_begin[r*image.zoom_rowpixelsize(z)]/image.zoom_colpixelsize(z)),
-        end=(1+(image.col_end[r*image.zoom_rowpixelsize(z)]-1)/image.zoom_colpixelsize(z))|1;
-    if (begin>1 && ((begin&1) ==0)) begin--;
-    if (begin==0) begin=1;
+    uint32_t begin=1, end=image.cols(z);
     if (fr>0) {
+        begin=(image.col_begin[r*image.zoom_rowpixelsize(z)]/image.zoom_colpixelsize(z));
+        end=(1+(image.col_end[r*image.zoom_rowpixelsize(z)]-1)/image.zoom_colpixelsize(z))|1;
+        if (begin>1 && ((begin&1) ==0)) begin--;
+        if (begin==0) begin=1;
         if (alphazero && p < 3) {
             for (uint32_t c = 1; c < begin; c += 2)
                 if (alpha.get(z, r, c) == 0) plane.set(z, r, c, predict_plane_vertical(plane, z, p, r, c, image.cols(z), invisible_predictor));

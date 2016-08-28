@@ -76,6 +76,7 @@ public:
           for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
 //                image.set(p,r,c, CPalette_vector[p][image(p,r,c) >> stretch]);
+                assert(image(p,r,c) < (int) CPalette_vector[p].size());
                 image.set(p,r,c, CPalette_vector[p][image(p,r,c)]);
             }
           }

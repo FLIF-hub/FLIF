@@ -336,7 +336,7 @@ bool encode_flif(int argc, char **argv, Images &images, flif_options &options) {
       if (options.yiq) {
         desc.push_back("YCoCg");  // convert RGB(A) to YCoCg(A)
       }
-      //desc.push_back("PermutePlanes");  // permute RGB to GRB
+      desc.push_back("PermutePlanes");  // permute RGB to GRB
       desc.push_back("Bounds");  // get the bounds of the color spaces
     }
     if (!options.loss) {

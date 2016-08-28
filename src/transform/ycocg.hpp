@@ -228,8 +228,8 @@ public:
           image.undo_make_constant_plane(1);
           image.undo_make_constant_plane(2);
 #ifdef USE_SIMD
-          // special case for 8-bit RGB decoding, full decode (so no clipping needed)
-          if (image.max(0) < 256 && image.fully_decoded) {
+          // special case for 8-bit RGB decoding
+          if (image.max(0) < 256) {
             Plane<ColorVal_intern_8>&  p0 = static_cast<Plane<ColorVal_intern_8>&>(image.getPlane(0));
             Plane<ColorVal_intern_16>& p1 = static_cast<Plane<ColorVal_intern_16>&>(image.getPlane(1));
             Plane<ColorVal_intern_16>& p2 = static_cast<Plane<ColorVal_intern_16>&>(image.getPlane(2));
@@ -241,7 +241,10 @@ public:
                 G = Y - ((-Cg)>>1);
                 B = Y + ((1-Cg)>>1) - (Co>>1);
                 R = Co + B;
-                // should clip to uint8 here, there is probably an instruction to do that (pack with saturation or something)
+                // clipping is needed, e.g. for corrupt ChannelCompacted images
+                for(int i=0;i<8;i++) clip(R[i], 0, max[0]);
+                for(int i=0;i<8;i++) clip(G[i], 0, max[1]);
+                for(int i=0;i<8;i++) clip(B[i], 0, max[2]);
                 p0.set8(pos,R);
                 p1.set8(pos,G);
                 p2.set8(pos,B);

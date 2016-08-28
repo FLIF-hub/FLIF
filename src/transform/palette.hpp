@@ -91,6 +91,8 @@ public:
           for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
                 int P=image(1,r,c);
+                assert(P < (int) Palette_vector.size());
+                assert(P >= 0);
                 image.set(0,r,c, std::get<0>(Palette_vector[P]));
                 image.set(1,r,c, std::get<1>(Palette_vector[P]));
                 image.set(2,r,c, std::get<2>(Palette_vector[P]));
@@ -200,9 +202,9 @@ public:
         SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> coderI(rac);
         SimpleSymbolCoder<FLIFBitChanceMeta, RacIn<IO>, 18> coderQ(rac);
         long unsigned size = coder.read_int2(1, MAX_PALETTE_SIZE);
-//        printf("Loading %lu colors: ", size);
         prevPlanes pp(2);
         int sorted = coder.read_int2(0,1);
+        v_printf(10,"Loading %lu %s colors: ", size, (sorted?"sorted":"unsorted"));
         if (sorted) {
             Color min(srcRanges->min(0), srcRanges->min(1), srcRanges->min(2));
             Color max(srcRanges->max(0), srcRanges->max(1), srcRanges->max(2));
@@ -217,6 +219,7 @@ public:
                 Palette_vector.push_back(c);
                 std::get<0>(min) = std::get<0>(c);
                 prev = c;
+                v_printf(10,"Color(%i,%i,%i)\t", std::get<0>(c), std::get<1>(c), std::get<2>(c));
             }
         } else {
             ColorVal min, max;
@@ -229,7 +232,7 @@ public:
                 ColorVal Q=coderQ.read_int2(min,max);
                 Color c(Y,I,Q);
                 Palette_vector.push_back(c);
-//                printf("YIQ(%i,%i,%i)\t", std::get<0>(c), std::get<1>(c), std::get<2>(c));
+                v_printf(10,"Color(%i,%i,%i)\t", std::get<0>(c), std::get<1>(c), std::get<2>(c));
             }
         }
 //        printf("\nLoaded palette of size: %lu\n",Palette_vector.size());

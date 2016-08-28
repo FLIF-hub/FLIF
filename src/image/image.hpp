@@ -617,10 +617,6 @@ public:
       height = h;
       minval = min;
       maxval = max;
-      col_begin.clear();
-      col_begin.resize(height,0);
-      col_end.clear();
-      col_end.resize(height,width);
       num = p;
       seen_before = -1;
 #ifdef SUPPORT_HDR
@@ -638,6 +634,10 @@ public:
 
       clear();
       try {
+      col_begin.clear();
+      col_begin.resize(height,0);
+      col_end.clear();
+      col_end.resize(height,width);
       if (depth <= 8) {
         if (p>0) planes[0] = make_unique<Plane<ColorVal_intern_8>>(width, height, 0, scale); // R,Y
         if (p>1) planes[1] = make_unique<Plane<ColorVal_intern_16>>(width, height, 0, scale); // G,I
