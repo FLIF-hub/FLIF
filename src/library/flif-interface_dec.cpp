@@ -43,9 +43,9 @@ int32_t FLIF_DECODER::decode_file(const char* filename) {
 
     working = true;
     metadata_options md_default = {
-        .icc = true,
-        .exif = true,
-        .xmp = true,
+         true, // icc
+         true, // exif
+         true, // xmp
     };
     if(!flif_decode(fio, internal_images, quality, scale, reinterpret_cast<uint32_t (*)(int32_t,int64_t)>(callback), first_quality, images, rw, rh, crc_check, fit, md_default))
         { working = false; return 0; }
@@ -65,9 +65,9 @@ int32_t FLIF_DECODER::decode_memory(const void* buffer, size_t buffer_size_bytes
 
     working = true;
     metadata_options md_default = {
-        .icc = true,
-        .exif = true,
-        .xmp = true,
+		true, // icc
+		true, // exif
+		true, // xmp
     };
     if(!flif_decode(reader, internal_images, quality, scale, reinterpret_cast<uint32_t (*)(int32_t,int64_t)>(callback), first_quality, images, rw, rh, crc_check, fit, md_default))
         { working = false; return 0; }
