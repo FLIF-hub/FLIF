@@ -121,7 +121,8 @@ struct EightColorVals {
     }
     void store(int32_t *p) const {}
     void store(uint16_t *p) const {}
-    int operator[](int i) const{ return vec.m128i_i16[i]; }
+	short& operator[](int i) { return vec.m128i_i16[i]; }
+	short operator[](int i) const { return vec.m128i_i16[i]; }
     EightColorVals VCALL operator+(EightColorVals b) { return EightColorVals(_mm_add_epi16(vec,b.vec)); }
     EightColorVals VCALL operator-(EightColorVals b) { return EightColorVals(_mm_sub_epi16(vec,b.vec)); }
     EightColorVals VCALL operator-() { return EightColorVals(_mm_sub_epi16(_mm_setzero_si128(),vec)); }
