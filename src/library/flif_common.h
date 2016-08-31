@@ -45,6 +45,9 @@ extern "C" {
 
     FLIF_DLLIMPORT FLIF_IMAGE* FLIF_API flif_create_image(uint32_t width, uint32_t height);
     FLIF_DLLIMPORT FLIF_IMAGE* FLIF_API flif_create_image_HDR(uint32_t width, uint32_t height);
+    FLIF_DLLIMPORT FLIF_IMAGE* FLIF_API flif_import_image_RGBA(uint32_t width, uint32_t height, const void* rgba, uint32_t rgba_stride);
+    FLIF_DLLIMPORT FLIF_IMAGE* FLIF_API flif_import_image_RGB(uint32_t width, uint32_t height, const void* rgb, uint32_t rgb_stride);
+    FLIF_DLLIMPORT FLIF_IMAGE* FLIF_API flif_import_image_GRAY(uint32_t width, uint32_t height, const void* gray, uint32_t gray_stride);
     FLIF_DLLIMPORT void FLIF_API flif_destroy_image(FLIF_IMAGE* image);
 
     FLIF_DLLIMPORT uint32_t FLIF_API flif_image_get_width(FLIF_IMAGE* image);
