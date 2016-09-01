@@ -161,34 +161,34 @@ struct flif_options {
 
 const struct flif_options FLIF_DEFAULT_OPTIONS = {
 #ifdef HAS_ENCODER
-    .method = flifEncodingOptional(),
-    .learn_repeats = -1,
-    .acb = -1, // try auto color buckets
-    .frame_delay = {100},
-    .palette_size = -1,
-    .lookback = 1,
-    .divisor=CONTEXT_TREE_COUNT_DIV,
-    .min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE,
-    .split_threshold=CONTEXT_TREE_SPLIT_THRESHOLD,
-    .yiq = 1,
-    .plc = 1,
-    .frs = 1,
-    .alpha_zero_special = true,
-    .alpha=19,
-    .cutoff=2,
-    .loss=0,
-    .adaptive=false,
-    .predictor={-2,-2,-2,-2,-2}, // heuristically pick a fixed predictor on all planes
-    .invisible_predictor=2,
+    flifEncodingOptional(), // method
+    -1, // learn_repeats
+    -1, // acb, try auto color buckets
+    {100}, // frame_delay
+    -1, // palette_size
+    1, // lookback
+    CONTEXT_TREE_COUNT_DIV, // divisor
+    CONTEXT_TREE_MIN_SUBTREE_SIZE, // min_size
+    CONTEXT_TREE_SPLIT_THRESHOLD, // split_threshold
+    1, // yiq
+    1, // plc
+    1, // frs
+    true, // alpha_zero_special
+    19, // alpha
+    2, // cutoff
+    0, // loss
+    false, // adaptive
+    {-2,-2,-2,-2,-2}, // predictor, heuristically pick a fixed predictor on all planes
+    2, // invisible_predictor
 #endif
-    .crc_check = -1,
-    .metadata = true,
-    .color_profile = true,
-    .quality = 100, // 100 = everything, positive value: partial decode, negative value: only rough data
-    .scale = 1,
-    .resize_width = 0,
-    .resize_height = 0,
-    .fit=false,
+    -1, // crc_check
+    true, // metadata
+    true, // color_profile
+    100, // quality, 100 = everything, positive value: partial decode, negative value: only rough data
+    1, // scale
+    0, // resize_width
+    0, // resize_height
+    false, // fit
 };
 
 bool file_exists(const char * filename){
