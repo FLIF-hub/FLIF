@@ -28,7 +28,7 @@ limitations under the License.
   #define FLIF_DLLIMPORT __declspec(dllexport)
  #elif FLIF_USE_DLL
   #define FLIF_DLLIMPORT __declspec(dllimport)
-  #endif
+ #endif
 #else
 #define FLIF_API
 #endif
@@ -56,7 +56,9 @@ extern "C" {
     FLIF_DLLIMPORT uint8_t  FLIF_API flif_image_get_depth(FLIF_IMAGE* image);
     FLIF_DLLIMPORT uint32_t FLIF_API flif_image_get_frame_delay(FLIF_IMAGE* image);
     FLIF_DLLIMPORT void FLIF_API flif_image_set_frame_delay(FLIF_IMAGE* image, uint32_t delay);
+
     FLIF_DLLIMPORT void FLIF_API flif_image_set_metadata(FLIF_IMAGE* image, const char* chunkname, const unsigned char* data, size_t length);
+    FLIF_DLLIMPORT void FLIF_API flif_image_get_metadata(FLIF_IMAGE* image, const char* chunkname, unsigned char** data, size_t* length);
 
     FLIF_DLLIMPORT void FLIF_API flif_image_write_row_RGBA8(FLIF_IMAGE* image, uint32_t row, const void* buffer, size_t buffer_size_bytes);
     FLIF_DLLIMPORT void FLIF_API flif_image_read_row_RGBA8(FLIF_IMAGE* image, uint32_t row, void* buffer, size_t buffer_size_bytes);
