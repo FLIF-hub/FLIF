@@ -24,11 +24,11 @@ limitations under the License.
 
 #ifdef _MSC_VER
 #define FLIF_API __cdecl
-#ifdef FLIF_BUILD_DLL
-#define FLIF_DLLIMPORT __declspec(dllexport)
-#elif FLIF_USE_DLL
-#define FLIF_DLLIMPORT __declspec(dllimport)
-#endif
+ #ifdef FLIF_BUILD_DLL
+  #define FLIF_DLLIMPORT __declspec(dllexport)
+ #elif FLIF_USE_DLL
+  #define FLIF_DLLIMPORT __declspec(dllimport)
+  #endif
 #else
 #define FLIF_API
 #endif
