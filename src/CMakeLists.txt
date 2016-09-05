@@ -42,6 +42,7 @@ find_package_handle_standard_args(SDL2
 set(COMMON_SOURCES
     image/color_range.cpp
     image/crc32k.cpp
+    image/image-metadata.cpp
     image/image-pam.cpp
     image/image-png.cpp
     image/image-pnm.cpp
@@ -54,6 +55,7 @@ set(COMMON_SOURCES
     io.cpp
     common.cpp
     flif-dec.cpp
+    ../extern/lodepng.cpp
 )
 
 if(WIN32)
@@ -71,6 +73,10 @@ if(USE_ASAN)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 endif()
 
+set(DEFINITIONS_FOR_ALL_TARGETS
+    LODEPNG_NO_COMPILE_PNG LODEPNG_NO_COMPILE_DISK
+)
+
 # executable
 
 if(WIN32)
@@ -85,7 +91,7 @@ set_target_properties(flif_exe PROPERTIES OUTPUT_NAME flif)
 
 if(WIN32)
     target_include_directories(flif_exe PRIVATE "../build/MSVC/getopt")
-    target_compile_definitions(flif_exe PRIVATE STATIC_GETOPT) # prevents dllexporting symbols for getopt
+    target_compile_definitions(flif_exe PRIVATE ${DEFINITIONS_FOR_ALL_TARGETS} STATIC_GETOPT ) # prevents dllexporting symbols for getopt
 endif()
 
 # library
@@ -99,8 +105,12 @@ target_link_libraries(flif_lib_dec ${PNG_LIBRARY} ${STATIC_LINKED_LIBS})
 set_target_properties(flif_lib PROPERTIES OUTPUT_NAME flif)
 set_target_properties(flif_lib_dec PROPERTIES OUTPUT_NAME flif_dec)
 
-target_compile_definitions(flif_lib PRIVATE FLIF_BUILD_DLL)
-target_compile_definitions(flif_lib_dec PRIVATE FLIF_BUILD_DLL DECODER_ONLY)
+target_compile_definitions(flif_lib PRIVATE ${DEFINITIONS_FOR_ALL_TARGETS} FLIF_BUILD_DLL )
+target_compile_definitions(flif_lib_dec PRIVATE ${DEFINITIONS_FOR_ALL_TARGETS} FLIF_BUILD_DLL DECODER_ONLY )
+
+target_include_directories(flif_exe PRIVATE "../extern")
+target_include_directories(flif_lib PRIVATE "../extern")
+target_include_directories(flif_lib_dec PRIVATE "../extern")
 
 # viewflif
 
