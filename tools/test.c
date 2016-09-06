@@ -264,6 +264,37 @@ int main(int argc, char** argv)
             d = 0;
         }
 
+        FLIF_INFO* info = flif_read_info_from_memory(blob, blob_size);
+        if(info)
+        {
+            int w = flif_info_get_width(info);
+            int h = flif_info_get_height(info);
+            int channels = flif_info_get_nb_channels(info);
+            int depth = flif_info_get_depth(info);
+            int n = flif_info_num_images(info);
+
+            if(w != WIDTH ||
+               h != HEIGHT ||
+               channels != 4 ||
+               depth != 8 ||
+               n != 1)
+            {
+                printf("Error: info should be %dx%d, %d channels, %d bit, %d images.\n"
+                       "       Instead it is %dx%d, %d channels, %d bit, %d images.\n",
+                       WIDTH, HEIGHT, 4, 8, 1,
+                       w, h, channels, depth, n);
+                result = 1;
+            }
+
+            flif_destroy_info(info);
+            info = 0;
+        }
+        else
+        {
+            printf("Error: flif_read_info_from_memory failed\n");
+            result = 1;
+        }
+
         flif_destroy_image(im);
         im = 0;
 
