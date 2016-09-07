@@ -34,6 +34,8 @@ limitations under the License.
 #include "common.hpp"
 #include "fileio.hpp"
 
+#include "flif-dec.hpp"
+
 using namespace maniac::util;
 
 template<typename RAC> std::string static read_name(RAC& rac, int &nb) {
@@ -821,7 +823,7 @@ int read_chunk(IO& io, MetaData& metadata) {
 
 
 template <typename IO>
-bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int first_callback_quality, Images &partial_images, int rw, int rh, int crc_check, bool fit, metadata_options &md) {
+bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int first_callback_quality, Images &partial_images, int rw, int rh, int crc_check, bool fit, metadata_options &md, FLIF_INFO* info) {
     bool just_identify = false;
     bool just_metadata = false;
     if (scale == -1) just_identify=true;
@@ -960,6 +962,19 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
             }
         }
         return true;
+    }
+    if (info != 0) {
+        info->width = width;
+        info->height = height;
+        info->channels = numPlanes;
+        if (c=='1')
+            info->bit_depth = 8;
+        else if (c=='2')
+            info->bit_depth = 16;
+        else if (c=='0')
+            info->bit_depth = ilog2(maxmax+1);
+        info->num_images = numFrames;
+        return true; // info was requested, skip the rest of the file
     }
     if (numFrames>1) {
         // ignored for now (assuming loop forever)
@@ -1192,5 +1207,5 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
 }
 
 
-template bool flif_decode(FileIO& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int, Images &partial_images, int, int, int, bool, metadata_options &);
-template bool flif_decode(BlobReader& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int, Images &partial_images, int, int, int, bool, metadata_options &);
+template bool flif_decode(FileIO& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int, Images &partial_images, int, int, int, bool, metadata_options &, FLIF_INFO* info);
+template bool flif_decode(BlobReader& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int, Images &partial_images, int, int, int, bool, metadata_options &, FLIF_INFO* info);
