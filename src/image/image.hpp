@@ -901,6 +901,15 @@ public:
         }
         return false;  // metadata not found
     }
+    void free_metadata(unsigned char * data) const {
+        if(data) {
+#ifdef LODEPNG_COMPILE_ALLOCATORS
+            free(data);
+#else
+            lodepng_free(data);
+#endif // !LODEPNG_COMPILE_ALLOCATORS            
+        }
+    }
     void set_metadata(const char * chunkname, const unsigned char * data, size_t length) {
         MetaData foo;
         strcpy(foo.name, chunkname);
