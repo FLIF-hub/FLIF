@@ -369,6 +369,14 @@ FLIF_DLLIMPORT void FLIF_API flif_image_get_metadata(FLIF_IMAGE* image, const ch
     catch(...) {}
 }
 
+FLIF_DLLIMPORT void FLIF_API flif_image_free_metadata(FLIF_IMAGE* image, unsigned char* data){
+    try
+    {
+        image->image.free_metadata(data);
+    }
+    catch(...) {}
+}
+
 FLIF_DLLEXPORT void FLIF_API flif_image_write_row_RGBA8(FLIF_IMAGE* image, uint32_t row, const void* buffer, size_t buffer_size_bytes) {
     try
     {

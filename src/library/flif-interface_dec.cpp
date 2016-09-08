@@ -98,7 +98,7 @@ FLIF_IMAGE* FLIF_DECODER::get_image(size_t index) {
         return 0;
     if(index >= requested_images.size()) requested_images.resize(images.size());
     if (!requested_images[index].get()) requested_images[index].reset( new FLIF_IMAGE());
-    if (images[index].rows()) {
+    if (images[index].rows() || images[index].metadata.size() > 0) {
         requested_images[index]->image = std::move(images[index]); // moves and invalidates images[index]
     }
     return requested_images[index].get();
