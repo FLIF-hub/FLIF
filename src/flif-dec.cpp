@@ -230,6 +230,8 @@ void flif_decode_FLIF2_inner_interpol(Images &images, const ColorRanges *ranges,
       int z = zoomlevels[P];
       int p = P;
       v_printf_tty(2,"\nINTERPOLATE_REMAINING[%i,%ux%u]                 ",p,images[0].cols(z),images[0].rows(z));
+      v_printf_tty(5,"\n");
+      if (z >= endZL) zoomlevels[P]--;
       if (z % 2 == 0) {
         // horizontal: scan the odd rows
           for (uint32_t r = (R>=0 ? R : 1); r < images[0].rows(z); r += 2) {
