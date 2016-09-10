@@ -321,11 +321,11 @@ public:
 #endif
     void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) override {
 //        set(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z),x);
-         data_vec[(r*zoom_rowpixelsize(z)>>s)*width + (c*zoom_colpixelsize(z)>>s)] = x;
+         data[(r*zoom_rowpixelsize(z)>>s)*width + (c*zoom_colpixelsize(z)>>s)] = x;
     }
     ColorVal get(const int z, const uint32_t r, const uint32_t c) const override {
 //        return get(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z));
-        return data_vec[(r*zoom_rowpixelsize(z)>>s)*width + (c*zoom_colpixelsize(z)>>s)];
+        return data[(r*zoom_rowpixelsize(z)>>s)*width + (c*zoom_colpixelsize(z)>>s)];
     }
     void normalize_scale() override { s = 0; }
 
@@ -341,7 +341,7 @@ public:
             for (pixel_t& x : data) x = swap(x);
         }
 #endif
-        uint32_t result = crc32_fast(&data_vec[0], width*height*sizeof(pixel_t), previous_crc32);
+        uint32_t result = crc32_fast(&data[0], width*height*sizeof(pixel_t), previous_crc32);
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
         // make the buffer big endian again
         if (sizeof(pixel_t) == 2) {
