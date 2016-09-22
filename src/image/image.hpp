@@ -336,18 +336,18 @@ public:
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
         // temporarily make the buffer little endian (TODO: avoid this by modifying the crc to take the swapped bytes into account directly)
         if (sizeof(pixel_t) == 2) {
-            for (pixel_t& x : data) x = swap16(x);
+            for (pixel_t& x : data_vec) x = swap16(x);
         } else if (sizeof(pixel_t) == 4) {
-            for (pixel_t& x : data) x = swap(x);
+            for (pixel_t& x : data_vec) x = swap(x);
         }
 #endif
         uint32_t result = crc32_fast(&data[0], width*height*sizeof(pixel_t), previous_crc32);
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
         // make the buffer big endian again
         if (sizeof(pixel_t) == 2) {
-            for (pixel_t& x : data) x = swap16(x);
+            for (pixel_t& x : data_vec) x = swap16(x);
         } else if (sizeof(pixel_t) == 4) {
-            for (pixel_t& x : data) x = swap(x);
+            for (pixel_t& x : data_vec) x = swap(x);
         }
 #endif
         return result;
