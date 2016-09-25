@@ -50,8 +50,8 @@ On Fedora:
 
   * Navigate to the FLIF/src directory and run `make` to compile everything, or
     * `make flif` to build just the `flif` command line tool
-    * `make libflif.so` to build the GPL'ed shared library
-    * `make libflif_dec.so` to build the LGPL'ed decode-only shared library
+    * `make libflif.so` to build the LGPL'ed shared library
+    * `make libflif_dec.so` to build the Apache licensed decode-only shared library
     * `make viewflif` to build the example viewer (it depends on the decode library)
 
 #### Install
