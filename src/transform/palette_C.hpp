@@ -75,9 +75,11 @@ public:
           image.undo_make_constant_plane(p);
           for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
+                int P=image(p,r,c);
 //                image.set(p,r,c, CPalette_vector[p][image(p,r,c) >> stretch]);
-                assert(image(p,r,c) < (int) CPalette_vector[p].size());
-                image.set(p,r,c, CPalette_vector[p][image(p,r,c)]);
+                if (P < 0 || P >= (int) CPalette_vector[p].size()) P = 0; // might happen on invisible pixels with predictor -H1
+                assert(P < (int) CPalette_vector[p].size());
+                image.set(p,r,c, CPalette_vector[p][P]);
             }
           }
          }

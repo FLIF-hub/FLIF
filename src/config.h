@@ -19,8 +19,10 @@
 // (the format supports larger images/animations, but this threshold helps to avoid malicious input to grab too much memory)
 // this is one frame of 1000 megapixels 8-bit RGB (it's 5 bytes per pixel because YCoCg uses 2 bytes each for Co/Cg)
 // (or 1000 frames of 1 megapixel)
-#define MAX_IMAGE_BUFFER_SIZE 1000*1000000ULL*5
+#define MAX_IMAGE_BUFFER_SIZE 1000ULL*1000000ULL*5ULL
 
+// refuse to decode something which claims to have more frames than this
+#define MAX_FRAMES 50000
 
 /************************/
 /* COMPILATION OPTIONS  */

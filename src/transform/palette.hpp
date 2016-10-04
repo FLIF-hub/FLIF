@@ -91,6 +91,7 @@ public:
           for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
                 int P=image(1,r,c);
+                if (P < 0 || P >= (int) Palette_vector.size()) P = 0; // might happen on invisible pixels with predictor -H1
                 assert(P < (int) Palette_vector.size());
                 assert(P >= 0);
                 image.set(0,r,c, std::get<0>(Palette_vector[P]));

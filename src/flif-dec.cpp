@@ -371,6 +371,7 @@ void flif_decode_plane_zoomlevel_horizontal(plane_t &plane, Coder &coder, Images
         if (FRA && p==4 && max > fr) max = fr;
         if (FRA && (guess>max || guess<min)) guess = min;
         ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
+        assert(curr >= ranges->min(p) && curr <= ranges->max(p));
         plane.set_fast(r,c, curr);
       }
     }
@@ -446,6 +447,7 @@ void flif_decode_plane_zoomlevel_vertical(plane_t &plane, Coder &coder, Images &
         if (FRA && (guess>max || guess<min)) guess = min;
         ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
         //plane.set(z,r,c, curr);
+        assert(curr >= ranges->min(p) && curr <= ranges->max(p));
         plane.set_fast(r,c, curr);
       }
     }
@@ -1005,6 +1007,10 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     uint64_t estimated_buffer_size = (uint64_t)(((width-1)/scale)+1) * (uint64_t)(((height-1)/scale)+1) * (uint64_t)numFrames * (uint64_t)numPlanes * bytesperpixel;
     if (estimated_buffer_size > MAX_IMAGE_BUFFER_SIZE) {
         e_printf("This is going to take too much memory (%llu > %llu). Aborting.\nCompile with a higher MAX_IMAGE_BUFFER_SIZE if you really want to do this.\n",estimated_buffer_size, MAX_IMAGE_BUFFER_SIZE); return false;
+    }
+    if (numFrames > MAX_FRAMES) {
+        e_printf("Too many frames. Aborting.\nCompile with a higher MAX_FRAMES value if you really want to do this.\n");
+        return false;
     }
 
     for (int i=0; i<numFrames; i++) {

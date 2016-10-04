@@ -712,6 +712,9 @@ public:
     }
     void make_invisible_rgb_black() {
         if (num<4) return;
+        undo_make_constant_plane(0);
+        undo_make_constant_plane(1);
+        undo_make_constant_plane(2);
         for (uint32_t r=0; r<height; r++)
            for (uint32_t c=0; c<width; c++)
               if (operator()(3,r,c) == 0) {
