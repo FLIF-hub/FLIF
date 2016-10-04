@@ -372,6 +372,7 @@ void flif_decode_plane_zoomlevel_horizontal(plane_t &plane, Coder &coder, Images
         if (FRA && (guess>max || guess<min)) guess = min;
         ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
         assert(curr >= ranges->min(p) && curr <= ranges->max(p));
+        assert(curr >= min && curr <= max);
         plane.set_fast(r,c, curr);
       }
     }
@@ -448,6 +449,7 @@ void flif_decode_plane_zoomlevel_vertical(plane_t &plane, Coder &coder, Images &
         ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
         //plane.set(z,r,c, curr);
         assert(curr >= ranges->min(p) && curr <= ranges->max(p));
+        assert(curr >= min && curr <= max);
         plane.set_fast(r,c, curr);
       }
     }
@@ -620,6 +622,14 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
         assert(zoomlevels[p] == pzl.second);
       } else {
         p = metaCoder.read_int(0, nump-1);
+        if (nump > 3 && images[0].alpha_zero_special && p < 3 && zoomlevels[p] <= zoomlevels[3]) {
+            e_printf("Corrupt file: non-alpha encoded before alpha, while invisible pixels have undefined RGB values. Not allowed.\n");
+            return false;
+        }
+        if (nump > 4 && p < 4 && zoomlevels[p] <= zoomlevels[4]) {
+            e_printf("Corrupt file: pixels encoded before frame lookback. Not allowed.\n");
+            return false;
+        }
       }
       int z = zoomlevels[p];
       if (z < 0) {e_printf("Corrupt file: invalid plane/zoomlevel\n"); return false;}
