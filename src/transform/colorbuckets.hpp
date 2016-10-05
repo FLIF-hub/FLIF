@@ -364,7 +364,7 @@ protected:
         cb->bucket3.prepare_snapvalues();
         for (auto& b : cb->bucket1) b.prepare_snapvalues();
         for (auto& bv : cb->bucket2) for (auto& b : bv) b.prepare_snapvalues();
-        cb->print();
+//        cb->print();
 
         really_used = true;
         return new ColorRangesCB(srcRanges, cb);
@@ -379,8 +379,9 @@ protected:
             srcRanges->min(1) == srcRanges->max(1) &&
             srcRanges->min(2) == srcRanges->max(2)) return false; // only alpha plane contains information
 //        if (srcRanges->max(0) > 255) return false; // do not attempt this on high bit depth images (TODO: generalize color bucket quantization!)
-        if (srcRanges->max(0)-srcRanges->min(0) > 4096) return false; // do not attempt this on high bit depth images (TODO: generalize color bucket quantization!)
-        if (srcRanges->max(1)-srcRanges->min(1) > 4096) return false;
+        if (srcRanges->max(0)-srcRanges->min(0) > 1023) return false; // do not attempt this on high bit depth images (TODO: generalize color bucket quantization!)
+        if (srcRanges->max(1)-srcRanges->min(1) > 1023) return false; // max 10 bpc
+        if (srcRanges->max(2)-srcRanges->min(2) > 1023) return false;
         if (srcRanges->min(1) == srcRanges->max(1)) return false; // middle channel not used, buckets are not going to help
 //        if (srcRanges->min(2) == srcRanges->max(2)) return false;
         cb = new ColorBuckets(srcRanges);

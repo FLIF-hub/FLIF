@@ -429,8 +429,12 @@ int handle_decode(int argc, char **argv, Images &images, flif_options &options) 
         e_printf("Error: expected \".png\", \".pnm\" or \".pam\" file name extension for output file\n");
         return 1;
     }
-    if (!decode_flif(argv, images, options)) {
+    try {
+      if (!decode_flif(argv, images, options)) {
         e_printf("Error: could not decode FLIF file\n"); return 3;
+      }
+    } catch (std::bad_alloc& ba) {
+        e_printf("Error: memory allocation problem (unexpected)\n"); return 3;
     }
     if (!strcmp(argv[1],"null:")) return 0;
 //    if (scale>1)

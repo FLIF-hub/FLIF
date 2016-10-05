@@ -815,8 +815,10 @@ int read_chunk(IO& io, MetaData& metadata) {
     metadata.name[0] = io.getc();
 //    printf("chunk: %s\n", metadata.name);
     if (metadata.name[0] < 32) {
-      if (metadata.name[0] > 0) e_printf("This is not a FLIF16 image, but a more recent FLIF file. Please update your FLIF decoder.\n");
-      return 1; // final chunk, stop reading!
+      if (metadata.name[0] > 0) {
+        e_printf("This is not a FLIF16 image, but a more recent FLIF file. Please update your FLIF decoder.\n");
+        return -2; // give up
+      } else return 1; // final chunk, stop reading!
     }
     io.gets(metadata.name+1,4);
     if (strcmp(metadata.name,"iCCP")
@@ -1024,7 +1026,12 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     }
 
     for (int i=0; i<numFrames; i++) {
+      try {
       images.push_back(Image(scale_shift));
+      } catch (std::bad_alloc& ba) {
+        e_printf("Couldn't allocate enough memory for all frames. Aborting.\n");
+        return false;
+      }
       if (!images[i].init(width,height,0,maxmax,numPlanes)) return false;
       images[i].alpha_zero_special = alphazero;
       images[i].metadata = metadata;
@@ -1050,6 +1057,10 @@ bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*call
     int tcount=0;
     int tnb=0, tpnb=-1;
     while (rac.read_bit()) {
+        if (io.isEOF()) {
+            e_printf("Unexpected file end while reading header. Aborting.\n");
+            return false;
+        }
         std::string desc = read_name(rac,tnb);
         if (tnb <= tpnb) {
             e_printf("\nTransformation '%s' is invalid given the previous transformations.\nCorrupt file? Or try upgrading your FLIF decoder?\n", desc.c_str());
