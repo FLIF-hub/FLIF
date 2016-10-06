@@ -69,3 +69,94 @@
 // bounds for node counters
 #define CONTEXT_TREE_MIN_COUNT 1
 #define CONTEXT_TREE_MAX_COUNT 512
+
+
+
+// DEFAULT ENCODE/DECODE OPTIONS ARE DEFINED BELOW
+
+
+#include <vector>
+#include <stdint.h>
+
+enum class Optional : uint8_t {
+  undefined = 0
+};
+
+enum class flifEncoding : uint8_t {
+  nonInterlaced = 1,
+  interlaced = 2
+};
+
+#ifdef HAS_ENCODER
+union flifEncodingOptional {
+  flifEncoding encoding;
+  Optional o;
+  flifEncodingOptional() : o(Optional::undefined) {}
+};
+#endif
+
+struct flif_options {
+#ifdef HAS_ENCODER
+    flifEncodingOptional method;
+    int learn_repeats;
+    int acb;
+    std::vector<int> frame_delay;
+    int palette_size;
+    int lookback;
+    int divisor;
+    int min_size;
+    int split_threshold;
+    int ycocg;
+    int subtract_green;
+    int plc;
+    int frs;
+    int alpha_zero_special;
+    int alpha;
+    int cutoff;
+    int loss;
+    int adaptive;
+    int predictor[5];
+    int invisible_predictor;
+#endif
+    int crc_check;
+    int metadata;
+    int color_profile;
+    int quality;
+    int scale;
+    int resize_width;
+    int resize_height;
+    int fit;
+};
+
+const struct flif_options FLIF_DEFAULT_OPTIONS = {
+#ifdef HAS_ENCODER
+    flifEncodingOptional(), // method
+    -1, // learn_repeats
+    -1, // acb, try auto color buckets
+    {100}, // frame_delay
+    -1, // palette_size
+    1, // lookback
+    CONTEXT_TREE_COUNT_DIV, // divisor
+    CONTEXT_TREE_MIN_SUBTREE_SIZE, // min_size
+    CONTEXT_TREE_SPLIT_THRESHOLD, // split_threshold
+    1, // ycocg
+    1, // subtract_green
+    1, // plc
+    1, // frs
+    1, // alpha_zero_special
+    19, // alpha
+    2, // cutoff
+    0, // loss
+    0, // adaptive
+    {-2,-2,-2,-2,-2}, // predictor, heuristically pick a fixed predictor on all planes
+    2, // invisible_predictor
+#endif
+    -1, // crc_check
+    1, // metadata
+    1, // color_profile
+    100, // quality, 100 = everything, positive value: partial decode, negative value: only rough data
+    1, // scale
+    0, // resize_width
+    0, // resize_height
+    0, // fit
+};

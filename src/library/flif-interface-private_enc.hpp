@@ -29,25 +29,10 @@ struct FLIF_ENCODER
     int32_t encode_file(const char* filename);
     int32_t encode_memory(void** buffer, size_t* buffer_size_bytes);
 
-    uint32_t interlaced;
-    uint32_t learn_repeats;
-    uint32_t acb;
-    uint32_t frame_delay;
-    int32_t palette_size;
-    int32_t lookback;
-    int32_t divisor;
-    int32_t min_size;
-    int32_t split_threshold;
-    int32_t alpha_zero_special;
-    uint32_t crc_check;
-    uint32_t channel_compact;
-    uint32_t ycocg;
-    uint32_t frame_shape;
-    int32_t loss;
-    int32_t chance_cutoff;
-    int32_t chance_alpha;
+    flif_options options;
 
 private:
     void transformations(std::vector<std::string> &desc);
+    void set_options(flif_options &options);
     std::vector<Image> images;
 };

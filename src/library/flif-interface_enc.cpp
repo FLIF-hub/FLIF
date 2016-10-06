@@ -20,52 +20,37 @@
 #include "flif-interface_common.cpp"
 
 FLIF_ENCODER::FLIF_ENCODER()
-: interlaced(1)
-, learn_repeats(TREE_LEARN_REPEATS)
-, acb(1)
-, frame_delay(100)
-, palette_size(DEFAULT_MAX_PALETTE_SIZE)
-, lookback(1)
-, divisor(CONTEXT_TREE_COUNT_DIV)
-, min_size(CONTEXT_TREE_MIN_SUBTREE_SIZE)
-, split_threshold(CONTEXT_TREE_SPLIT_THRESHOLD)
-, alpha_zero_special(1)
-, crc_check(1)
-, channel_compact(1)
-, ycocg(1)
-, frame_shape(1)
-, loss(0)
-, chance_cutoff(2)
-, chance_alpha(19)
+: options(FLIF_DEFAULT_OPTIONS)
 {
 }
 
 void FLIF_ENCODER::add_image(FLIF_IMAGE* image) {
-    if (!alpha_zero_special) image->image.alpha_zero_special = false;
+    if (!options.alpha_zero_special) image->image.alpha_zero_special = false;
     images.push_back(image->image.clone()); // make a clone so the library user can safely destroy an image after adding it
 }
 
 void FLIF_ENCODER::transformations(std::vector<std::string> &desc) {
     uint64_t nb_pixels = (uint64_t)images[0].rows() * images[0].cols();
     if (nb_pixels > 2) {         // no point in doing anything for 1- or 2-pixel images
-     if (channel_compact && !loss) desc.push_back("Channel_Compact");  // compactify channels
-     if (ycocg) desc.push_back("YCoCg");  // convert RGB(A) to YCoCg(A)
-     desc.push_back("PermutePlanes");  // permute RGB to GRB
+     if (options.plc && !options.loss) desc.push_back("Channel_Compact");  // compactify channels
+     if (options.ycocg) desc.push_back("YCoCg");  // convert RGB(A) to YCoCg(A)
+     else desc.push_back("PermutePlanes");  // permute RGB to GRB
      desc.push_back("Bounds");  // get the bounds of the color spaces
-     if (!loss) {
+     if (!options.loss) {
        desc.push_back("Palette_Alpha");  // try palette (including alpha)
        desc.push_back("Palette");  // try palette (without alpha)
-       if (acb) {
+       if (options.acb) {
          desc.push_back("Color_Buckets");  // try auto color buckets if forced
        }
       }
     }
     desc.push_back("Duplicate_Frame");  // find duplicate frames
-    if (!loss) { // only if lossless
-     if (frame_shape) desc.push_back("Frame_Shape");  // get the shapes of the frames
-     if (lookback) desc.push_back("Frame_Lookback");  // make a "deep" alpha channel (negative values are transparent to some previous frame)
+    if (!options.loss) { // only if lossless
+     if (options.frs) desc.push_back("Frame_Shape");  // get the shapes of the frames
+     if (options.lookback) desc.push_back("Frame_Lookback");  // make a "deep" alpha channel (negative values are transparent to some previous frame)
     }
 }
+
 
 /*!
 * \return non-zero if the function succeeded
@@ -79,10 +64,7 @@ int32_t FLIF_ENCODER::encode_file(const char* filename) {
     std::vector<std::string> desc;
     transformations(desc);
 
-    if(!flif_encode(fio, images, desc,
-        interlaced != 0 ? flifEncoding::interlaced : flifEncoding::nonInterlaced,
-        learn_repeats, acb, palette_size, lookback,
-        divisor, min_size, split_threshold, chance_cutoff, chance_alpha, crc_check, loss))
+    if(!flif_encode(fio, images, desc, options))
         return 0;
 
     return 1;
@@ -97,10 +79,7 @@ int32_t FLIF_ENCODER::encode_memory(void** buffer, size_t* buffer_size_bytes) {
     std::vector<std::string> desc;
     transformations(desc);
 
-    if(!flif_encode(io, images, desc,
-        interlaced != 0 ? flifEncoding::interlaced : flifEncoding::nonInterlaced,
-        learn_repeats, acb, palette_size, lookback,
-        divisor, min_size, split_threshold, chance_cutoff, chance_alpha, crc_check, loss))
+    if(!flif_encode(io, images, desc, options))
         return 0;
 
     *buffer = io.release(buffer_size_bytes);
@@ -140,92 +119,62 @@ FLIF_DLLEXPORT void FLIF_API flif_destroy_encoder(FLIF_ENCODER* encoder) {
 }
 
 FLIF_DLLEXPORT void FLIF_API flif_encoder_set_interlaced(FLIF_ENCODER* encoder, uint32_t interlaced) {
-    try
-    {
-        encoder->interlaced = interlaced;
-    }
-    catch(...) {}
+    if (interlaced) encoder->options.method.encoding = flifEncoding::interlaced;
+    else encoder->options.method.encoding = flifEncoding::nonInterlaced;
 }
 
 FLIF_DLLEXPORT void FLIF_API flif_encoder_set_learn_repeat(FLIF_ENCODER* encoder, uint32_t learn_repeats) {
-    try
-    {
-        encoder->learn_repeats = learn_repeats;
-    }
-    catch(...) {}
+    if (learn_repeats >= 0 && learn_repeats < 100) encoder->options.learn_repeats = learn_repeats;
 }
 
 FLIF_DLLEXPORT void FLIF_API flif_encoder_set_auto_color_buckets(FLIF_ENCODER* encoder, uint32_t acb) {
-    try
-    {
-        encoder->acb = acb;
-    }
-    catch(...) {}
+    encoder->options.acb = acb;
 }
 
 FLIF_DLLEXPORT void FLIF_API flif_encoder_set_palette_size(FLIF_ENCODER* encoder, int32_t palette_size) {
-    try
-    {
-        encoder->palette_size = palette_size;
-    }
-    catch(...) {}
+    encoder->options.palette_size = palette_size;
 }
 
 FLIF_DLLEXPORT void FLIF_API flif_encoder_set_lookback(FLIF_ENCODER* encoder, int32_t lookback) {
-    try { encoder->lookback = lookback; }
-    catch(...) { }
+    encoder->options.lookback = lookback;
 }
 FLIF_DLLEXPORT void FLIF_API flif_encoder_set_divisor(FLIF_ENCODER* encoder, int32_t divisor) {
-    try { encoder->divisor = divisor; }
-    catch(...) { }
+    encoder->options.divisor = divisor;
 }
 FLIF_DLLEXPORT void FLIF_API flif_encoder_set_min_size(FLIF_ENCODER* encoder, int32_t min_size) {
-    try { encoder->min_size = min_size; }
-    catch(...) { }
+    encoder->options.min_size = min_size;
 }
 FLIF_DLLEXPORT void FLIF_API flif_encoder_set_split_threshold(FLIF_ENCODER* encoder, int32_t split_threshold) {
-    try { encoder->split_threshold = split_threshold; }
-    catch(...) { }
+    encoder->options.split_threshold = split_threshold;
 }
 FLIF_DLLEXPORT void FLIF_API flif_encoder_set_alpha_zero_lossless(FLIF_ENCODER* encoder) {
-    try { encoder->alpha_zero_special = 0; }
-    catch(...) { }
+    encoder->options.alpha_zero_special = 0;
 }
 
 FLIF_DLLEXPORT void FLIF_API flif_encoder_set_crc_check(FLIF_ENCODER* encoder, uint32_t crc_check) {
-    try { encoder->crc_check = crc_check; }
-    catch(...) { }
+    encoder->options.crc_check = crc_check;
 }
 FLIF_DLLEXPORT void FLIF_API flif_encoder_set_lossy(FLIF_ENCODER* encoder, int32_t loss) {
-    try { encoder->loss = loss; }
-    catch(...) { }
+    encoder->options.loss = loss;
 }
 FLIF_DLLEXPORT void FLIF_API flif_encoder_set_channel_compact(FLIF_ENCODER* encoder, int32_t plc) {
-    try { encoder->channel_compact = plc; }
-    catch(...) { }
+    encoder->options.plc = plc;
 }
 FLIF_DLLEXPORT void FLIF_API flif_encoder_set_ycocg(FLIF_ENCODER* encoder, int32_t ycocg) {
-    try { encoder->ycocg = ycocg; }
-    catch(...) { }
+    encoder->options.ycocg = ycocg;
 }
 FLIF_DLLEXPORT void FLIF_API flif_encoder_set_frame_shape(FLIF_ENCODER* encoder, int32_t frs) {
-    try { encoder->frame_shape = frs; }
-    catch(...) { }
+    encoder->options.frs = frs;
 }
 FLIF_DLLEXPORT void FLIF_API flif_encoder_set_chance_cutoff(FLIF_ENCODER* encoder, int32_t cutoff) {
-    try { encoder->chance_cutoff = cutoff; }
-    catch(...) { }
+    encoder->options.cutoff = cutoff;
 }
 FLIF_DLLEXPORT void FLIF_API flif_encoder_set_chance_alpha(FLIF_ENCODER* encoder, int32_t alpha) {
-    try { encoder->chance_alpha = alpha; }
-    catch(...) { }
+    encoder->options.alpha = alpha;
 }
 
 FLIF_DLLEXPORT void FLIF_API flif_encoder_add_image(FLIF_ENCODER* encoder, FLIF_IMAGE* image) {
-    try
-    {
-        encoder->add_image(image);
-    }
+    try { encoder->add_image(image); }
     catch(...) {}
 }
 

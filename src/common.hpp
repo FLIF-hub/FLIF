@@ -32,14 +32,6 @@ limitations under the License.
 
 #include "io.hpp"
 
-enum class Optional : uint8_t {
-  undefined = 0
-};
-
-enum class flifEncoding : uint8_t {
-  nonInterlaced = 1,
-  interlaced = 2
-};
 
 extern int64_t pixels_todo;
 extern int64_t pixels_done;

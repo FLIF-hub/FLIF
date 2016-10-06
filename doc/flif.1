@@ -229,6 +229,10 @@ This option disables the YCoCg color transform. This color space transform is ai
 and usually leads to better compression. It also helps to improve the quality of progressive decoding, by encoding the
 most important Y channel earlier than the chroma channels.
 .TP
+\fB\-W\fR, \fB\-\-no\-subtract\-green\fR
+When specifying \fB\-Y\fR, the fallback color transformation is RGB to  G(R-G)(B-G), i.e. the Green value gets subtracted from
+the Red and Blue channels. With this option, the green subtraction is not done.
+.TP
 \fB\-G\fR, \fB\-\-guess\fR=\fIMETHOD\fR[\fIMETHOD\fR]...
 Interlaced FLIF can use different pixel prediction (guess) methods. By default, the encoder uses a simple heuristic
 to automatically pick a good method. This option lets you manually override that choice.
@@ -241,7 +245,7 @@ to automatically pick a good method. This option lets you manually override that
 .br
 \fB\-G\fR\fI?\fR picks one of the above predictors, depending on some heuristic. This is the default setting.
 .br
-\fB\-G\fR\fI3\fR uses different predictors (any of the above) for each plane/zoomlevel, depending on some heuristic. This is usually a bad idea.
+\fB\-G\fR\fIX\fR uses different predictors (any of the above) for each plane/zoomlevel, depending on some heuristic. This is usually a bad idea.
 .br
 For photographs, \fB\-G\fR\fI0\fR tends to be better, while for line art, \fB\-G\fR\fI1\fR or \fB\-G\fR\fI2\fR are usually best.
 You can specify the pixel predictor separately for each plane (Y,Co,Cg,A). Unspecified predictors are set to the Y plane predictor.

@@ -80,12 +80,14 @@ public:
     }
 
 #ifdef HAS_ENCODER
+    void configure(const int setting) override {
+        subtract = setting;
+    }
     bool process(const ColorRanges *srcRanges, const Images &images) override {
         const int perm[5] = {1,0,2,3,4}; // just always transform RGB to GRB, we can do something more complicated later
         for (int p=0; p<srcRanges->numPlanes(); p++) {
             permutation[p] = perm[p];
         }
-        subtract = true; // subtract green
         return true;
     }
     void data(Images& images) const override {

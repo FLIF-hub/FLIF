@@ -94,7 +94,8 @@ void show_help(int mode) {
     v_printf(2,"   -A, --force-color-buckets   force Color_Buckets transform\n");
     v_printf(2,"   -B, --no-color-buckets      disable Color_Buckets transform\n");
     v_printf(2,"   -C, --no-channel-compact    disable Channel_Compact transform\n");
-    v_printf(2,"   -Y, --no-ycocg              disable YCoCg transform (use plain RGB instead)\n");
+    v_printf(2,"   -Y, --no-ycocg              disable YCoCg transform; use G(R-G)(B-G)\n");
+    v_printf(2,"   -W, --no-subtract-green     disable YCoCg and SubtractGreen transform; use GRB\n");
     v_printf(2,"   -S, --no-frame-shape        disable Frame_Shape transform\n");
     v_printf(2,"   -L, --max-frame-lookback=N  max nb of frames for Frame_Lookback; default: -L1\n");
     v_printf(2,"   -R, --maniac-repeats=N      MANIAC learning iterations; default: -R%i\n",TREE_LEARN_REPEATS);
@@ -119,77 +120,6 @@ void show_help(int mode) {
     }
 }
 
-#ifdef HAS_ENCODER
-union flifEncodingOptional {
-  flifEncoding encoding;
-  Optional o;
-  flifEncodingOptional() : o(Optional::undefined) {}
-};
-#endif
-
-struct flif_options {
-#ifdef HAS_ENCODER
-    flifEncodingOptional method;
-    int learn_repeats;
-    int acb;
-    std::vector<int> frame_delay;
-    int palette_size;
-    int lookback;
-    int divisor;
-    int min_size;
-    int split_threshold;
-    int yiq;
-    int plc;
-    int frs;
-    bool alpha_zero_special;
-    int alpha;
-    int cutoff;
-    int loss;
-    bool adaptive;
-    int predictor[5];
-    int invisible_predictor;
-#endif
-    int crc_check;
-    bool metadata;
-    bool color_profile;
-    int quality;
-    int scale;
-    int resize_width;
-    int resize_height;
-    bool fit;
-};
-
-const struct flif_options FLIF_DEFAULT_OPTIONS = {
-#ifdef HAS_ENCODER
-    flifEncodingOptional(), // method
-    -1, // learn_repeats
-    -1, // acb, try auto color buckets
-    {100}, // frame_delay
-    -1, // palette_size
-    1, // lookback
-    CONTEXT_TREE_COUNT_DIV, // divisor
-    CONTEXT_TREE_MIN_SUBTREE_SIZE, // min_size
-    CONTEXT_TREE_SPLIT_THRESHOLD, // split_threshold
-    1, // yiq
-    1, // plc
-    1, // frs
-    true, // alpha_zero_special
-    19, // alpha
-    2, // cutoff
-    0, // loss
-    false, // adaptive
-    {-2,-2,-2,-2,-2}, // predictor, heuristically pick a fixed predictor on all planes
-    2, // invisible_predictor
-#endif
-    -1, // crc_check
-    true, // metadata
-    true, // color_profile
-    100, // quality, 100 = everything, positive value: partial decode, negative value: only rough data
-    1, // scale
-    0, // resize_width
-    0, // resize_height
-    false, // fit
-};
 
 bool file_exists(const char * filename){
         FILE * file = fopen(filename, "rb");
@@ -203,7 +133,7 @@ bool file_is_flif(const char * filename){
         char buff[5];
         bool result=true;
         if (!fgets(buff,5,file)) result=false;
-        else if (strcmp(buff,"FLIF") && strcmp(buff,"FLIM") && strcmp(buff,"!<ar")) result=false;  // assuming that it might be a FLIF file if it looks like an ar
+        else if (strcmp(buff,"FLIF") && strcmp(buff,"!<ar")) result=false;  // assuming that it might be a FLIF file if it looks like an ar
         fclose(file);
         return result;
 }
@@ -212,7 +142,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  ____ _(_)____\n");
-    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.0 [22 Sept 2016]\n");
+    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.1 [5 Oct 2016]\n");
     v_printf(3,"  (__ | |_| __)    ");v_printf(3,"Copyright (C) 2016 Jon Sneyers and Pieter Wuille\n");
     v_printf(3,"    (_|___|_)      ");
 #ifdef HAS_ENCODER
@@ -333,7 +263,7 @@ bool encode_flif(int argc, char **argv, Images &images, flif_options &options) {
       if (options.plc && !options.loss) {
         desc.push_back("Channel_Compact");  // compactify channels (not if lossy, because then loss gets magnified!)
       }
-      if (options.yiq) {
+      if (options.ycocg) {
         desc.push_back("YCoCg");  // convert RGB(A) to YCoCg(A)
       }
       desc.push_back("PermutePlanes");  // permute RGB to GRB
@@ -382,9 +312,7 @@ bool encode_flif(int argc, char **argv, Images &images, flif_options &options) {
     if (!file)
         return false;
     FileIO fio(file, argv[0]);
-    return flif_encode(fio, images, desc, options.method.encoding, options.learn_repeats, options.acb, options.palette_size, options.lookback,
-                       options.divisor, options.min_size, options.split_threshold, options.cutoff, options.alpha, options.crc_check,
-                       options.loss, options.predictor, options.invisible_predictor);
+    return flif_encode(fio, images, desc, options);
 }
 
 bool handle_encode(int argc, char **argv, Images &images, flif_options &options) {
@@ -513,7 +441,7 @@ int main(int argc, char **argv)
     };
     int i,c;
 #ifdef HAS_ENCODER
-    while ((c = getopt_long (argc, argv, "hdvcmiVq:s:r:f:etINnF:KP:ABYCL:SR:D:M:T:X:Z:Q:UG:H:E:", optlist, &i)) != -1) {
+    while ((c = getopt_long (argc, argv, "hdvcmiVq:s:r:f:etINnF:KP:ABYWCL:SR:D:M:T:X:Z:Q:UG:H:E:", optlist, &i)) != -1) {
 #else
     while ((c = getopt_long (argc, argv, "hdvcmiVq:s:r:f:", optlist, &i)) != -1) {
 #endif
@@ -522,8 +450,8 @@ int main(int argc, char **argv)
         case 'v': increase_verbosity(); break;
         case 'V': increase_verbosity(3); break;
         case 'c': options.crc_check = 0; break;
-        case 'm': options.metadata = false; break;
-        case 'p': options.color_profile = false; break;
+        case 'm': options.metadata = 0; break;
+        case 'p': options.color_profile = 0; break;
         case 'q': options.quality=atoi(optarg);
                   if (options.quality < 0 || options.quality > 100) {e_printf("Not a sensible number for option -q\n"); return 1; }
                   break;
@@ -538,7 +466,7 @@ int main(int argc, char **argv)
         case 'f': if (sscanf(optarg,"%ix%i", &options.resize_width, &options.resize_height) < 1) {
                     if (sscanf(optarg,"x%i", &options.resize_height) < 1) {e_printf("Not a sensible value for option -f (expected WxH)\n"); return 1; }
                   }
-                  options.fit=true;
+                  options.fit=1;
                   break;
         case 'i': options.scale = -1; break;
 #ifdef HAS_ENCODER
@@ -580,10 +508,11 @@ int main(int argc, char **argv)
                   if (options.split_threshold <= 3 || options.split_threshold > 100000) {e_printf("Not a sensible number for option -T\n"); return 1; }
                   options.split_threshold *= 5461;
                   break;
-        case 'Y': options.yiq=0; break;
+        case 'Y': options.ycocg=0; break;
+        case 'W': options.ycocg=0; options.subtract_green=0; break;
         case 'C': options.plc=0; break;
         case 'S': options.frs=0; break;
-        case 'K': options.alpha_zero_special=false; break;
+        case 'K': options.alpha_zero_special=0; break;
         case 'X': options.cutoff=atoi(optarg);
                   if (options.cutoff < 1 || options.cutoff > 128) {e_printf("Not a sensible number for option -X (try something between 1 and 128)\n"); return 1; }
                   break;
@@ -595,7 +524,7 @@ int main(int argc, char **argv)
                   // can go way below 0 if you want
                   if (options.loss < 0) {e_printf("Not a sensible number for option -Q (try something between 0 and 100)\n"); return 1; }
                   break;
-        case 'U': options.adaptive=true; break;
+        case 'U': options.adaptive=1; break;
         case 'G': {
                   int p=0;
                   while(*optarg != 0) {
@@ -609,12 +538,13 @@ int main(int argc, char **argv)
                             d = 1; break;
                         case '2': case 'N': case 'n': // median of 3 neighbors
                             d = 2; break;
-                        case '3': // auto/mixed, usually a bad idea
+                        case '3':
+                        case 'X': case 'x': // auto/mixed, usually a bad idea
                             d = -1; break;
                         case ' ': case ',': case '+':
                             optarg++; continue;
                         default:
-                        e_printf("Not a sensible value for option -G\nValid values are: 0 (avg), 1 (median avg/gradients), 2 (median neighbors), 3 (auto/mixed), ? (heuristically pick 0-2)\n"); return 1;
+                        e_printf("Not a sensible value for option -G\nValid values are: 0 (avg), 1 (median avg/gradients), 2 (median neighbors), X (auto/mixed), ? (heuristically pick 0-2)\n"); return 1;
                     }
                     if (p>4) {e_printf("Error while parsing option -G: too many planes specified\n"); return 1; }
                     options.predictor[p] = d;
