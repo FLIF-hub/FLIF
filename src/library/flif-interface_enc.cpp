@@ -124,7 +124,7 @@ FLIF_DLLEXPORT void FLIF_API flif_encoder_set_interlaced(FLIF_ENCODER* encoder, 
 }
 
 FLIF_DLLEXPORT void FLIF_API flif_encoder_set_learn_repeat(FLIF_ENCODER* encoder, uint32_t learn_repeats) {
-    if (learn_repeats >= 0 && learn_repeats < 100) encoder->options.learn_repeats = learn_repeats;
+    if (learn_repeats < 100) encoder->options.learn_repeats = learn_repeats;
 }
 
 FLIF_DLLEXPORT void FLIF_API flif_encoder_set_auto_color_buckets(FLIF_ENCODER* encoder, uint32_t acb) {
