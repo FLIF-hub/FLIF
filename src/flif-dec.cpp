@@ -825,8 +825,8 @@ int read_chunk(IO& io, MetaData& metadata) {
      && strcmp(metadata.name,"eXif")
      && strcmp(metadata.name,"eXmp")
     ) {
-        e_printf("Unknown chunk: %s\n",metadata.name);
-        return -1;
+        if (metadata.name[0] > 'Z') v_printf(1,"Warning: Encountered unknown chunk: %s\n",metadata.name);
+        else { e_printf("Error: Encountered unknown critical chunk: %s\n",metadata.name); return -1; }
     }
     metadata.length = read_big_endian_varint(io);
 //    printf("chunk length: %lu\n", metadata.length);
