@@ -288,6 +288,12 @@ int image_load_png(const char *filename, Image &image, metadata_options &options
 #endif
 
 int image_save_png(const char *filename, const Image &image) {
+
+  if (image.cols() > 0x7fffffffL || image.rows() > 0x7fffffffL) {
+    e_printf("Image too large to be saved as PNG.\n");
+    return 4;
+  }
+
 #ifdef FLIF_USE_STB_IMAGE
 
   int nbplanes = image.numPlanes();
@@ -301,6 +307,7 @@ int image_save_png(const char *filename, const Image &image) {
 
   size_t w = image.cols();
   size_t h = image.rows();
+
 
   std::vector<unsigned char> data( w * h * nbplanes * bytes_per_value );
   unsigned char *row = data.data();
@@ -316,6 +323,7 @@ int image_save_png(const char *filename, const Image &image) {
   stbi_write_png( filename, w, h, nbplanes, row, w * nbplanes * bytes_per_value );
   return 0;
 #else
+
   FILE *fp = fopen(filename,"wb");
   if (!fp) {
     return (1);
@@ -334,7 +342,7 @@ int image_save_png(const char *filename, const Image &image) {
   }
 
   png_init_io(png_ptr,fp);
-
+  png_set_user_limits(png_ptr, 0x7fffffffL, 0x7fffffffL);
 //  png_set_filter(png_ptr,0,PNG_FILTER_PAETH);
 //  png_set_compression_level(png_ptr,Z_BEST_COMPRESSION);
 
