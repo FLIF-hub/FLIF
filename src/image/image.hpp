@@ -186,11 +186,11 @@ public:
     virtual void accept_visitor(PlaneVisitor &v) =0;
     virtual uint32_t compute_crc32(uint32_t previous_crc32) =0;
     // access pixel by zoomlevel coordinate
-    uint32_t zoom_rowpixelsize(int zoomlevel) const {
+    static uint32_t zoom_rowpixelsize(int zoomlevel) {
     //    return pixelsizes[zoomlevel+1];
         return 1<<((zoomlevel+1)/2);
     }
-    uint32_t zoom_colpixelsize(int zoomlevel) const {
+    static uint32_t zoom_colpixelsize(int zoomlevel) {
     //    return pixelsizes[zoomlevel];
         return 1<<((zoomlevel)/2);
     }
@@ -570,7 +570,9 @@ public:
     }
 
     // downsampling copy constructor
-    Image(const Image& other, int new_w, int new_h) {
+    Image(const Image& other, int new_w, int new_h) :
+      metadata(other.metadata)
+    {
       width = new_w;
       height = new_h;
       minval = other.minval;
@@ -580,11 +582,10 @@ public:
 #ifdef SUPPORT_HDR
       depth = other.depth;
 #endif
-      metadata = other.metadata;
       palette = other.palette;
       frame_delay = other.frame_delay;
-      col_begin = other.col_begin;
-      col_end = other.col_end;
+//      col_begin = other.col_begin;  // not needed and meaningless after downsampling
+//      col_end = other.col_end;
       seen_before = other.seen_before;
       fully_decoded = other.fully_decoded;
       clear();
