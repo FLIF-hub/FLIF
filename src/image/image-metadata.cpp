@@ -23,6 +23,7 @@ bool image_load_metadata(const char *filename, Image& image, const char *chunkna
     unsigned char *contents = (unsigned char *) malloc(fsize + 1);
     if (!fread(contents, fsize, 1, fp)) {
         e_printf("Could not read file: %s\n", filename);
+        fclose(fp);
         return false;
     }
     fclose(fp);
