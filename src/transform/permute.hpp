@@ -28,7 +28,7 @@ protected:
     const std::vector<int> permutation;
     const ColorRanges *ranges;
 public:
-    ColorRangesPermute(std::vector<int> perm, const ColorRanges *rangesIn)
+    ColorRangesPermute(const std::vector<int> &perm, const ColorRanges *rangesIn)
             : permutation(perm), ranges(rangesIn) { }
     bool isStatic() const override { return false; }
     int numPlanes() const override { return ranges->numPlanes(); }
@@ -43,7 +43,7 @@ protected:
     const std::vector<int> permutation;
     const ColorRanges *ranges;
 public:
-    ColorRangesPermuteSubtract(std::vector<int> perm, const ColorRanges *rangesIn)
+    ColorRangesPermuteSubtract(const std::vector<int> &perm, const ColorRanges *rangesIn)
             : permutation(perm), ranges(rangesIn) { }
     bool isStatic() const override { return false; }
     int numPlanes() const override { return ranges->numPlanes(); }

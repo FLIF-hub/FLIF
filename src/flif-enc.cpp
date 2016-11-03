@@ -725,7 +725,7 @@ void write_chunk(IO& io, MetaData& metadata) {
 
 
 template <typename IO>
-bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, flif_options &options) {
+bool flif_encode(IO& io, Images &images, const std::vector<std::string> &transDesc, flif_options &options) {
 
     flifEncoding encoding = options.method.encoding;
 
@@ -990,7 +990,7 @@ bool flif_encode(IO& io, Images &images, std::vector<std::string> transDesc, fli
 }
 
 
-template bool flif_encode(FileIO& io, Images &images, std::vector<std::string> transDesc, flif_options &options);
-template bool flif_encode(BlobIO& io, Images &images, std::vector<std::string> transDesc, flif_options &options);
+template bool flif_encode(FileIO& io, Images &images, const std::vector<std::string> &transDesc, flif_options &options);
+template bool flif_encode(BlobIO& io, Images &images, const std::vector<std::string> &transDesc, flif_options &options);
 
 #endif

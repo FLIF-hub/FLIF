@@ -249,7 +249,7 @@ public:
         ranges->snap(p,pp,rmin,rmax,v);
         if (v != pp[p]) return false;   // bucket empty because of original range constraints
 
-        const ColorBucket b = findBucket(p,pp);
+        const ColorBucket &b = findBucket(p,pp);
         //if (b.min > b.max) return false;
         if (b.snapColor_slow(pp[p]) != pp[p]) return false;
         return true;
