@@ -814,10 +814,10 @@ public:
     int getscale() const { return scale; }
 
     // access pixel by zoomlevel coordinate
-    uint32_t zoom_rowpixelsize(int zoomlevel) const {
+    static uint32_t zoom_rowpixelsize(int zoomlevel) {
         return 1<<((zoomlevel+1)/2);
     }
-    uint32_t zoom_colpixelsize(int zoomlevel) const {
+    static uint32_t zoom_colpixelsize(int zoomlevel) {
         return 1<<((zoomlevel)/2);
     }
 
@@ -905,7 +905,7 @@ public:
         }
         return false;  // metadata not found
     }
-    void free_metadata(unsigned char * data) const {
+    static void free_metadata(unsigned char * data) {
         if(data) {
 #ifdef LODEPNG_COMPILE_ALLOCATORS
             free(data);

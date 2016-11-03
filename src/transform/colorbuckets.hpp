@@ -388,7 +388,7 @@ protected:
         return true;
     }
 
-    void minmax(const ColorRanges *srcRanges, const int p, const prevPlanes &lower, const prevPlanes &upper, ColorVal &smin, ColorVal &smax) const {
+    static void minmax(const ColorRanges *srcRanges, const int p, const prevPlanes &lower, const prevPlanes &upper, ColorVal &smin, ColorVal &smax) {
         ColorVal rmin, rmax;
         smin=10000;
         smax=-10000;

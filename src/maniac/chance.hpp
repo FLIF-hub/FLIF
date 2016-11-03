@@ -114,7 +114,7 @@ public:
         total += log4k.data[bit ? chance : 4096-chance];
     }
 
-    int scale() const {
+    static int scale() {
         return log4k.scale;
     }
 
