@@ -795,11 +795,10 @@ bool flif_decode_main(RacIn<IO>& rac, IO& io, Images &images, const ColorRanges 
 
 template <typename IO>
 size_t read_big_endian_varint(IO& io) {
-    int number;
     size_t result = 0;
     int bytes_read = 0;
     while (bytes_read++ < 10) {
-      number = io.getc();
+      int number = io.getc();
       if (number < 0) break;
       if (number < 128) return result+number;
       number -= 128;
