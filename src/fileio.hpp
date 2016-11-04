@@ -64,7 +64,7 @@ public:
     void fseek(long offset, int where) {
       ::fseek(file, offset,where);
     }
-    const char* getName() {
+    const char* getName() const {
       return name;
     }
 };
