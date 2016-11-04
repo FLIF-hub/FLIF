@@ -38,24 +38,25 @@ find_package_handle_standard_args(SDL2
                                   REQUIRED_VARS SDL2_INCLUDE_DIR SDL2_LIBRARY SDL2MAIN_LIBRARY)
 
 # /find SDL2
+set(FLIF_SRC_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 set(COMMON_SOURCES
-    image/color_range.cpp
-    image/crc32k.cpp
-    image/image-metadata.cpp
-    image/image-pam.cpp
-    image/image-png.cpp
-    image/image-pnm.cpp
-    image/image-rggb.cpp
-    image/image.cpp
-    maniac/bit.cpp
-    maniac/chance.cpp
-    maniac/symbol.cpp
-    transform/factory.cpp
-    io.cpp
-    common.cpp
-    flif-dec.cpp
-    ../extern/lodepng.cpp
+    ${FLIF_SRC_DIR}/image/color_range.cpp
+    ${FLIF_SRC_DIR}/image/crc32k.cpp
+    ${FLIF_SRC_DIR}/image/image-metadata.cpp
+    ${FLIF_SRC_DIR}/image/image-pam.cpp
+    ${FLIF_SRC_DIR}/image/image-png.cpp
+    ${FLIF_SRC_DIR}/image/image-pnm.cpp
+    ${FLIF_SRC_DIR}/image/image-rggb.cpp
+    ${FLIF_SRC_DIR}/image/image.cpp
+    ${FLIF_SRC_DIR}/maniac/bit.cpp
+    ${FLIF_SRC_DIR}/maniac/chance.cpp
+    ${FLIF_SRC_DIR}/maniac/symbol.cpp
+    ${FLIF_SRC_DIR}/transform/factory.cpp
+    ${FLIF_SRC_DIR}/io.cpp
+    ${FLIF_SRC_DIR}/common.cpp
+    ${FLIF_SRC_DIR}/flif-dec.cpp
+    ${FLIF_SRC_DIR}/../extern/lodepng.cpp
 )
 
 if(WIN32)
@@ -81,23 +82,23 @@ set(DEFINITIONS_FOR_ALL_TARGETS
 
 if(WIN32)
     set(WINDOWS_EXE_SOURCE
-        ../build/MSVC/getopt/getopt.c
+        ${FLIF_SRC_DIR}/../build/MSVC/getopt/getopt.c
     )
 endif()
 
-add_executable(flif_exe ${COMMON_SOURCES} ${WINDOWS_EXE_SOURCE} flif-enc.cpp flif.cpp)
+add_executable(flif_exe ${COMMON_SOURCES} ${WINDOWS_EXE_SOURCE} ${FLIF_SRC_DIR}/flif-enc.cpp ${FLIF_SRC_DIR}/flif.cpp)
 target_link_libraries(flif_exe ${PNG_LIBRARY} ${STATIC_LINKED_LIBS})
 set_target_properties(flif_exe PROPERTIES OUTPUT_NAME flif)
 
 if(WIN32)
-    target_include_directories(flif_exe PRIVATE "../build/MSVC/getopt")
+    target_include_directories(flif_exe PRIVATE ${FLIF_SRC_DIR}/../build/MSVC/getopt)
     target_compile_definitions(flif_exe PRIVATE ${DEFINITIONS_FOR_ALL_TARGETS} STATIC_GETOPT ) # prevents dllexporting symbols for getopt
 endif()
 
 # library
 
-add_library(flif_lib SHARED ${COMMON_SOURCES} flif-enc.cpp library/flif-interface.cpp)
-add_library(flif_lib_dec SHARED ${COMMON_SOURCES} library/flif-interface_dec.cpp)
+add_library(flif_lib SHARED ${COMMON_SOURCES} ${FLIF_SRC_DIR}/flif-enc.cpp ${FLIF_SRC_DIR}/library/flif-interface.cpp)
+add_library(flif_lib_dec SHARED ${COMMON_SOURCES} ${FLIF_SRC_DIR}/library/flif-interface_dec.cpp)
 
 target_link_libraries(flif_lib ${PNG_LIBRARY} ${STATIC_LINKED_LIBS})
 target_link_libraries(flif_lib_dec ${PNG_LIBRARY} ${STATIC_LINKED_LIBS})
@@ -108,25 +109,25 @@ set_target_properties(flif_lib_dec PROPERTIES OUTPUT_NAME flif_dec)
 target_compile_definitions(flif_lib PRIVATE ${DEFINITIONS_FOR_ALL_TARGETS} FLIF_BUILD_DLL )
 target_compile_definitions(flif_lib_dec PRIVATE ${DEFINITIONS_FOR_ALL_TARGETS} FLIF_BUILD_DLL DECODER_ONLY )
 
-target_include_directories(flif_exe PRIVATE "../extern")
-target_include_directories(flif_lib PRIVATE "../extern")
-target_include_directories(flif_lib_dec PRIVATE "../extern")
+target_include_directories(flif_exe PRIVATE ${FLIF_SRC_DIR}/../extern)
+target_include_directories(flif_lib PRIVATE ${FLIF_SRC_DIR}/../extern)
+target_include_directories(flif_lib_dec PRIVATE ${FLIF_SRC_DIR}/../extern)
 
 # viewflif
 
 if(${SDL2_FOUND})
-    add_executable(viewflif viewflif.c)
-    set_source_files_properties(viewflif.c PROPERTIES LANGUAGE CXX)
+    add_executable(viewflif ${FLIF_SRC_DIR}/viewflif.c)
+    set_source_files_properties(${FLIF_SRC_DIR}/viewflif.c PROPERTIES LANGUAGE CXX)
     target_link_libraries(viewflif flif_lib_dec ${SDL2_LIBRARY} ${SDL2MAIN_LIBRARY})
-    target_include_directories(viewflif PRIVATE "library" ${SDL2_INCLUDE_DIR})
+    target_include_directories(viewflif PRIVATE ${FLIF_SRC_DIR}/library ${SDL2_INCLUDE_DIR})
     target_compile_definitions(viewflif PRIVATE FLIF_USE_DLL)
 endif()
 
 # test
 
-add_executable(libtest ../tools/test.c)
+add_executable(libtest ${FLIF_SRC_DIR}/../tools/test.c)
 target_link_libraries(libtest flif_lib)
-target_include_directories(libtest PRIVATE "library")
+target_include_directories(libtest PRIVATE ${FLIF_SRC_DIR}/library)
 target_compile_definitions(libtest PRIVATE FLIF_USE_DLL)
 
 enable_testing()
