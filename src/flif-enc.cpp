@@ -425,7 +425,12 @@ void flif_make_lossy_scanlines(Images &images, const ColorRanges *ranges, int lo
 }
 inline int luma_alpha_compensate(int p, ColorVal Y, ColorVal X, ColorVal A) {
     if (p==4) return 255;
-    return 128+A/2; // divide by 128 at low alpha (so double loss), 255 at high alpha (normal loss)
+
+    // divide by 128 at low alpha (so double loss), 255 at high alpha (normal loss)
+    if (p==0) return 128 + A/2;
+
+    // opposite logic for Y (higher Y => lower loss)
+    return 128 + A/2 - Y/2;
 }
 void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int loss, bool adaptive, Image &map) {
     ColorVal min,max;
