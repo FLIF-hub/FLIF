@@ -8,7 +8,7 @@
 #include "image-metadata.hpp"
 
 #ifdef _MSC_VER
-#define strcasecmp stricmp
+#define strcasecmp _stricmp
 #endif
 
 #ifdef HAS_ENCODER
