@@ -207,7 +207,7 @@ public:
     ColorBucket bucket3;
     ColorBucket empty_bucket;
     const ColorRanges *ranges;
-    ColorBuckets(const ColorRanges *r) : bucket0(), min0(r->min(0)), min1(r->min(1)),
+    explicit ColorBuckets(const ColorRanges *r) : bucket0(), min0(r->min(0)), min1(r->min(1)),
                                          bucket1((r->max(0) - min0)/CB0a +1),
                                          bucket2((r->max(0) - min0)/CB0b +1, std::vector<ColorBucket>((r->max(1) - min1)/CB1 +1)),
                                          bucket3(),

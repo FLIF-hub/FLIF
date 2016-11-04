@@ -96,7 +96,7 @@ private:
         }
     }
 public:
-    RacInput(IO& ioin) : io(ioin), range(Config::BASE_RANGE), low(0) {
+    explicit RacInput(IO& ioin) : io(ioin), range(Config::BASE_RANGE), low(0) {
 #ifdef STATS
         samples = 0;
 #endif
@@ -126,7 +126,7 @@ public:
 
 template <typename IO> class RacInput24 : public RacInput<RacConfig24, IO> {
 public:
-    RacInput24(IO& io) : RacInput<RacConfig24, IO>(io) { }
+    explicit RacInput24(IO& io) : RacInput<RacConfig24, IO>(io) { }
 };
 
 #ifdef HAS_ENCODER

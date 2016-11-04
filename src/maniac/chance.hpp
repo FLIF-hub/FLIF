@@ -140,7 +140,7 @@ public:
     typedef typename BitChance::Table SubTable;
     SubTable subTable[N];
 
-    MultiscaleBitChanceTable(int cut = 8) {
+    explicit MultiscaleBitChanceTable(int cut = 8) {
         for (int i= 0; i<N; i++) {
             subTable[i].init(cut, MULTISCALE_ALPHAS[i]);
         }

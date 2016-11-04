@@ -53,19 +53,19 @@ typedef int32_t ColorVal_intern_32;
 struct FourColorVals {
     __m128i vec;
     FourColorVals() : vec() {}
-    FourColorVals(__m128i &v) : vec(v) {}
-    FourColorVals(int v) : vec(_mm_set1_epi32(v)) {}
+    explicit FourColorVals(__m128i &v) : vec(v) {}
+    explicit FourColorVals(int v) : vec(_mm_set1_epi32(v)) {}
     FourColorVals(int v1, int v2, int v3, int v4): vec(_mm_set_epi32(v1, v2, v3, v4)) {}
-    FourColorVals(const int32_t *p) {
+    explicit FourColorVals(const int32_t *p) {
         assert(((uintptr_t)p & 15) == 0);//assert aligned
         vec = _mm_load_si128((__m128i*)p);
     }    
-    FourColorVals(const uint16_t *p) {
+    explicit FourColorVals(const uint16_t *p) {
         assert(((uintptr_t)p & 7) == 0);//assert aligned
         vec = _mm_unpacklo_epi16(_mm_loadl_epi64((__m128i*)p),_mm_setzero_si128());
     }
-    FourColorVals(const uint8_t *p) : vec() {}
-    FourColorVals(const int16_t *p) : vec() {}
+    explicit FourColorVals(const uint8_t *p) : vec() {}
+    explicit FourColorVals(const int16_t *p) : vec() {}
     void store(int32_t *p) const{
         assert(((uintptr_t)p & 15) == 0);//assert aligned
         _mm_store_si128((__m128i*)p,vec);
@@ -98,19 +98,19 @@ inline FourColorVals VCALL operator>(FourColorVals a, FourColorVals b) { return 
 struct EightColorVals {
     __m128i vec;
     EightColorVals() : vec() {}
-    EightColorVals(__m128i &v) : vec(v) {}
-    EightColorVals(short v) : vec(_mm_set1_epi16(v)) {}
+    explicit EightColorVals(__m128i &v) : vec(v) {}
+    explicit EightColorVals(short v) : vec(_mm_set1_epi16(v)) {}
     EightColorVals(short v8, short v7, short v6, short v5, short v4, short v3, short v2, short v1): vec(_mm_set_epi16(v1, v2, v3, v4, v5, v6, v7, v8)) {}
-    EightColorVals(const int16_t *p) {
+    explicit EightColorVals(const int16_t *p) {
         assert(((uintptr_t)p & 15) == 0);//assert aligned
         vec = _mm_load_si128((__m128i*)p);
     }
-    EightColorVals(const uint8_t *p) {
+    explicit EightColorVals(const uint8_t *p) {
         assert(((uintptr_t)p & 7) == 0);//assert aligned
         vec = _mm_unpacklo_epi8(_mm_loadl_epi64((__m128i*)p),_mm_setzero_si128());
     }
-    EightColorVals(const uint16_t *p) : vec() {}
-    EightColorVals(const int32_t *p) : vec() {}
+    explicit EightColorVals(const uint16_t *p) : vec() {}
+    explicit EightColorVals(const int32_t *p) : vec() {}
     void store(int16_t *p) const{
         assert(((uintptr_t)p & 15) == 0);//assert aligned
         _mm_store_si128((__m128i*)p,vec);
@@ -357,7 +357,7 @@ public:
 class ConstantPlane final : public GeneralPlane {
     ColorVal color;
 public:
-    ConstantPlane(ColorVal c) : color(c) {}
+    explicit ConstantPlane(ColorVal c) : color(c) {}
     void set(const uint32_t r, const uint32_t c, const ColorVal x) override {
         assert(x == color);
     }
@@ -516,7 +516,7 @@ public:
         init(width, height, min, max, planes);
     }
 
-    Image(int s=0) : scale(s) {
+    explicit Image(int s=0) : scale(s) {
       width = height = 0;
       minval = maxval = 0;
       num = 0;

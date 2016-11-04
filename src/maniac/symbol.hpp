@@ -29,7 +29,7 @@ private:
     RAC &rac;
 
 public:
-    UniformSymbolCoder(RAC &racIn) : rac(racIn) { }
+    explicit UniformSymbolCoder(RAC &racIn) : rac(racIn) { }
 
 #ifdef HAS_ENCODER
     void write_int(int min, int max, int val);
