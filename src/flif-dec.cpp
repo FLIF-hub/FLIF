@@ -464,7 +464,7 @@ void flif_decode_plane_zoomlevel_vertical(plane_t &plane, Coder &coder, Images &
 template<typename Coder, typename alpha_t, typename ranges_t>
 struct horizontal_plane_decoder: public PlaneVisitor {
     Coder &coder; Images &images; const ranges_t *ranges; Properties &properties; const int z; const bool alphazero, FRA;
-    uint32_t r; int fr; const alpha_t *alpha; const alpha_t *planeY; const int predictor; const int invisible_predictor; const int p;
+    uint32_t r = 0; int fr = 0; const alpha_t *alpha = nullptr; const alpha_t *planeY = nullptr; const int predictor; const int invisible_predictor; const int p;
 
     horizontal_plane_decoder(Coder &c, Images &i, const ranges_t *ra, Properties &prop, const int zl, const bool az, const bool fra, const int pred, const int invisible_pred, const int plane) :
         coder(c), images(i), ranges(ra), properties(prop), z(zl), alphazero(az), FRA(fra), predictor(pred), invisible_predictor(invisible_pred), p(plane) {}
@@ -502,7 +502,7 @@ struct horizontal_plane_decoder: public PlaneVisitor {
 template<typename Coder, typename alpha_t, typename ranges_t>
 struct vertical_plane_decoder: public PlaneVisitor {
     Coder &coder; Images &images; const ranges_t *ranges; Properties &properties; const int z; const bool alphazero, FRA;
-    uint32_t r; int fr; const alpha_t *alpha; const alpha_t *planeY; const int predictor; const int invisible_predictor; const int p;
+    uint32_t r = 0; int fr = 0; const alpha_t *alpha = nullptr; const alpha_t *planeY = nullptr; const int predictor; const int invisible_predictor; const int p;
 
     vertical_plane_decoder(Coder &c, Images &i, const ranges_t *ra, Properties &prop, const int zl, const bool az, const bool fra, const int pred, const int invisible_pred, const int plane) :
         coder(c), images(i), ranges(ra), properties(prop), z(zl), alphazero(az), FRA(fra), predictor(pred), invisible_predictor(invisible_pred), p(plane) {}

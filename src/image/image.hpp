@@ -224,7 +224,7 @@ template <typename pixel_t> class Plane final : public GeneralPlane {
     pixel_t* data;
     const uint32_t width, height;
     int s;
-    mutable uint32_t s_r, s_c;
+    mutable uint32_t s_r = 0, s_c = 0;
 
 public:
     Plane(uint32_t w, uint32_t h, ColorVal color=0, int scale = 0) : data_vec(PAD(SCALED(w)*SCALED(h)), color), width(SCALED(w)), height(SCALED(h)), s(scale) {
@@ -505,7 +505,7 @@ class Image {
 public:
     bool palette;
     int frame_delay;
-    bool alpha_zero_special;
+    bool alpha_zero_special = true;
     std::vector<uint32_t> col_begin;
     std::vector<uint32_t> col_end;
     int seen_before;
@@ -526,7 +526,6 @@ public:
       depth = 0;
 #endif
       palette = false;
-      alpha_zero_special = true;
       seen_before = 0;
     }
 
