@@ -429,9 +429,10 @@ inline int luma_alpha_compensate(int p, ColorVal Y, ColorVal X, ColorVal A) {
     // divide by 128 at low alpha (so double loss), 255 at high alpha (normal loss)
     if (p==0) return 128 + A/2;
 
-    // opposite logic for Y (higher Y => lower loss)
-    return 128 + A/2 - Y/2;
+    // for chroma, take Y into account as well (higher Y => lower loss)
+    return A/2 + Y/2;
 }
+
 void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int loss, bool adaptive, Image &map) {
     ColorVal min,max;
     int nump = images[0].numPlanes();
