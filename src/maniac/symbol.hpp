@@ -235,7 +235,7 @@ private:
     RAC &rac;
 
 public:
-    SimpleBitCoder(RAC &racIn, int cut = 2, int alpha = 0xFFFFFFFF / 19) : rac(racIn), table(cut,alpha) {}
+    SimpleBitCoder(RAC &racIn, int cut = 2, int alpha = 0xFFFFFFFF / 19) : table(cut, alpha), rac(racIn) {}
 
     void set(uint16_t chance) {
         ctx.set(chance);
