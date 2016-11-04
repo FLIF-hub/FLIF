@@ -207,7 +207,7 @@ public:
     ColorBucket bucket3;
     ColorBucket empty_bucket;
     const ColorRanges *ranges;
-    ColorBuckets(const ColorRanges *r) : bucket0(), min0(r->min(0)), min1(r->min(1)),
+    explicit ColorBuckets(const ColorRanges *r) : bucket0(), min0(r->min(0)), min1(r->min(1)),
                                          bucket1((r->max(0) - min0)/CB0a +1),
                                          bucket2((r->max(0) - min0)/CB0b +1, std::vector<ColorBucket>((r->max(1) - min1)/CB1 +1)),
                                          bucket3(),
@@ -249,7 +249,7 @@ public:
         ranges->snap(p,pp,rmin,rmax,v);
         if (v != pp[p]) return false;   // bucket empty because of original range constraints
 
-        const ColorBucket b = findBucket(p,pp);
+        const ColorBucket &b = findBucket(p,pp);
         //if (b.min > b.max) return false;
         if (b.snapColor_slow(pp[p]) != pp[p]) return false;
         return true;
@@ -388,7 +388,7 @@ protected:
         return true;
     }
 
-    void minmax(const ColorRanges *srcRanges, const int p, const prevPlanes &lower, const prevPlanes &upper, ColorVal &smin, ColorVal &smax) const {
+    static void minmax(const ColorRanges *srcRanges, const int p, const prevPlanes &lower, const prevPlanes &upper, ColorVal &smin, ColorVal &smax) {
         ColorVal rmin, rmax;
         smin=10000;
         smax=-10000;

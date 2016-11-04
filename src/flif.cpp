@@ -47,7 +47,7 @@
 #include "flif-dec.hpp"
 
 #ifdef _MSC_VER
-#define strcasecmp stricmp
+#define strcasecmp _stricmp
 #endif
 
 

@@ -29,7 +29,7 @@ private:
     RAC &rac;
 
 public:
-    UniformSymbolCoder(RAC &racIn) : rac(racIn) { }
+    explicit UniformSymbolCoder(RAC &racIn) : rac(racIn) { }
 
 #ifdef HAS_ENCODER
     void write_int(int min, int max, int val);
@@ -235,7 +235,7 @@ private:
     RAC &rac;
 
 public:
-    SimpleBitCoder(RAC &racIn, int cut = 2, int alpha = 0xFFFFFFFF / 19) : rac(racIn), table(cut,alpha) {}
+    SimpleBitCoder(RAC &racIn, int cut = 2, int alpha = 0xFFFFFFFF / 19) : table(cut, alpha), rac(racIn) {}
 
     void set(uint16_t chance) {
         ctx.set(chance);

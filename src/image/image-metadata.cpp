@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <vector>
 
 #include "image.hpp"
 
@@ -20,15 +21,14 @@ bool image_load_metadata(const char *filename, Image& image, const char *chunkna
     long fsize = ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
-    unsigned char *contents = (unsigned char *) malloc(fsize + 1);
-    if (!fread(contents, fsize, 1, fp)) {
+    std::vector<unsigned char> contents(fsize + 1);
+    if (!fread(contents.data(), fsize, 1, fp)) {
         e_printf("Could not read file: %s\n", filename);
         fclose(fp);
         return false;
     }
     fclose(fp);
-    image.set_metadata(chunkname, contents, fsize);
-    free(contents);
+    image.set_metadata(chunkname, contents.data(), fsize);
     return true;
 }
 #endif

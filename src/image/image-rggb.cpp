@@ -15,7 +15,7 @@
 bool image_load_rggb(const char *filename, Image& image, metadata_options &md)
 {
 	FILE *fp = fopen(filename,"rb");
-	char buf[PPMREADBUFLEN], *t;
+	char buf[PPMREADBUFLEN];
 	int r;
 	if (!fp) {
 		return false;
@@ -117,7 +117,7 @@ bool image_load_rggb(const char *filename, Image& image, metadata_options &md)
 	// TODO: Save the comments as metadatas
 	do {
 		/* Px formats can have # comments after first line */
-		t = fgets(buf, PPMREADBUFLEN, fp);
+		char *t = fgets(buf, PPMREADBUFLEN, fp);
 		if ( t == NULL ) return 1;
 		if ( (strcmp(t, "\n") != 0) && (strncmp(buf, "#", 1) == 0)) {
 			if (strlen(comments) != 1) strcat(comments, buf);

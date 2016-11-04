@@ -53,19 +53,19 @@ typedef int32_t ColorVal_intern_32;
 struct FourColorVals {
     __m128i vec;
     FourColorVals() : vec() {}
-    FourColorVals(__m128i &v) : vec(v) {}
-    FourColorVals(int v) : vec(_mm_set1_epi32(v)) {}
+    explicit FourColorVals(__m128i &v) : vec(v) {}
+    explicit FourColorVals(int v) : vec(_mm_set1_epi32(v)) {}
     FourColorVals(int v1, int v2, int v3, int v4): vec(_mm_set_epi32(v1, v2, v3, v4)) {}
-    FourColorVals(const int32_t *p) {
+    explicit FourColorVals(const int32_t *p) {
         assert(((uintptr_t)p & 15) == 0);//assert aligned
         vec = _mm_load_si128((__m128i*)p);
     }    
-    FourColorVals(const uint16_t *p) {
+    explicit FourColorVals(const uint16_t *p) {
         assert(((uintptr_t)p & 7) == 0);//assert aligned
         vec = _mm_unpacklo_epi16(_mm_loadl_epi64((__m128i*)p),_mm_setzero_si128());
     }
-    FourColorVals(const uint8_t *p) : vec() {}
-    FourColorVals(const int16_t *p) : vec() {}
+    explicit FourColorVals(const uint8_t *p) : vec() {}
+    explicit FourColorVals(const int16_t *p) : vec() {}
     void store(int32_t *p) const{
         assert(((uintptr_t)p & 15) == 0);//assert aligned
         _mm_store_si128((__m128i*)p,vec);
@@ -91,26 +91,26 @@ struct FourColorVals {
     FourColorVals VCALL operator-(FourColorVals b) { return FourColorVals(_mm_sub_epi32(vec,b.vec)); }    
     FourColorVals VCALL operator-() { return FourColorVals(_mm_sub_epi32(_mm_setzero_si128(),vec)); }
     FourColorVals VCALL operator>>(int n) { return FourColorVals(_mm_srai_epi32(vec,n)); }
-    operator __m128i() { return vec; }
+    operator __m128i() const { return vec; }
 };
 inline FourColorVals VCALL operator-(int a, FourColorVals b) { return FourColorVals(_mm_sub_epi32(_mm_set1_epi32(a),b.vec)); }
 inline FourColorVals VCALL operator>(FourColorVals a, FourColorVals b) { return FourColorVals(_mm_cmpgt_epi32(a.vec,b.vec)); }
 struct EightColorVals {
     __m128i vec;
     EightColorVals() : vec() {}
-    EightColorVals(__m128i &v) : vec(v) {}
-    EightColorVals(short v) : vec(_mm_set1_epi16(v)) {}
+    explicit EightColorVals(__m128i &v) : vec(v) {}
+    explicit EightColorVals(short v) : vec(_mm_set1_epi16(v)) {}
     EightColorVals(short v8, short v7, short v6, short v5, short v4, short v3, short v2, short v1): vec(_mm_set_epi16(v1, v2, v3, v4, v5, v6, v7, v8)) {}
-    EightColorVals(const int16_t *p) {
+    explicit EightColorVals(const int16_t *p) {
         assert(((uintptr_t)p & 15) == 0);//assert aligned
         vec = _mm_load_si128((__m128i*)p);
     }
-    EightColorVals(const uint8_t *p) {
+    explicit EightColorVals(const uint8_t *p) {
         assert(((uintptr_t)p & 7) == 0);//assert aligned
         vec = _mm_unpacklo_epi8(_mm_loadl_epi64((__m128i*)p),_mm_setzero_si128());
     }
-    EightColorVals(const uint16_t *p) : vec() {}
-    EightColorVals(const int32_t *p) : vec() {}
+    explicit EightColorVals(const uint16_t *p) : vec() {}
+    explicit EightColorVals(const int32_t *p) : vec() {}
     void store(int16_t *p) const{
         assert(((uintptr_t)p & 15) == 0);//assert aligned
         _mm_store_si128((__m128i*)p,vec);
@@ -127,7 +127,7 @@ struct EightColorVals {
     EightColorVals VCALL operator-(EightColorVals b) { return EightColorVals(_mm_sub_epi16(vec,b.vec)); }
     EightColorVals VCALL operator-() { return EightColorVals(_mm_sub_epi16(_mm_setzero_si128(),vec)); }
     EightColorVals VCALL operator>>(int n) { return EightColorVals(_mm_srai_epi16(vec,n)); }
-    VCALL operator __m128i() { return vec; }
+    VCALL operator __m128i() const { return vec; }
 };
 inline EightColorVals VCALL operator-(short a, EightColorVals b) { return EightColorVals(_mm_sub_epi16(_mm_set1_epi16(a),b.vec)); }
 inline EightColorVals VCALL operator>(EightColorVals a, EightColorVals b) { return EightColorVals(_mm_cmpgt_epi16(a.vec,b.vec)); }
@@ -224,7 +224,7 @@ template <typename pixel_t> class Plane final : public GeneralPlane {
     pixel_t* data;
     const uint32_t width, height;
     int s;
-    mutable uint32_t s_r, s_c;
+    mutable uint32_t s_r = 0, s_c = 0;
 
 public:
     Plane(uint32_t w, uint32_t h, ColorVal color=0, int scale = 0) : data_vec(PAD(SCALED(w)*SCALED(h)), color), width(SCALED(w)), height(SCALED(h)), s(scale) {
@@ -357,7 +357,7 @@ public:
 class ConstantPlane final : public GeneralPlane {
     ColorVal color;
 public:
-    ConstantPlane(ColorVal c) : color(c) {}
+    explicit ConstantPlane(ColorVal c) : color(c) {}
     void set(const uint32_t r, const uint32_t c, const ColorVal x) override {
         assert(x == color);
     }
@@ -505,7 +505,7 @@ class Image {
 public:
     bool palette;
     int frame_delay;
-    bool alpha_zero_special;
+    bool alpha_zero_special = true;
     std::vector<uint32_t> col_begin;
     std::vector<uint32_t> col_end;
     int seen_before;
@@ -516,7 +516,7 @@ public:
         init(width, height, min, max, planes);
     }
 
-    Image(int s=0) : scale(s) {
+    explicit Image(int s=0) : scale(s) {
       width = height = 0;
       minval = maxval = 0;
       num = 0;
@@ -526,7 +526,6 @@ public:
       depth = 0;
 #endif
       palette = false;
-      alpha_zero_special = true;
       seen_before = 0;
     }
 
@@ -664,7 +663,7 @@ public:
 
     // Copy constructor is private to avoid mistakes.
     // This function can be used if copies are necessary.
-    Image clone()
+    Image clone() const
     {
       return *this;
     }
@@ -814,10 +813,10 @@ public:
     int getscale() const { return scale; }
 
     // access pixel by zoomlevel coordinate
-    uint32_t zoom_rowpixelsize(int zoomlevel) const {
+    static uint32_t zoom_rowpixelsize(int zoomlevel) {
         return 1<<((zoomlevel+1)/2);
     }
-    uint32_t zoom_colpixelsize(int zoomlevel) const {
+    static uint32_t zoom_colpixelsize(int zoomlevel) {
         return 1<<((zoomlevel)/2);
     }
 
@@ -905,7 +904,7 @@ public:
         }
         return false;  // metadata not found
     }
-    void free_metadata(unsigned char * data) const {
+    static void free_metadata(unsigned char * data) {
         if(data) {
 #ifdef LODEPNG_COMPILE_ALLOCATORS
             free(data);

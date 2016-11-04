@@ -26,14 +26,14 @@ class FileIO
 private:
     FILE *file;
     const char *name;
-	
-	// prevent copy
-	FileIO(const FileIO&) {}
-	void operator=(const FileIO&) {}
-	// prevent move, for now
-	FileIO(FileIO&&) {}
-	void operator=(FileIO&&) {}
 public:
+    // prevent copy
+    FileIO(const FileIO&) = delete;
+    void operator=(const FileIO&) = delete;
+    // prevent move, for now
+    FileIO(FileIO&&) = delete;
+    void operator=(FileIO&&) = delete;
+
     const int EOS = EOF;
 
     FileIO(FILE* fil, const char *aname) : file(fil), name(aname) { }
@@ -64,7 +64,7 @@ public:
     void fseek(long offset, int where) {
       ::fseek(file, offset,where);
     }
-    const char* getName() {
+    const char* getName() const {
       return name;
     }
 };
