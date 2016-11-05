@@ -430,7 +430,8 @@ inline int luma_alpha_compensate(int p, ColorVal Y, ColorVal X, ColorVal A) {
     if (p==0) return 128 + A/2;
 
     // for chroma, take Y into account as well (higher Y => lower loss)
-    return A/2 + Y/2;
+    const int divFactor = A/2 + Y/2;
+    return divFactor == 0 ? 1 : divFactor;
 }
 
 void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int loss, bool adaptive, Image &map) {
