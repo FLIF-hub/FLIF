@@ -423,10 +423,22 @@ void flif_make_lossy_scanlines(Images &images, const ColorRanges *ranges, int lo
         }
     }
 }
-inline int luma_alpha_compensate(int p, ColorVal Y, ColorVal X, ColorVal A) {
+
+inline int luma_alpha_compensate(int p, int z, int numP, ColorVal Y, ColorVal X, ColorVal A) {
     if (p==4) return 255;
-    return 128+A/2; // divide by 128 at low alpha (so double loss), 255 at high alpha (normal loss)
+
+    // divide by 128 at low alpha (so double loss), 255 at high alpha (normal loss)
+    if (p==0 || p==3) return 128 + A/2;
+
+    // for chroma, take Y into account as well (higher Y => lower loss)
+    if (numP > 3) {
+      const int divFactor = A/2 + (z <= 1 ? Y/2 : 64 + Y/4);
+      return divFactor < 15 ? 15 : divFactor;
+    } else {
+      return 64 + (z <= 1 ? (3*Y)/4 : 96 + Y/2);
+    }
 }
+
 void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int loss, bool adaptive, Image &map) {
     ColorVal min,max;
     int nump = images[0].numPlanes();
@@ -461,7 +473,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
                     ColorVal curr = image(p,z,r,c);
                     int factor=255;
                     if (z==0) factor += loss*2;
-                    int actual_loss = (adaptive? factor-map(0,z,r,c) : factor) * lossp[p] / luma_alpha_compensate(p,image(0,z,r,c),image(p,z,r,c),(nump>3?image(3,z,r,c):255));
+                    int actual_loss = (adaptive? factor-map(0,z,r,c) : factor) * lossp[p] / luma_alpha_compensate(p,z,nump,image(0,z,r,c),image(p,z,r,c),(nump>3?image(3,z,r,c):255));
                     // example: assume actual_loss > 30, then:
                     //  top:    100                                                     90    (error:0 -> 10)
                     //  curr:   120  -->  150 (guess)    so we compensate and make it   140   (error:30 -> 20)
@@ -511,7 +523,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
                     ColorVal curr = image(p,z,r,c);
                     int factor=255;
                     if (z==1) factor += loss;
-                    int actual_loss = (adaptive? factor-map(0,z,r,c) : factor) * lossp[p] / luma_alpha_compensate(p,image(0,z,r,c),image(p,z,r,c),(nump>3?image(3,z,r,c):255));
+                    int actual_loss = (adaptive? factor-map(0,z,r,c) : factor) * lossp[p] / luma_alpha_compensate(p,z,nump,image(0,z,r,c),image(p,z,r,c),(nump>3?image(3,z,r,c):255));
                     ColorVal diff = curr-guess;
 //                    if (abs(diff) > actual_loss) continue;
                     if (abs(diff) > actual_loss) continue;
@@ -573,7 +585,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
                     factor = ((beginZL-z)*factor/(beginZL));
                     if (z==0) factor += loss*2;
                     ColorVal diff = flif_make_lossy(min - guess, max - guess, curr - guess,
-                                        (adaptive? factor-map(0,z,r,c) : factor) * lossp[p] / luma_alpha_compensate(p,image(0,z,r,c),image(p,z,r,c),(nump>3?image(3,z,r,c):255)));
+                                        (adaptive? factor-map(0,z,r,c) : factor) * lossp[p] / luma_alpha_compensate(p,z,nump,image(0,z,r,c),image(p,z,r,c),(nump>3?image(3,z,r,c):255)));
                     ColorVal lossyval = guess+diff;
                     ranges->snap(p,properties,min,max,lossyval);
                     image.set(p,z,r,c, lossyval);
@@ -612,7 +624,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
                     factor = ((beginZL-z)*factor/(beginZL));
                     if (z==1) factor += loss;
                     ColorVal diff = flif_make_lossy(min - guess, max - guess, curr - guess,
-                                        (adaptive? factor-map(0,z,r,c) : factor) * lossp[p] / luma_alpha_compensate(p,image(0,z,r,c),image(p,z,r,c),(nump>3?image(3,z,r,c):255)));
+                                        (adaptive? factor-map(0,z,r,c) : factor) * lossp[p] / luma_alpha_compensate(p,z,nump,image(0,z,r,c),image(p,z,r,c),(nump>3?image(3,z,r,c):255)));
                     ColorVal lossyval = guess+diff;
                     ranges->snap(p,properties,min,max,lossyval);
                     image.set(p,z,r,c, lossyval);
