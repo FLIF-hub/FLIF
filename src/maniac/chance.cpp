@@ -16,11 +16,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include <string.h>
-#include <stdint.h>
-
 #include "chance.hpp"
 #include "bit.hpp"
+#include <string.h>
 
 void build_table(uint16_t *zero_state, uint16_t *one_state, size_t size, uint32_t factor, unsigned int max_p)
 {
