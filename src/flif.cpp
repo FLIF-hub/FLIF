@@ -330,13 +330,19 @@ bool encode_flif(int argc, char **argv, Images &images, flif_options &options) {
         //if (nb_pixels * images.size() < 5000) learn_repeats--;        // avoid large trees for small images
         if (options.learn_repeats < 0) options.learn_repeats=0;
     }
-    FILE *file = NULL;
-    if (!strcmp(argv[0],"-")) file = stdout;
-    else file = fopen(argv[0],"wb");
-    if (!file)
-        return false;
-    FileIO fio(file, (file == stdout? "to standard output" : argv[0]));
-    return flif_encode(fio, images, desc, options);
+    if (!options.just_add_loss) {
+      FILE *file = NULL;
+      if (!strcmp(argv[0],"-")) file = stdout;
+      else file = fopen(argv[0],"wb");
+      if (!file) return false;
+      FileIO fio(file, (file == stdout? "to standard output" : argv[0]));
+      if (!flif_encode(fio, images, desc, options)) return false;
+    } else {
+      BlobIO bio; // will just contain some unneeded FLIF header stuff
+      if (!flif_encode(bio, images, desc, options)) return false;
+      if (!images[0].save(argv[0])) return false;
+    }
+    return true;
 }
 
 bool handle_encode(int argc, char **argv, Images &images, flif_options &options) {
@@ -673,8 +679,11 @@ int main(int argc, char **argv)
         if (mode == 0) {
             char *f = strrchr(argv[argc-1],'/');
             char *ext = f ? strrchr(f,'.') : strrchr(argv[argc-1],'.');
-            if (ext && strcasecmp(ext,".flif") && strcasecmp(ext,".flf") ) {
+            if (ext && !options.loss && strcasecmp(ext,".flif") && strcasecmp(ext,".flf") ) {
                 e_printf("Warning: expected file name extension \".flif\" for output file.\n");
+            } else if (options.loss && check_compatible_extension(ext)) {
+                v_printf(2,"Not doing actual lossy encoding to FLIF, just applying loss.\n");
+                options.just_add_loss = 1;
             }
         }
         if (mode != 0) {

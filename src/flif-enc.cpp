@@ -856,6 +856,8 @@ bool flif_encode(IO& io, Images &images, const std::vector<std::string> &transDe
     int tcount=0;
     v_printf(3,"Transforms: ");
 
+    std::vector<std::unique_ptr<Transform<IO>>> transforms;
+
     try {
       for (unsigned int i=0; i<transDesc.size(); i++) {
         auto trans = create_transform<IO>(transDesc[i]);
@@ -877,6 +879,7 @@ bool flif_encode(IO& io, Images &images, const std::vector<std::string> &transDe
             fflush(stdout);
             rangesList.push_back(std::unique_ptr<const ColorRanges>(trans->meta(images, previous_range)));
             trans->data(images);
+            if (options.just_add_loss) transforms.push_back(std::move(trans));
         }
       }
     } catch (std::bad_alloc& ba) {
@@ -941,6 +944,13 @@ bool flif_encode(IO& io, Images &images, const std::vector<std::string> &transDe
             flif_make_lossy_interlaced(images,ranges,options.loss,adaptive,adaptive_map);
             if (alphazero && ranges->numPlanes() > 3 && ranges->min(3) <= 0) flif_encode_FLIF2_interpol_zero_alpha(images, ranges, image.zooms(), 0, options.invisible_predictor);
             break;
+      }
+      if (options.just_add_loss) {
+        while(!transforms.empty()) {
+          transforms.back()->invData(images);
+          transforms.pop_back();
+        }
+        return true;
       }
     } else {
         if (encoding == flifEncoding::interlaced) {

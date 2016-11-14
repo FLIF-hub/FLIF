@@ -127,6 +127,7 @@ struct flif_options {
     int resize_height;
     int fit;
     int overwrite;
+    int just_add_loss;
 };
 
 const struct flif_options FLIF_DEFAULT_OPTIONS = {
@@ -161,4 +162,5 @@ const struct flif_options FLIF_DEFAULT_OPTIONS = {
     0, // resize_height
     0, // fit
     0, // overwrite
+    0, // just_add_loss
 };
