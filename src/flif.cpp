@@ -79,6 +79,7 @@ void show_help(int mode) {
     v_printf(2,"   -c, --no-crc                don't verify the CRC (or don't add a CRC)\n");
     v_printf(2,"   -m, --no-metadata           strip Exif/XMP metadata (default is to keep it)\n");
     v_printf(2,"   -p, --no-color-profile      strip ICC color profile (default is to keep it)\n");
+    v_printf(2,"   -o, --overwrite             overwrite existing files\n");
 #ifdef HAS_ENCODER
     if (mode != 1) {
     v_printf(1,"Encode options: (-e, --encode)\n");
@@ -391,6 +392,10 @@ int handle_decode(int argc, char **argv, Images &images, flif_options &options) 
         for (Image& image : images) {
             if (!to_stdout) {
               sprintf(a_ext,"-%03d%s",counter++,ext);
+              if (file_exists(filename) && !options.overwrite) {
+                e_printf("Error: output file already exists: %s\nUse --overwrite to force overwrite.\n",filename);
+                return 2;
+              }
               if (!image.save(filename)) return 2;
             } else {
               if (!image.save(argv[1])) return 2; counter++;
@@ -428,6 +433,7 @@ int main(int argc, char **argv)
         {"fit", 1, NULL, 'f'},
         {"identify", 0, NULL, 'i'},
         {"version", 0, NULL, 'V'},
+        {"overwrite", 0, NULL, 'o'},
 #ifdef HAS_ENCODER
         {"encode", 0, NULL, 'e'},
         {"transcode", 0, NULL, 't'},
@@ -458,9 +464,9 @@ int main(int argc, char **argv)
     };
     int i,c;
 #ifdef HAS_ENCODER
-    while ((c = getopt_long (argc, argv, "hdvcmiVq:s:r:f:etINnF:KP:ABYWCL:SR:D:M:T:X:Z:Q:UG:H:E:", optlist, &i)) != -1) {
+    while ((c = getopt_long (argc, argv, "hdvcmiVq:s:r:f:oetINnF:KP:ABYWCL:SR:D:M:T:X:Z:Q:UG:H:E:", optlist, &i)) != -1) {
 #else
-    while ((c = getopt_long (argc, argv, "hdvcmiVq:s:r:f:", optlist, &i)) != -1) {
+    while ((c = getopt_long (argc, argv, "hdvcmiVq:s:r:f:o", optlist, &i)) != -1) {
 #endif
         switch (c) {
         case 'd': mode=1; break;
@@ -469,6 +475,7 @@ int main(int argc, char **argv)
         case 'c': options.crc_check = 0; break;
         case 'm': options.metadata = 0; break;
         case 'p': options.color_profile = 0; break;
+        case 'o': options.overwrite = 1; break;
         case 'q': options.quality=atoi(optarg);
                   if (options.quality < 0 || options.quality > 100) {e_printf("Not a sensible number for option -q\n"); return 1; }
                   break;
@@ -636,10 +643,6 @@ int main(int argc, char **argv)
             }
         }
         if (mode == 0) {
-            if (file_exists(argv[argc-1])) {
-                e_printf("Error: output file already exists: %s\n",argv[argc-1]);
-                return 1;
-            }
             char *f = strrchr(argv[argc-1],'/');
             char *ext = f ? strrchr(f,'.') : strrchr(argv[argc-1],'.');
             if (ext && strcasecmp(ext,".flif") && strcasecmp(ext,".flf") ) {
@@ -666,6 +669,10 @@ int main(int argc, char **argv)
           e_printf("Error: input file does not exist: %s\n",argv[0]);
           return 1;
         }
+    }
+    if (file_exists(argv[argc-1]) && !options.overwrite) {
+        e_printf("Error: output file already exists: %s\nUse --overwrite to force overwrite.\n",argv[argc-1]);
+        return 1;
     }
     if (mode > 0 && argc > 2 && options.scale != -1) {
         e_printf("Too many arguments.\n");

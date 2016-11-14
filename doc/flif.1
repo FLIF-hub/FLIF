@@ -1,4 +1,4 @@
-.TH FLIF 1 "Mar 10, 2016" "Free Lossless Image Format" "User Commands"
+.TH FLIF 1 "Nov 14, 2016" "Free Lossless Image Format" "User Commands"
 .SH NAME
 flif \- convert a image files from or to FLIF
 .SH SYNOPSIS
@@ -39,6 +39,9 @@ If the output file is '\fI\-\fR' (standard output), then all messages go to stan
 .TP
 \fB\-h\fR, \fB\-\-help\fR
 Display help and quit. Use in combination with \fB-v\fP for help on advanced features.
+.TP
+\fB\-o\fR, \fB\-\-overwrite\fR
+By default, \fBflif\fP does not overwrite existing files. To force it to overwrite the output file, use this option.
 .TP
 \fB\-c\fR, \fB\-\-no\-crc\fR
 FLIF files can optionally contain a CRC to verify the integrity of the image data.

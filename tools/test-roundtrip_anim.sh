@@ -28,6 +28,7 @@ runtest() {
   local encArgs=$1
   local decArgs=$2
 
+  rm -f ${OUTF} decoded-test-frame*.pam
   ./flif $encArgs test-frame*.png "${OUTF}"
   ./flif -d $decArgs ${OUTF} decoded-test-frame.pam
   check test-frame decoded-test-frame*.pam
