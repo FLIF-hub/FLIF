@@ -203,9 +203,28 @@ bool encode_load_input_images(int argc, char **argv, Images &images, flif_option
     md.xmp = options.metadata;
     md.exif = options.metadata;
     while(argc>1) {
+      int maxlength = strlen(argv[0])+100;
+      std::vector<char> vfilename(maxlength);
+      char *filename = argv[0];
+      int framecounter = 0;
+      int stop_searching = 0;
+      bool multiple=false;
+      if (!file_exists(argv[0]) && strchr(argv[0],'%')) {
+        multiple=true;
+        filename = &vfilename[0];
+      }
+      for ( ; framecounter < 0xFFFFFFF && stop_searching < 1000; framecounter++ ) {
+        if (multiple) {
+             snprintf(filename,maxlength,argv[0],framecounter);
+             if (!file_exists(filename)) {
+                stop_searching++;
+                continue;
+             }
+             stop_searching = 0;
+        }
         Image image;
         v_printf_tty(2,"\r");
-        if (!image.load(argv[0],md)) {
+        if (!image.load(filename,md)) {
             e_printf("Could not read input file: %s\n", argv[0]);
             return false;
         };
@@ -216,7 +235,7 @@ bool encode_load_input_images(int argc, char **argv, Images &images, flif_option
           if (last_image.rows() != images[0].rows() || last_image.cols() != images[0].cols()) {
             e_printf("Dimensions of all input images should be the same!\n");
             e_printf("  First image is %ux%u\n",images[0].cols(),images[0].rows());
-            e_printf("  This image is %ux%u: %s\n",last_image.cols(),last_image.rows(),argv[0]);
+            e_printf("  This image is %ux%u: %s\n",last_image.cols(),last_image.rows(),filename);
             return false;
           }
           if (last_image.numPlanes() < images[0].numPlanes()) {
@@ -236,8 +255,10 @@ bool encode_load_input_images(int argc, char **argv, Images &images, flif_option
           for (size_t i=0; i<image.metadata.size(); i++)
               images[0].metadata.push_back(image.metadata[i]);
         }
-        argc--; argv++;
         if (nb_input_images>1) {v_printf(2,"    (%i/%i)         ",(int)images.size(),nb_input_images); v_printf(4,"\n");}
+        if (!multiple) break;
+      }
+      argc--; argv++;
     }
     if (nb_actual_images > 0) return true;
     e_printf("Error: no actual input images to be encoded!\n");
@@ -381,8 +402,11 @@ int handle_decode(int argc, char **argv, Images &images, flif_options &options) 
             v_printf(1,"Warning: writing animation to standard output as a concatenation of PAM files.\n");
         }
         int counter=0;
-        std::vector<char> vfilename(strlen(argv[1])+6);
+        int maxlength = strlen(argv[1])+100;
+        std::vector<char> vfilename(maxlength);
         char *filename = &vfilename[0];
+        bool use_custom_format = false;
+        if (strchr(argv[1],'%')) use_custom_format = true;
         strcpy(filename,argv[1]);
         char *a_ext = strrchr(filename,'.');
         if (!a_ext && !to_stdout) {
@@ -391,7 +415,11 @@ int handle_decode(int argc, char **argv, Images &images, flif_options &options) 
         }
         for (Image& image : images) {
             if (!to_stdout) {
-              sprintf(a_ext,"-%03d%s",counter++,ext);
+              if (use_custom_format) snprintf(filename,maxlength,argv[1],counter++);
+              else if (images.size() < 1000) sprintf(a_ext,"-%03d%s",counter++,ext);
+              else if (images.size() < 10000) sprintf(a_ext,"-%04d%s",counter++,ext);
+              else if (images.size() < 100000) sprintf(a_ext,"-%05d%s",counter++,ext);
+              else sprintf(a_ext,"-%08d%s",counter++,ext);
               if (file_exists(filename) && !options.overwrite) {
                 e_printf("Error: output file already exists: %s\nUse --overwrite to force overwrite.\n",filename);
                 return 2;
@@ -665,7 +693,7 @@ int main(int argc, char **argv)
         if (!strcmp(argv[0],"-")) {
           v_printf(4,"Taking input from standard input. Mode: %s\n",
              (mode==0?"encode": (mode==1?"decode":"transcode")));
-        } else {
+        } else if (!strchr(argv[0],'%')) {
           e_printf("Error: input file does not exist: %s\n",argv[0]);
           return 1;
         }
