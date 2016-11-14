@@ -142,7 +142,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  ____ _(_)____\n");
-    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.2 [8 Nov 2016]\n");
+    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.3 [14 Nov 2016]\n");
     v_printf(3,"  (__ | |_| __)    ");v_printf(3,"Copyright (C) 2016 Jon Sneyers and Pieter Wuille\n");
     v_printf(3,"    (_|___|_)      ");
 #ifdef HAS_ENCODER
@@ -308,10 +308,12 @@ bool encode_flif(int argc, char **argv, Images &images, flif_options &options) {
         //if (nb_pixels * images.size() < 5000) learn_repeats--;        // avoid large trees for small images
         if (options.learn_repeats < 0) options.learn_repeats=0;
     }
-    FILE *file = fopen(argv[0],"wb");
+    FILE *file = NULL;
+    if (!strcmp(argv[0],"-")) file = stdout;
+    else file = fopen(argv[0],"wb");
     if (!file)
         return false;
-    FileIO fio(file, argv[0]);
+    FileIO fio(file, (file == stdout? "to standard output" : argv[0]));
     return flif_encode(fio, images, desc, options);
 }
 
@@ -325,9 +327,11 @@ bool handle_encode(int argc, char **argv, Images &images, flif_options &options)
 #endif
 
 bool decode_flif(char **argv, Images &images, flif_options &options) {
-    FILE *file = fopen(argv[0],"rb");
+    FILE *file = NULL;
+    if (!strcmp(argv[0],"-")) file = stdin;
+    else file = fopen(argv[0],"rb");
     if(!file) return false;
-    FileIO fio(file, argv[0]);
+    FileIO fio(file, (file==stdin ? "from standard input" : argv[0]));
     metadata_options md;
     md.icc = options.color_profile;
     md.xmp = options.metadata;
@@ -353,7 +357,7 @@ int handle_decode(int argc, char **argv, Images &images, flif_options &options) 
         v_printf(2,"\n");
         return 0;
     }
-    if (!check_compatible_extension(ext) && strcmp(argv[1],"null:")) {
+    if (!check_compatible_extension(ext) && strcmp(argv[1],"null:") && strcmp(argv[1],"-")) {
         e_printf("Error: expected \".png\", \".pnm\" or \".pam\" file name extension for output file\n");
         return 1;
     }
@@ -370,14 +374,27 @@ int handle_decode(int argc, char **argv, Images &images, flif_options &options) 
     if (images.size() == 1) {
         if (!images[0].save(argv[1])) return 2;
     } else {
+        bool to_stdout=false;
+        if (!strcmp(argv[1],"-")) {
+            to_stdout=true;
+            v_printf(1,"Warning: writing animation to standard output as a concatenation of PAM files.\n");
+        }
         int counter=0;
         std::vector<char> vfilename(strlen(argv[1])+6);
         char *filename = &vfilename[0];
         strcpy(filename,argv[1]);
         char *a_ext = strrchr(filename,'.');
+        if (!a_ext && !to_stdout) {
+            e_printf("Problem saving animation to %s\n",filename);
+            return 2;
+        }
         for (Image& image : images) {
-            sprintf(a_ext,"-%03d%s",counter++,ext);
-            if (!image.save(filename)) return 2;
+            if (!to_stdout) {
+              sprintf(a_ext,"-%03d%s",counter++,ext);
+              if (!image.save(filename)) return 2;
+            } else {
+              if (!image.save(argv[1])) return 2; counter++;
+            }
             v_printf(2,"    (%i/%i)         \r",counter,(int)images.size()); v_printf(4,"\n");
         }
     }
@@ -585,6 +602,11 @@ int main(int argc, char **argv)
     argc -= optind;
     argv += optind;
 
+    if (!strcmp(argv[argc-1],"-")) {
+        // writing output to stdout, so redirecting verbose output to stderr to avoid contaminating the output stream
+        redirect_stdout_to_stderr();
+    }
+
     show_banner();
     if (argc == 0 || showhelp) {
         if (get_verbosity() == 1 || showhelp) show_help(mode);
@@ -613,6 +635,17 @@ int main(int argc, char **argv)
                 mode = 1;
             }
         }
+        if (mode == 0) {
+            if (file_exists(argv[argc-1])) {
+                e_printf("Error: output file already exists: %s\n",argv[argc-1]);
+                return 1;
+            }
+            char *f = strrchr(argv[argc-1],'/');
+            char *ext = f ? strrchr(f,'.') : strrchr(argv[argc-1],'.');
+            if (ext && strcasecmp(ext,".flif") && strcasecmp(ext,".flf") ) {
+                e_printf("Warning: expected file name extension \".flif\" for output file.\n");
+            }
+        }
         if (mode != 0) {
 #endif
             if (!(ext && ( !strcasecmp(ext,".flif")  || ( !strcasecmp(ext,".flf") )))) {
@@ -626,8 +659,13 @@ int main(int argc, char **argv)
         }
 #endif
     } else if (argc>0) {
-        e_printf("Input file does not exist: %s\n",argv[0]);
-        return 1;
+        if (!strcmp(argv[0],"-")) {
+          v_printf(4,"Taking input from standard input. Mode: %s\n",
+             (mode==0?"encode": (mode==1?"decode":"transcode")));
+        } else {
+          e_printf("Error: input file does not exist: %s\n",argv[0]);
+          return 1;
+        }
     }
     if (mode > 0 && argc > 2 && options.scale != -1) {
         e_printf("Too many arguments.\n");

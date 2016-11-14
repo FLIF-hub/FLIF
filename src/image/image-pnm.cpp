@@ -27,7 +27,10 @@ unsigned int read_pnm_int(FILE *fp, char* buf, char** t) {
 }
 
 bool image_load_pnm(const char *filename, Image& image) {
-    FILE *fp = fopen(filename,"rb");
+    FILE *fp = NULL;
+    if (!strcmp(filename,"-")) fp = stdin;
+    else fp = fopen(filename,"rb");
+
     char buf[PPMREADBUFLEN], *t;
     if (!fp) {
         e_printf("Could not open file: %s\n", filename);
@@ -44,7 +47,7 @@ bool image_load_pnm(const char *filename, Image& image) {
     if ( (!strncmp(buf, "P4", 2)) ) type=4;
     if ( (!strncmp(buf, "P5", 2)) ) type=5;
     if ( (!strncmp(buf, "P6", 2)) ) type=6;
-    if ( (!strncmp(buf, "P7", 2)) ) {fclose(fp); return image_load_pam(filename, image);}
+    if ( (!strncmp(buf, "P7", 2)) ) {return image_load_pam_fp(fp, image);}
     if (type==0) {
         if (buf[0] == 'P') e_printf("PNM file is not of type P4, P5, P6 or P7, cannot read other types.\n");
         else e_printf("This does not look like a PNM file.\n");
@@ -104,14 +107,16 @@ bool image_load_pnm(const char *filename, Image& image) {
         }
       }
     }
-    fclose(fp);
+    if (fp != stdin) fclose(fp);
     return true;
 }
 #endif
 
 bool image_save_pnm(const char *filename, const Image& image)
 {
-    FILE *fp = fopen(filename,"wb");
+    FILE *fp = NULL;
+    if (!strcmp(filename,"-")) fp = stdout;
+    else fp = fopen(filename,"wb");
     if (!fp) {
         return false;
     }
@@ -161,7 +166,10 @@ bool image_save_pnm(const char *filename, const Image& image)
         fclose(fp);
         return false;
     }
-    fclose(fp);
+    if (fp != stdout) fclose(fp);
+    if (image.get_metadata("iCCP")) {
+        v_printf(1,"Warning: input image has color profile, which cannot be stored in output image format.\n");
+    }
     return true;
 
 }

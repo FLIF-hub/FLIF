@@ -892,14 +892,16 @@ public:
         width = 0; // this is used to signal the decoder to stop
     }
 
-    bool get_metadata(const char * chunkname, unsigned char ** data, size_t * length) const {
+    bool get_metadata(const char * chunkname, unsigned char ** data = NULL, size_t * length = NULL) const {
         for(size_t i=0; i<metadata.size(); i++) {
             if (!strncmp(metadata[i].name, chunkname, 4)) {
+              if (data) {
                 *data = NULL;
                 *length = 0;
 //                lodepng_zlib_decompress(data, length, metadata[i].contents.data(), metadata[i].length, &lodepng_default_decompress_settings);
                 lodepng_inflate(data, length, metadata[i].contents.data(), metadata[i].length, &lodepng_default_decompress_settings);
-                return true;
+              }
+              return true;
             }
         }
         return false;  // metadata not found

@@ -3,13 +3,13 @@
 flif \- convert a image files from or to FLIF
 .SH SYNOPSIS
 .B flif
-[\fIOPTION\fR]... [\fI-d\fR] \fIinput_file.flif output_file\fR
+[\fIOPTION\fR]... [\fB-d\fR] \fIinput_file.flif output_file\fR
 .br
 .B flif
-[\fIOPTION\fR]... [\fI-e\fR] \fIinput_file\fR... \fIoutput_file.flif\fR
+[\fIOPTION\fR]... [\fB-e\fR] \fIinput_file\fR... \fIoutput_file.flif\fR
 .br
 .B flif
-[\fIOPTION\fR]... [\fI-t\fR] \fIinput_file.flif output_file.flif\fR
+[\fIOPTION\fR]... [\fB-t\fR] \fIinput_file.flif output_file.flif\fR
 .SH DESCRIPTION
 This program can encode and decode images in the \fBFree Lossless Image Format\fP (FLIF).
 Input and output formats can be either PNG, PAM, PNM (PPM, PGM, PBM) or FLIF.
@@ -18,9 +18,15 @@ for now, only ICC color profiles are supported (with extension \fI.icc\fR).
 .PP
 .B flif
 will automatically deduce the action (encode, decode or transcode) from the names and
-contents of the files. The specifiers \fI-e\fR (encode), \fI-d\fR (decode) and \fI-t\fR (transcode)
+contents of the files. The specifiers \fB-e\fR (encode), \fB-d\fR (decode) and \fB-t\fR (transcode)
 are optional and can be safely omitted. The extension of the output file (the last argument) determines
 the image format that is used.
+.PP
+The special name '\fI\-\fR' means standard input or output, depending on the position.
+In this case, the action has to be specified explicitly, and the only supported image formats
+are FLIF and PAM/PNM.
+For example, \fBflif \-e \- \-\fR encodes a PPM file from standard input to a FLIF file written to standard output;
+\fBflif \-e input.ppm \- | flif \-d \- output.png\fR is a very slow way to convert a PPM file to a PNG file.
 
 .SH OPTIONS
 The general options are:
@@ -28,6 +34,8 @@ The general options are:
 \fB\-v\fR, \fB\-\-verbose\fR
 Increases verbosity. By default, \fBflif\fP is silent (unless there is a problem).
 Adding one or more \fB-v\fR will produce more output.
+Verbose output normally goes to standard output; error messages go to standard error.
+If the output file is '\fI\-\fR' (standard output), then all messages go to standard error.
 .TP
 \fB\-h\fR, \fB\-\-help\fR
 Display help and quit. Use in combination with \fB-v\fP for help on advanced features.
