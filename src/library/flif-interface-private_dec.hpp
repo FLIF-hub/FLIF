@@ -32,14 +32,9 @@ struct FLIF_DECODER
     int32_t num_loops();
     FLIF_IMAGE* get_image(size_t index);
 
-    int32_t quality;
-    uint32_t scale;
+    flif_options options;
     void* callback;
     int32_t first_quality;
-    uint32_t rw;
-    uint32_t rh;
-    int32_t crc_check;
-    bool fit;
 
 private:
     Images internal_images;

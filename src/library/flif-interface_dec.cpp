@@ -20,16 +20,11 @@ limitations under the License.
 #include "flif-interface_common.cpp"
 
 FLIF_DECODER::FLIF_DECODER()
-: quality(100)
-, scale(1)
+: options(FLIF_DEFAULT_OPTIONS)
 , callback(NULL)
 , first_quality(0)
-, rw(0)
-, rh(0)
-, crc_check(0)
-, fit(false)
 , working(false)
-{ }
+{ options.crc_check = 0; }
 
 
 int32_t FLIF_DECODER::decode_file(const char* filename) {
@@ -47,7 +42,7 @@ int32_t FLIF_DECODER::decode_file(const char* filename) {
          true, // exif
          true, // xmp
     };
-    if(!flif_decode(fio, internal_images, quality, scale, reinterpret_cast<uint32_t (*)(int32_t,int64_t)>(callback), first_quality, images, rw, rh, crc_check, fit, md_default, 0))
+    if(!flif_decode(fio, internal_images, reinterpret_cast<uint32_t (*)(int32_t,int64_t)>(callback), first_quality, images, options, md_default, 0))
         { working = false; return 0; }
     working = false;
 
@@ -69,7 +64,7 @@ int32_t FLIF_DECODER::decode_memory(const void* buffer, size_t buffer_size_bytes
 		true, // exif
 		true, // xmp
     };
-    if(!flif_decode(reader, internal_images, quality, scale, reinterpret_cast<uint32_t (*)(int32_t,int64_t)>(callback), first_quality, images, rw, rh, crc_check, fit, md_default, 0))
+    if(!flif_decode(reader, internal_images, reinterpret_cast<uint32_t (*)(int32_t,int64_t)>(callback), first_quality, images, options, md_default, 0))
         { working = false; return 0; }
     working = false;
 
@@ -157,46 +152,26 @@ FLIF_DLLEXPORT void FLIF_API flif_destroy_decoder(FLIF_DECODER* decoder) {
 }
 
 FLIF_DLLEXPORT void FLIF_API flif_decoder_set_crc_check(FLIF_DECODER* decoder, int32_t crc_check) {
-    try
-    {
-        decoder->crc_check = crc_check;
-    }
-    catch(...) {}
+    decoder->options.crc_check = crc_check;
 }
 
 FLIF_DLLEXPORT void FLIF_API flif_decoder_set_quality(FLIF_DECODER* decoder, int32_t quality) {
-    try
-    {
-        decoder->quality = quality;
-    }
-    catch(...) {}
+    decoder->options.quality = quality;
 }
 
 FLIF_DLLEXPORT void FLIF_API flif_decoder_set_scale(FLIF_DECODER* decoder, uint32_t scale) {
-    try
-    {
-        decoder->scale = scale;
-    }
-    catch(...) {}
+    decoder->options.scale = scale;
 }
 
 FLIF_DLLEXPORT void FLIF_API flif_decoder_set_resize(FLIF_DECODER* decoder, uint32_t rw, uint32_t rh) {
-    try
-    {
-        decoder->rw = rw;
-        decoder->rh = rh;
-    }
-    catch(...) {}
+    decoder->options.resize_width = rw;
+    decoder->options.resize_height = rh;
 }
 
 FLIF_DLLEXPORT void FLIF_API flif_decoder_set_fit(FLIF_DECODER* decoder, uint32_t rw, uint32_t rh) {
-    try
-    {
-        decoder->rw = rw;
-        decoder->rh = rh;
-        decoder->fit = 1;
-    }
-    catch(...) {}
+    decoder->options.resize_width = rw;
+    decoder->options.resize_height = rh;
+    decoder->options.fit = 1;
 }
 
 FLIF_DLLEXPORT void FLIF_API flif_decoder_set_callback(FLIF_DECODER* decoder, uint32_t (*callback)(int32_t quality, int64_t bytes_read)) {
@@ -274,23 +249,18 @@ FLIF_DLLEXPORT FLIF_INFO* FLIF_API flif_read_info_from_memory(const void* buffer
 
         BlobReader reader(reinterpret_cast<const uint8_t*>(buffer), buffer_size_bytes);
 
-        int quality = 100;
-        int scale = 1;
         uint32_t (*callback)(int32_t,int64_t) = 0;
         int first_quality = 0;
         Images images;
-        int rw = 0;
-        int rh = 0;
-        int crc_check = 0;
-        bool fit = false;
 
         metadata_options md_default = {
             true, // icc
             true, // exif
             true, // xmp
         };
+        flif_options options = FLIF_DEFAULT_OPTIONS;
 
-        if(flif_decode(reader, images, quality, scale, reinterpret_cast<uint32_t (*)(int32_t,int64_t)>(callback), first_quality, images, rw, rh, crc_check, fit, md_default, info.get()))
+        if(flif_decode(reader, images, reinterpret_cast<uint32_t (*)(int32_t,int64_t)>(callback), first_quality, images, options, md_default, info.get()))
         {
             return info.release();
         }

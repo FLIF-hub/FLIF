@@ -16,9 +16,9 @@ struct FLIF_INFO
 */
 
 template <typename IO>
-bool flif_decode(IO& io, Images &images, int quality, int scale, uint32_t (*callback)(int32_t,int64_t), int, Images &partial_images, int rw, int rh, int crc_check, bool fit, metadata_options &md, FLIF_INFO* info);
+bool flif_decode(IO& io, Images &images, uint32_t (*callback)(int32_t,int64_t), int, Images &partial_images, flif_options &options, metadata_options &md, FLIF_INFO* info);
 
 template <typename IO>
-bool flif_decode(IO& io, Images &images, int quality, int scale, int rw, int rh, int crc_check, bool fit, metadata_options &md) {
-    return flif_decode(io, images, quality, scale, NULL, 0, images, rw, rh, crc_check, fit, md, 0);
+bool flif_decode(IO& io, Images &images, flif_options &options, metadata_options &md) {
+    return flif_decode(io, images, NULL, 0, images, options, md, 0);
 }

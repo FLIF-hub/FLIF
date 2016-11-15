@@ -118,6 +118,7 @@ void show_help(int mode) {
     v_printf(1,"   -s, --scale=N              lossy downscaled image at scale 1:N (2,4,8,16,32); default -s1\n");
     v_printf(1,"   -r, --resize=WxH           lossy downscaled image to fit inside WxH (but typically smaller)\n");
     v_printf(1,"   -f, --fit=WxH              lossy downscaled image to exactly WxH\n");
+    v_printf(2,"   -b, --breakpoints          report breakpoints (truncation offsets) for truncations at scales 1:8, 1:4, 1:2\n");
     }
 }
 
@@ -143,7 +144,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  ____ _(_)____\n");
-    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.3 [14 Nov 2016]\n");
+    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.3 [15 Nov 2016]\n");
     v_printf(3,"  (__ | |_| __)    ");v_printf(3,"Copyright (C) 2016 Jon Sneyers and Pieter Wuille\n");
     v_printf(3,"    (_|___|_)      ");
 #ifdef HAS_ENCODER
@@ -364,7 +365,7 @@ bool decode_flif(char **argv, Images &images, flif_options &options) {
     md.icc = options.color_profile;
     md.xmp = options.metadata;
     md.exif = options.metadata;
-    return flif_decode(fio, images, options.quality, options.scale, options.resize_width, options.resize_height, options.crc_check, options.fit, md);
+    return flif_decode(fio, images, options, md);
 }
 
 int handle_decode(int argc, char **argv, Images &images, flif_options &options) {
@@ -374,6 +375,10 @@ int handle_decode(int argc, char **argv, Images &images, flif_options &options) 
             decode_flif(argv, images, options);
             argv++; argc--;
         }
+        return 0;
+    }
+    if (argc == 1 && options.show_breakpoints) {
+        decode_flif(argv, images, options);
         return 0;
     }
     char *ext = strrchr(argv[1],'.');
@@ -468,6 +473,7 @@ int main(int argc, char **argv)
         {"identify", 0, NULL, 'i'},
         {"version", 0, NULL, 'V'},
         {"overwrite", 0, NULL, 'o'},
+        {"breakpoints", 0, NULL, 'b'},
 #ifdef HAS_ENCODER
         {"encode", 0, NULL, 'e'},
         {"transcode", 0, NULL, 't'},
@@ -498,9 +504,9 @@ int main(int argc, char **argv)
     };
     int i,c;
 #ifdef HAS_ENCODER
-    while ((c = getopt_long (argc, argv, "hdvcmiVq:s:r:f:oetINnF:KP:ABYWCL:SR:D:M:T:X:Z:Q:UG:H:E:", optlist, &i)) != -1) {
+    while ((c = getopt_long (argc, argv, "hdvcmiVq:s:r:f:obetINnF:KP:ABYWCL:SR:D:M:T:X:Z:Q:UG:H:E:", optlist, &i)) != -1) {
 #else
-    while ((c = getopt_long (argc, argv, "hdvcmiVq:s:r:f:o", optlist, &i)) != -1) {
+    while ((c = getopt_long (argc, argv, "hdvcmiVq:s:r:f:ob", optlist, &i)) != -1) {
 #endif
         switch (c) {
         case 'd': mode=1; break;
@@ -527,6 +533,7 @@ int main(int argc, char **argv)
                   options.fit=1;
                   break;
         case 'i': options.scale = -1; break;
+        case 'b': options.show_breakpoints = 8; mode=1; break;
 #ifdef HAS_ENCODER
         case 'e': mode=0; break;
         case 't': mode=2; break;
@@ -642,6 +649,8 @@ int main(int argc, char **argv)
     }
     argc -= optind;
     argv += optind;
+    bool last_is_output = (options.scale != -1);
+    if (options.show_breakpoints && argc == 1) { last_is_output = false; options.no_full_decode = 1; options.scale = 2; }
 
     if (!strcmp(argv[argc-1],"-")) {
         // writing output to stdout, so redirecting verbose output to stderr to avoid contaminating the output stream
@@ -654,7 +663,7 @@ int main(int argc, char **argv)
         return 0;
     }
 
-    if (argc == 1 && options.scale != -1) {
+    if (argc == 1 && last_is_output) {
         show_help(mode);
         e_printf("\nOutput file missing.\n");
         return 1;
@@ -707,7 +716,7 @@ int main(int argc, char **argv)
           return 1;
         }
     }
-    if (file_exists(argv[argc-1]) && !options.overwrite) {
+    if (last_is_output && file_exists(argv[argc-1]) && !options.overwrite) {
         e_printf("Error: output file already exists: %s\nUse --overwrite to force overwrite.\n",argv[argc-1]);
         return 1;
     }
