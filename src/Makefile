@@ -19,7 +19,7 @@ export LD_LIBRARY_PATH=$(shell pwd):$LD_LIBRARY_PATH
 FILES_H := maniac/*.hpp maniac/*.cpp image/*.hpp transform/*.hpp flif-enc.hpp flif-dec.hpp common.hpp flif_config.h fileio.hpp io.hpp io.cpp config.h compiler-specific.hpp ../extern/lodepng.h
 FILES_CPP := maniac/chance.cpp maniac/symbol.cpp image/crc32k.cpp image/image.cpp image/image-png.cpp image/image-pnm.cpp image/image-pam.cpp image/image-rggb.cpp image/image-metadata.cpp image/color_range.cpp transform/factory.cpp common.cpp flif-enc.cpp flif-dec.cpp io.cpp ../extern/lodepng.cpp
 
-all: flif libflif$(LIBEXT) viewflif
+all: flif libflif$(LIBEXT)
 decoder: libflif_dec$(LIBEXT) dflif
 
 # options to consider: -fvect-cost-model=unlimited -funroll-all-loops
@@ -62,13 +62,16 @@ viewflif: libflif$(LIBEXT) viewflif.c
 	$(CC) -std=gnu11 -O3 -ggdb3 $(shell sdl2-config --cflags) -Wall -Ilibrary/ viewflif.c -L. -lflif $(shell sdl2-config --libs) -o viewflif
 
 
-install: all
+install: flif libflif$(LIBEXT)
 	install -d $(PREFIX)/bin $(PREFIX)/lib $(PREFIX)/share/man/man1
-	install -s -m 755 flif viewflif $(PREFIX)/bin
+	install -s -m 755 flif $(PREFIX)/bin
 	install -s -m 755 libflif$(LIBEXT) libflif$(LIBEXTV) $(PREFIX)/lib
 	install -m 644 ../doc/flif.1 $(PREFIX)/share/man/man1
 	install -m 755 ../tools/gif2flif $(PREFIX)/bin
 	install -m 755 ../tools/apng2flif $(PREFIX)/bin
+
+install-viewflif:
+	install -s -m 755 viewflif $(PREFIX)/bin
 
 install-dev:
 	install -d $(PREFIX)/include
@@ -86,6 +89,10 @@ uninstall:
 	rm -f $(PREFIX)/bin/viewflif
 	rm -f $(PREFIX)/bin/gif2flif
 	rm -f $(PREFIX)/bin/apng2flif
+	rm -f $(PREFIX)/include/flif.h
+	rm -f $(PREFIX)/include/flif_common.h
+	rm -f $(PREFIX)/include/flif_dec.h
+	rm -f $(PREFIX)/include/flif_enc.h
 	rm -f $(PREFIX)/lib/libflif$(LIBEXT)
 	rm -f $(PREFIX)/lib/libflif_dec$(LIBEXT)
 	rm -f $(PREFIX)/lib/libflif$(LIBEXTV)
