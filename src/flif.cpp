@@ -426,20 +426,20 @@ int handle_decode(int argc, char **argv, Images &images, flif_options &options) 
         }
         for (Image& image : images) {
             if (!to_stdout) {
-              if (use_custom_format) snprintf(filename,maxlength,argv[1],counter++);
-              else if (images.size() < 1000) sprintf(a_ext,"-%03d%s",counter++,ext);
-              else if (images.size() < 10000) sprintf(a_ext,"-%04d%s",counter++,ext);
-              else if (images.size() < 100000) sprintf(a_ext,"-%05d%s",counter++,ext);
-              else sprintf(a_ext,"-%08d%s",counter++,ext);
+              if (use_custom_format) snprintf(filename,maxlength,argv[1],counter);
+              else if (images.size() < 1000) sprintf(a_ext,"-%03d%s",counter,ext);
+              else if (images.size() < 10000) sprintf(a_ext,"-%04d%s",counter,ext);
+              else if (images.size() < 100000) sprintf(a_ext,"-%05d%s",counter,ext);
+              else sprintf(a_ext,"-%08d%s",counter,ext);
               if (file_exists(filename) && !options.overwrite) {
                 e_printf("Error: output file already exists: %s\nUse --overwrite to force overwrite.\n",filename);
-                return 2;
+                return 4;
               }
               if (!image.save(filename)) return 2;
             } else {
               if (!image.save(argv[1])) return 2;
-              counter++;
             }
+            counter++;
             v_printf(2,"    (%i/%i)         \r",counter,(int)images.size()); v_printf(4,"\n");
         }
     }
