@@ -437,7 +437,8 @@ int handle_decode(int argc, char **argv, Images &images, flif_options &options) 
               }
               if (!image.save(filename)) return 2;
             } else {
-              if (!image.save(argv[1])) return 2; counter++;
+              if (!image.save(argv[1])) return 2;
+              counter++;
             }
             v_printf(2,"    (%i/%i)         \r",counter,(int)images.size()); v_printf(4,"\n");
         }
