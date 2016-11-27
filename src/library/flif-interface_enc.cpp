@@ -16,6 +16,8 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifdef HAS_ENCODER
+
 #include "flif-interface-private_enc.hpp"
 #include "flif-interface_common.cpp"
 
@@ -204,3 +206,5 @@ FLIF_DLLEXPORT int32_t FLIF_API flif_encoder_encode_memory(FLIF_ENCODER* encoder
 
 
 } // extern "C"
+
+#endif

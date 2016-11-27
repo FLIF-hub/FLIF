@@ -11,9 +11,11 @@
 #include "palette_A.hpp"
 #include "palette_C.hpp"
 //#include "palette_CoCg.hpp"
+#ifdef SUPPORT_ANIMATION
 #include "frameshape.hpp"
 #include "framedup.hpp"
 #include "framecombine.hpp"
+#endif
 //#include "dct.hpp"
 
 template <typename IO>
@@ -36,12 +38,14 @@ std::unique_ptr<Transform<IO>> create_transform(const std::string &desc) {
 //        return make_unique<TransformPaletteCoCg<IO>>();
     if (desc == "Channel_Compact")
         return make_unique<TransformPaletteC<IO>>();
+#ifdef SUPPORT_ANIMATION
     if (desc == "Frame_Shape")
         return make_unique<TransformFrameShape<IO>>();
     if (desc == "Duplicate_Frame")
         return make_unique<TransformFrameDup<IO>>();
     if (desc == "Frame_Lookback")
         return make_unique<TransformFrameCombine<IO>>();
+#endif
 //    if (desc == "DCT")
 //        return make_unique<TransformDCT<IO>>();
     return NULL;

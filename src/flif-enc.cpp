@@ -57,7 +57,9 @@ void flif_encode_scanlines_inner(IO& io, Rac& rac, std::vector<Coder> &coders, c
     long pixels = images[0].cols()*images[0].rows()*images.size();
     const int nump = images[0].numPlanes();
     const bool alphazero = (nump>3 && images[0].alpha_zero_special);
+#ifdef SUPPORT_ANIMATION
     const bool FRA = (nump == 5);
+#endif
     for (int k=0,i=0; k < 5; k++) {
         int p=PLANE_ORDERING[k];
         if (p>=nump) continue;
@@ -74,11 +76,15 @@ void flif_encode_scanlines_inner(IO& io, Rac& rac, std::vector<Coder> &coders, c
               uint32_t begin=image.col_begin[r], end=image.col_end[r];
               for (uint32_t c = begin; c < end; c++) {
                 if (alphazero && p<3 && image(3,r,c) == 0) continue;
+#ifdef SUPPORT_ANIMATION
                 if (FRA && p<4 && image(4,r,c) > 0) continue;
+#endif
                 ColorVal guess = predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max, minP);
                 ColorVal curr = image(p,r,c);
                 assert(p != 3 || curr >= -fr);
+#ifdef SUPPORT_ANIMATION
                 if (FRA && p==4 && max > fr) max = fr;
+#endif
                 coders[p].write_int(properties, min - guess, max - guess, curr - guess);
               }
             }
@@ -119,7 +125,9 @@ int find_best_predictor(const Images &images, const ColorRanges *ranges, const i
     ColorVal min,max;
     const int nump = images[0].numPlanes();
     const bool alphazero = (nump>3 && images[0].alpha_zero_special);
+#ifdef SUPPORT_ANIMATION
     const bool FRA = (nump == 5);
+#endif
     Properties properties((nump>3?NB_PROPERTIESA[p]:NB_PROPERTIES[p]));
     std::vector<uint64_t> total_size(MAX_PREDICTOR+1, 0);
     for (int predictor=0; predictor <= MAX_PREDICTOR; predictor++) {
@@ -138,7 +146,9 @@ int find_best_predictor(const Images &images, const ColorRanges *ranges, const i
                          end=(1+(image.col_end[r*image.zoom_rowpixelsize(z)]-1)/image.zoom_colpixelsize(z));
               for (uint32_t c = begin; c < end; c++) {
                     if (alphazero && p<3 && image(3,z,r,c) == 0) continue;
+#ifdef SUPPORT_ANIMATION
                     if (FRA && p<4 && image(4,z,r,c) > 0) continue;
+#endif
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max,predictor);
                     ColorVal curr = image(p,z,r,c);
                     total_size[predictor] += maniac::util::ilog2(abs(curr-guess)) + (curr-guess ? zerobonus : 0);
@@ -159,7 +169,9 @@ int find_best_predictor(const Images &images, const ColorRanges *ranges, const i
               if (begin==0) begin=1;
               for (uint32_t c = begin; c < end; c+=2) {
                     if (alphazero && p<3 && image(3,z,r,c) == 0) continue;
+#ifdef SUPPORT_ANIMATION
                     if (FRA && p<4 && image(4,z,r,c) > 0) continue;
+#endif
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max,predictor);
                     ColorVal curr = image(p,z,r,c);
                     total_size[predictor] += maniac::util::ilog2(abs(curr-guess)) + (curr-guess ? zerobonus : 0);
@@ -185,7 +197,9 @@ void flif_encode_FLIF2_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const
     ColorVal min,max;
     const int nump = images[0].numPlanes();
     const bool alphazero = (nump>3 && images[0].alpha_zero_special);
+#ifdef SUPPORT_ANIMATION
     const bool FRA = (nump == 5);
+#endif
     long fs = io.ftell();
     UniformSymbolCoder<Rac> metaCoder(rac);
     const bool default_order = true;
@@ -214,13 +228,17 @@ void flif_encode_FLIF2_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const
                          end=(1+(image.col_end[r*image.zoom_rowpixelsize(z)]-1)/image.zoom_colpixelsize(z));
               for (uint32_t c = begin; c < end; c++) {
                     if (alphazero && p<3 && image(3,z,r,c) == 0) continue;
+#ifdef SUPPORT_ANIMATION
                     if (FRA && p<4 && image(4,z,r,c) > 0) continue;
+#endif
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max,predictor);
                     ColorVal curr = image(p,z,r,c);
+#ifdef SUPPORT_ANIMATION
                     if (FRA) {
                         if (p==4 && max > fr) max = fr;
                         if (guess>max || guess<min) guess = min;
                     }
+#endif
                     assert (curr <= max); assert (curr >= min);
                     coders[p].write_int(properties, min - guess, max - guess, curr - guess);
               }
@@ -240,13 +258,17 @@ void flif_encode_FLIF2_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const
               if (begin==0) begin=1;
               for (uint32_t c = begin; c < end; c+=2) {
                     if (alphazero && p<3 && image(3,z,r,c) == 0) continue;
+#ifdef SUPPORT_ANIMATION
                     if (FRA && p<4 && image(4,z,r,c) > 0) continue;
+#endif
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max,predictor);
                     ColorVal curr = image(p,z,r,c);
+#ifdef SUPPORT_ANIMATION
                     if (FRA) {
                         if (p==4 && max > fr) max = fr;
                         if (guess>max || guess<min) guess = min;
                     }
+#endif
                     assert (curr <= max); assert (curr >= min);
                     coders[p].write_int(properties, min - guess, max - guess, curr - guess);
               }
@@ -743,6 +765,13 @@ bool flif_encode(IO& io, Images &images, const std::vector<std::string> &transDe
 
     int numPlanes = images[0].numPlanes();
     int numFrames = images.size();
+#ifndef SUPPORT_ANIMATION
+    if (numFrames > 1) {
+        e_printf("This FLIF cannot encode animations. Please compile with SUPPORT_ANIMATION.\n");
+        return false;
+    }
+#endif
+
     bool adaptive = (options.loss<0);
     Image adaptive_map;
     if (adaptive) { // images[0] is the still image to be encoded, images[1] is the saliency map for adaptive lossy
@@ -863,7 +892,9 @@ bool flif_encode(IO& io, Images &images, const std::vector<std::string> &transDe
         auto trans = create_transform<IO>(transDesc[i]);
         auto previous_range = rangesList.back().get();
         if (transDesc[i] == "Palette" || transDesc[i] == "Palette_Alpha") trans->configure(options.palette_size);
+#ifdef SUPPORT_ANIMATION
         if (transDesc[i] == "Frame_Lookback") trans->configure(options.lookback);
+#endif
         if (transDesc[i] == "PermutePlanes") trans->configure(options.subtract_green);
         if (!trans->init(previous_range) ||
             (!trans->process(previous_range, images)

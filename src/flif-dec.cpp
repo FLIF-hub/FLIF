@@ -51,6 +51,7 @@ void flif_decode_scanline_plane(plane_t &plane, Coder &coder, Images &images, co
     ColorVal min,max;
     Image& image = images[fr];
     uint32_t begin=0, end=image.cols();
+#ifdef SUPPORT_ANIMATION
     //if this is a duplicate frame, copy the row from the frame being duplicated
     if (image.seen_before >= 0) { 
         copy_row_range(plane,images[image.seen_before].getPlane(p),r,0,image.cols());
@@ -68,7 +69,8 @@ void flif_decode_scanline_plane(plane_t &plane, Coder &coder, Images &images, co
         else if(p!=4) {
             copy_row_range(plane,images[fr - 1].getPlane(p), r, 0, begin);
         }
-    } else if (image.numPlanes()>3 && p<3) { begin=0; end=image.cols(); }
+    }
+#endif
     //decode actual pixel data
 #if LARGE_BINARY > 0
     if (r > 1 && !FRA && begin == 0 && end > 3) {
@@ -97,14 +99,19 @@ void flif_decode_scanline_plane(plane_t &plane, Coder &coder, Images &images, co
       for (uint32_t c = begin; c < end; c++) {
         //predict pixel for alphazero and get a previous pixel for FRA
         if (alphazero && p<3 && alpha.get(r,c) == 0) {plane.set(r,c,predictScanlines_plane(plane,r,c, grey)); continue;}
+#ifdef SUPPORT_ANIMATION
         if (FRA && p<4 && image.getFRA(r,c) > 0) {assert(fr >= image.getFRA(r,c)); plane.set(r,c,images[fr-image.getFRA(r,c)](p,r,c)); continue;}
+#endif
         //calculate properties and use them to decode the next pixel
         ColorVal guess = predict_and_calcProps_scanlines_plane<plane_t,false>(properties,ranges,image,plane,p,r,c,min,max, minP);
+#ifdef SUPPORT_ANIMATION
         if (FRA && p==4 && max > fr) max = fr;
+#endif
         ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
         plane.set(r,c, curr);
       }
     }
+#ifdef SUPPORT_ANIMATION
     //if this is not the first or only frame, fill the end of the row after the actual pixel data
     if (fr>0) {
         //if alphazero is on, fill with a predicted value, otherwise copy pixels from the previous frame
@@ -117,6 +124,7 @@ void flif_decode_scanline_plane(plane_t &plane, Coder &coder, Images &images, co
             copy_row_range(plane,images[fr - 1].getPlane(p), r, end, image.cols());
         }
     }
+#endif
 }
 
 //TODO use tuples or something to make this less ugly/more generic
@@ -314,11 +322,12 @@ void flif_decode_plane_zoomlevel_horizontal(plane_t &plane, Coder &coder, Images
     const int z, const int fr, const uint32_t r,  const bool alphazero, const bool FRA, const int predictor, const int invisible_predictor) {
     ColorVal min,max;
     Image& image = images[fr];
+    uint32_t begin=0, end=image.cols(z);
+#ifdef SUPPORT_ANIMATION
     if (image.seen_before >= 0) {
         const uint32_t cs = image.zoom_colpixelsize(z)>>image.getscale(), rs = image.zoom_rowpixelsize(z)>>image.getscale();
         copy_row_range(plane,images[image.seen_before].getPlane(p),rs*r,0,cs*image.cols(z),cs); return;
     }
-    uint32_t begin=0, end=image.cols(z);
     if (fr>0) {
         begin=image.col_begin[r*image.zoom_rowpixelsize(z)]/image.zoom_colpixelsize(z);
         end=1+(image.col_end[r*image.zoom_rowpixelsize(z)]-1)/image.zoom_colpixelsize(z);
@@ -336,9 +345,8 @@ void flif_decode_plane_zoomlevel_horizontal(plane_t &plane, Coder &coder, Images
             copy_row_range(plane, images[fr - 1].getPlane(p), rs*r, cs*0, cs*begin, cs);
             copy_row_range(plane, images[fr - 1].getPlane(p), rs*r, cs*end, cs*image.cols(z), cs);
         }
-    } else {
-        if (image.numPlanes()>3 && p<3) {begin=0; end=image.cols(z);}
     }
+#endif
 #if LARGE_BINARY > 0
     // avoid branching for border cases
     if (r > 1 && r < image.rows(z)-1 && !FRA && begin == 0 && end > 3) {
@@ -365,21 +373,27 @@ void flif_decode_plane_zoomlevel_horizontal(plane_t &plane, Coder &coder, Images
     {
       for (uint32_t c = begin; c < end; c++) {
         if (alphazero && p<3 && alpha.get_fast(r,c) == 0) { plane.set_fast(r,c,predict_plane_horizontal(plane,z,p,r,c, image.rows(z), invisible_predictor)); continue;}
+#ifdef SUPPORT_ANIMATION
         if (FRA && p<4 && image.getFRA(z,r,c) > 0) { plane.set_fast(r,c,images[fr-image.getFRA(z,r,c)](p,z,r,c)); continue;}
+#endif
         ColorVal guess = predict_and_calcProps_plane<plane_t,alpha_t,true,false,p,ranges_t>(properties,ranges,image,plane,planeY,z,r,c,min,max, predictor);
+#ifdef SUPPORT_ANIMATION
         if (FRA && p==4 && max > fr) max = fr;
         if (FRA && (guess>max || guess<min)) guess = min;
+#endif
         ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
         assert(curr >= ranges->min(p) && curr <= ranges->max(p));
         assert(curr >= min && curr <= max);
         plane.set_fast(r,c, curr);
       }
     }
+#ifdef SUPPORT_ANIMATION
     if (fr>0 && alphazero && p < 3) {
             for (uint32_t c = end; c < image.cols(z); c++)
                 if (alpha.get(z,r,c) == 0) plane.set(z,r,c, predict_plane_horizontal(plane,z,p,r,c, image.rows(z), invisible_predictor));
                 else image.set(p,z,r,c,images[fr-1](p,z,r,c));
     }
+#endif
 }
 
 template<typename Coder, typename plane_t, typename alpha_t, int p, typename ranges_t>
@@ -387,11 +401,12 @@ void flif_decode_plane_zoomlevel_vertical(plane_t &plane, Coder &coder, Images &
     const int z, const int fr, const uint32_t r,  const bool alphazero, const bool FRA, const int predictor, const int invisible_predictor) {
     ColorVal min,max;
     Image& image = images[fr];
+    uint32_t begin=1, end=image.cols(z);
+#ifdef SUPPORT_ANIMATION
     if (image.seen_before >= 0) {
         const uint32_t cs = image.zoom_colpixelsize(z)>>image.getscale(), rs = image.zoom_rowpixelsize(z)>>image.getscale();
         copy_row_range(plane, images[image.seen_before].getPlane(p),rs*r,cs*1,cs*image.cols(z),cs*2); return;
     }
-    uint32_t begin=1, end=image.cols(z);
     if (fr>0) {
         begin=(image.col_begin[r*image.zoom_rowpixelsize(z)]/image.zoom_colpixelsize(z));
         end=(1+(image.col_end[r*image.zoom_rowpixelsize(z)]-1)/image.zoom_colpixelsize(z))|1;
@@ -411,9 +426,8 @@ void flif_decode_plane_zoomlevel_vertical(plane_t &plane, Coder &coder, Images &
             copy_row_range(plane, images[fr - 1].getPlane(p), rs*r, cs*1, cs*begin, cs*2);
             copy_row_range(plane, images[fr - 1].getPlane(p), rs*r, cs*end, cs*image.cols(z), cs*2);
         }
-    } else {
-        if (image.numPlanes()>3 && p<3) {begin=1; end=image.cols(z);}
     }
+#endif
 #if LARGE_BINARY > 0
     // avoid branching for border cases
     if (r > 1 && r < image.rows(z)-1 && !FRA && end == image.cols(z) && end > 5 && begin == 1) {
@@ -441,10 +455,14 @@ void flif_decode_plane_zoomlevel_vertical(plane_t &plane, Coder &coder, Images &
     {
       for (uint32_t c = begin; c < end; c+=2) {
         if (alphazero && p<3 && alpha.get_fast(r,c) == 0) { plane.set_fast(r,c,predict_plane_vertical(plane, z, p, r, c, image.cols(z), invisible_predictor)); continue;}
+#ifdef SUPPORT_ANIMATION
         if (FRA && p<4 && image.getFRA(z,r,c) > 0) { plane.set_fast(r,c,images[fr-image.getFRA(z,r,c)](p,z,r,c)); continue;}
+#endif
         ColorVal guess = predict_and_calcProps_plane<plane_t,alpha_t,false,false,p,ranges_t>(properties,ranges,image,plane,planeY,z,r,c,min,max, predictor);
+#ifdef SUPPORT_ANIMATION
         if (FRA && p==4 && max > fr) max = fr;
         if (FRA && (guess>max || guess<min)) guess = min;
+#endif
         ColorVal curr = coder.read_int(properties, min - guess, max - guess) + guess;
         //plane.set(z,r,c, curr);
         assert(curr >= ranges->min(p) && curr <= ranges->max(p));
@@ -452,11 +470,13 @@ void flif_decode_plane_zoomlevel_vertical(plane_t &plane, Coder &coder, Images &
         plane.set_fast(r,c, curr);
       }
     }
+#ifdef SUPPORT_ANIMATION
     if (fr>0 && alphazero && p < 3) {
             for (uint32_t c = end; c < image.cols(z); c += 2)
                 if (alpha.get(z, r, c) == 0) plane.set(z, r, c, predict_plane_vertical(plane, z, p, r, c, image.cols(z), invisible_predictor));
                 else image.set(p,z,r,c,images[fr-1](p,z,r,c));
     }
+#endif
 }
 
 //TODO use tuples or something to make this less ugly/more generic
@@ -478,7 +498,9 @@ struct horizontal_plane_decoder: public PlaneVisitor {
         // this branching on plane number is just to avoid too much template code blowup
         if (p==0) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_8>,alpha_t,0,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor, invisible_predictor);
         if (p==3) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_8>,alpha_t,3,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor, invisible_predictor);
+#ifdef SUPPORT_ANIMATION
         if (p==4) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_8>,alpha_t,4,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor, invisible_predictor);
+#endif
     }
     void visit(Plane<ColorVal_intern_16>  &plane) override {
         if (p==1) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_16>,alpha_t,1,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor, invisible_predictor);
@@ -516,7 +538,9 @@ struct vertical_plane_decoder: public PlaneVisitor {
         // this branching on plane number is just to avoid too much template code blowup
         if (p==0) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_8>,alpha_t,0,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor, invisible_predictor);
         if (p==3) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_8>,alpha_t,3,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor, invisible_predictor);
+#ifdef SUPPORT_ANIMATION
         if (p==4) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_8>,alpha_t,4,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor, invisible_predictor);
+#endif
     }
     void visit(Plane<ColorVal_intern_16>  &plane) override {
         if (p==1) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_16>,alpha_t,1,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor, invisible_predictor);
@@ -627,10 +651,12 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
             e_printf("Corrupt file: non-alpha encoded before alpha, while invisible pixels have undefined RGB values. Not allowed.\n");
             return false;
         }
+#ifdef SUPPORT_ANIMATION
         if (nump > 4 && p < 4 && zoomlevels[p] <= zoomlevels[4]) {
             e_printf("Corrupt file: pixels encoded before frame lookback. Not allowed.\n");
             return false;
         }
+#endif
       }
       int z = zoomlevels[p];
       if (z < 0) {e_printf("Corrupt file: invalid plane/zoomlevel\n"); return false;}
@@ -915,7 +941,12 @@ bool flif_decode(IO& io, Images &images, uint32_t (*callback)(int32_t,int64_t), 
     if (width < 1 || height < 1) {e_printf("Invalid FLIF header\n"); return false;}
 
     if (numFrames > 1) numFrames = read_big_endian_varint(io)+2;
-
+#ifndef SUPPORT_ANIMATION
+    if (numFrames > 1) {
+        e_printf("This FLIF cannot decode animations. Please compile with SUPPORT_ANIMATION.\n");
+        return false;
+    }
+#endif
     MetaData chunk;
     int result = 0;
     while (!(result = read_chunk(io, chunk))) {
@@ -1094,6 +1125,7 @@ bool flif_decode(IO& io, Images &images, uint32_t (*callback)(int32_t,int64_t), 
         }
         if (tcount++ > 0) v_printf(4,", ");
         v_printf(4,"%s", desc.c_str());
+#ifdef SUPPORT_ANIMATION
         if (desc == "Frame_Lookback") {
                 if (images.size()<2) return false;
                 trans->configure(images.size());
@@ -1105,6 +1137,7 @@ bool flif_decode(IO& io, Images &images, uint32_t (*callback)(int32_t,int64_t), 
                 if (unique_frames < 1) {return false;}
                 trans->configure(unique_frames*images[0].rows()); trans->configure(images[0].cols()); }
         if (desc == "Duplicate_Frame") { if (images.size()<2) return false; else trans->configure(images.size()); }
+#endif
         if (desc == "Palette_Alpha") { trans->configure(images[0].alpha_zero_special); }
         if (!trans->load(previous_range, rac)) return false;
         rangesList.push_back(std::unique_ptr<const ColorRanges>(trans->meta(images, previous_range)));

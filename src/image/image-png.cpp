@@ -23,10 +23,11 @@ enum {
 
 #include "image.hpp"
 #include "image-png.hpp"
+
+#ifdef HAS_ENCODER
 #include "image-png-metadata.hpp"
 
 
-#ifdef HAS_ENCODER
 int image_load_png(const char *filename, Image &image, metadata_options &options) {
 #ifdef FLIF_USE_STB_IMAGE
 
