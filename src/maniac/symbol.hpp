@@ -222,30 +222,6 @@ template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min
     return (sign ? have : -have);
 }
 
-template <typename BitChance, typename RAC> class SimpleBitCoder {
-    typedef typename BitChance::Table Table;
-
-private:
-    const Table table;
-    BitChance ctx;
-    RAC &rac;
-
-public:
-    SimpleBitCoder(RAC &racIn, int cut = 2, int alpha = 0xFFFFFFFF / 19) : table(cut, alpha), rac(racIn) {}
-
-    void set(uint16_t chance) {
-        ctx.set(chance);
-    }
-#ifdef HAS_ENCODER
-    void write(bool bit);
-#endif
-    bool read() {
-        bool bit = rac.read(ctx.get());
-        ctx.put(bit, table);
-        return bit;
-    }
-};
-
 template <typename BitChance, typename RAC, int bits> class SimpleSymbolBitCoder {
     typedef typename BitChance::Table Table;
 

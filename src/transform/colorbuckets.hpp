@@ -420,7 +420,6 @@ protected:
         for (int p=0; p<plane; p++) {
                 if (!cb->exists(p,pixelL,pixelU)) return b;
         }
-//        SimpleBitCoder<FLIFBitChanceMeta, RacIn> bcoder(rac);
 
         ColorVal smin,smax;
         minmax(srcRanges,plane,pixelL,pixelU,smin,smax);
