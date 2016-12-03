@@ -35,20 +35,17 @@ public:
     void write_int(int min, int max, int val);
     void write_int(int bits, int val) { write_int(0, (1<<bits) -1, val); };
 #endif
-    int read_int(int min, int max) {
-        assert(max >= min);
-        if (min != 0) {
-            max -= min;
-        }
-        if (max == 0) return min;
+    int read_int(int min, int len) {
+        assert(len >= 0);
+        if (len == 0) return min;
 
-        // split in [0..med] [med+1..max]
-        int med = max/2;
+        // split in [0..med] [med+1..len]
+        int med = len/2;
         bool bit = rac.read_bit();
         if (bit) {
-            return read_int(min+med+1, min+max);
+            return read_int(min+med+1, len-(med+1));
         } else {
-            return read_int(min, min+med);
+            return read_int(min, med);
         }
     }
     int read_int(int bits) { return read_int(0, (1<<bits)-1); }

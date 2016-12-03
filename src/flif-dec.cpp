@@ -638,7 +638,7 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
     const bool default_order = metaCoder.read_int(0, 1);
     int the_predictor[5] = {0,0,0,0,0};
     int breakpoints = options.show_breakpoints;
-    for (int p=0; p<nump; p++) the_predictor[p] = metaCoder.read_int(-1, MAX_PREDICTOR);
+    for (int p=0; p<nump; p++) the_predictor[p] = metaCoder.read_int(-1, MAX_PREDICTOR+1);
     for (int i = 0; i < plane_zoomlevels(images[0], beginZL, endZL); i++) {
       int p;
       if (default_order) {
@@ -741,7 +741,10 @@ bool flif_decode_FLIF2_pass(IO &io, Rac &rac, Images &images, const ColorRanges 
       UniformSymbolCoder<Rac> metaCoder(rac);
       for (int p = 0; p < images[0].numPlanes(); p++) {
         if (ranges->min(p) < ranges->max(p)) {
-          for (Image& image : images) image.set(p,0,0,0, metaCoder.read_int(ranges->min(p), ranges->max(p)));
+          for (Image& image : images) {
+             const int minR = ranges->min(p);
+             image.set(p,0,0,0, metaCoder.read_int(minR, ranges->max(p) - minR));
+          }
           pixels_done++;
         }
       }
@@ -984,7 +987,7 @@ bool flif_decode(IO& io, Images &images, uint32_t (*callback)(int32_t,int64_t), 
 //        int min = 0;
         int max = 255;
         if (c=='2') max=65535;
-        else if (c=='0') max=(1 << metaCoder.read_int(1, 16)) - 1;
+        else if (c=='0') max=(1 << metaCoder.read_int(1, 15)) - 1;
         if (max>maxmax) maxmax=max;
 //        image.add_plane(min, max);
 //        v_printf(2," [%i] %i bpp (%i..%i)",p,ilog2(image.max(p)+1),image.min(p), image.max(p));
@@ -1089,8 +1092,8 @@ bool flif_decode(IO& io, Images &images, uint32_t (*callback)(int32_t,int64_t), 
     options.cutoff = 2;
     options.alpha = 0xFFFFFFFF / 19;
     if (metaCoder.read_int(0,1)) {
-      options.cutoff = metaCoder.read_int(1,128);
-      options.alpha = 0xFFFFFFFF / metaCoder.read_int(2,128);
+      options.cutoff = metaCoder.read_int(1,127);
+      options.alpha = 0xFFFFFFFF / metaCoder.read_int(2,126);
       if (metaCoder.read_int(0,1)) {
         e_printf("Not yet implemented: non-default bitchance initialization\n");
         return false;
