@@ -194,7 +194,6 @@ template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min
     const int emax = maniac::util::ilog2(amax);
     int e = maniac::util::ilog2(amin);
 
-    //for (; e < emax; e++) {
     for (; e < emax; e++) {
         // if exponent >e is impossible, we are done
         // actually that cannot happen
