@@ -19,7 +19,7 @@ public:
         minmax(p,pp,minv,maxv);
         if (minv > maxv) { //e_printf("Corruption detected!\n");
             // this should only happen on malicious/corrupt input files, or while adding loss
-           maxv=minv; return;
+           maxv=minv;
         }
         assert(minv <= maxv);
         if(v>maxv) v=maxv;
