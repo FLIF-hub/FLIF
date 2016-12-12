@@ -105,7 +105,7 @@ clean:
 
 # The targets below are only meant for developers
 
-test-interface: libflif.dbg.so ../tools/test.c
+test-interface: libflif.dbg.so libflif.so ../tools/test.c
 	$(CC) -O0 -ggdb3 -Wall -Ilibrary/ ../tools/test.c -L. -lflif.dbg  -o test-interface
 
 test: flif test-interface
