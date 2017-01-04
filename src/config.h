@@ -119,6 +119,7 @@ struct flif_options {
     int loss;
     int adaptive;
     int predictor[5];
+    int chroma_subsampling;
 #endif
     flifEncodingOptional method;
     int invisible_predictor;
@@ -136,6 +137,7 @@ struct flif_options {
     int just_add_loss;
     int show_breakpoints;
     int no_full_decode;
+    int keep_palette;
 };
 
 const struct flif_options FLIF_DEFAULT_OPTIONS = {
@@ -156,6 +158,7 @@ const struct flif_options FLIF_DEFAULT_OPTIONS = {
     0, // loss
     0, // adaptive
     {-2,-2,-2,-2,-2}, // predictor, heuristically pick a fixed predictor on all planes
+    0, // chroma_subsampling
 #endif
     flifEncodingOptional(), // method
     2, // invisible_predictor
@@ -173,4 +176,5 @@ const struct flif_options FLIF_DEFAULT_OPTIONS = {
     0, // just_add_loss
     0, // show_breakpoints
     0, // no_full_decode
+    0, // keep_palette
 };

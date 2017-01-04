@@ -99,6 +99,23 @@ void FLIF_IMAGE::write_row_GRAY8(uint32_t row, const void * buffer, size_t buffe
 	}
 }
 
+void FLIF_IMAGE::write_row_PALETTE8(uint32_t row, const void * buffer, size_t buffer_size_bytes)
+{
+	if (buffer_size_bytes < image.cols() * sizeof(uint8_t))
+		return;
+
+	const uint8_t* buffer_gray = reinterpret_cast<const uint8_t*>(buffer);
+
+	if (image.numPlanes() >= 4) {
+		for (size_t c = 0; c < (size_t)image.cols(); c++) {
+			image.set(0, row, c, 0);
+			image.set(1, row, c, buffer_gray[c]);
+			image.set(2, row, c, 0);
+			image.set(3, row, c, 1);
+		}
+	}
+}
+
 void FLIF_IMAGE::read_row_RGBA8(uint32_t row, void* buffer, size_t buffer_size_bytes) {
     if(buffer_size_bytes < image.cols() * sizeof(FLIF_RGBA))
         return;
@@ -109,32 +126,77 @@ void FLIF_IMAGE::read_row_RGBA8(uint32_t row, void* buffer, size_t buffer_size_b
     ColorVal m=image.max(0);
     while (m > 0xFF) { rshift++; m = m >> 1; } // in case the image has bit depth higher than 8
     if (m < 0xFF) mult = 0xFF / m;
-
-    if(image.numPlanes() >= 3) {
+    if (image.palette) {
+      assert(image.numPlanes() >= 3);
+      // always color
+      for (size_t c = 0; c < (size_t) image.cols(); c++) {
+            buffer_rgba[c].r = ((image.palette_image->operator()(0, 0, image(1, row, c)) >> rshift) * mult) & 0xFF;
+            buffer_rgba[c].g = ((image.palette_image->operator()(1, 0, image(1, row, c)) >> rshift) * mult) & 0xFF;
+            buffer_rgba[c].b = ((image.palette_image->operator()(2, 0, image(1, row, c)) >> rshift) * mult) & 0xFF;
+      }
+      if (image.numPlanes() >= 4) {
+        for (size_t c = 0; c < (size_t) image.cols(); c++) {
+            buffer_rgba[c].a = ((image.palette_image->operator()(3, 0, image(1, row, c)) >> rshift) * mult) & 0xFF;
+        }
+      } else {
+        for (size_t c = 0; c < (size_t) image.cols(); c++) {
+            buffer_rgba[c].a = 0xFF;  // fully opaque
+        }
+      }
+    } else {
+      if (image.numPlanes() >= 3) {
         // color
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
             buffer_rgba[c].r = ((image(0, row, c) >> rshift) * mult) & 0xFF;
             buffer_rgba[c].g = ((image(1, row, c) >> rshift) * mult) & 0xFF;
             buffer_rgba[c].b = ((image(2, row, c) >> rshift) * mult) & 0xFF;
         }
-    } else {
+      } else {
         // grayscale
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
             buffer_rgba[c].r =
             buffer_rgba[c].g =
             buffer_rgba[c].b = ((image(0, row, c) >> rshift) * mult) & 0xFF;
         }
-    }
-    if(image.numPlanes() >= 4) {
+      }
+      if (image.numPlanes() >= 4) {
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
             buffer_rgba[c].a = ((image(3, row, c) >> rshift) * mult) & 0xFF;
         }
-    } else {
+      } else {
         for (size_t c = 0; c < (size_t) image.cols(); c++) {
             buffer_rgba[c].a = 0xFF;  // fully opaque
         }
+      }
     }
 }
+
+void FLIF_IMAGE::read_row_GRAY8(uint32_t row, void* buffer, size_t buffer_size_bytes) {
+    if(buffer_size_bytes < image.cols()) return;
+
+    uint8_t* buffer_gray = reinterpret_cast<uint8_t*>(buffer);
+    int rshift = 0;
+    int mult = 1;
+    ColorVal m=image.max(0);
+    while (m > 0xFF) { rshift++; m = m >> 1; } // in case the image has bit depth higher than 8
+    if (m < 0xFF) mult = 0xFF / m;
+
+    for (size_t c = 0; c < (size_t) image.cols(); c++) {
+            buffer_gray[c] = ((image(0, row, c) >> rshift) * mult) & 0xFF;
+    }
+}
+
+void FLIF_IMAGE::read_row_PALETTE8(uint32_t row, void* buffer, size_t buffer_size_bytes) {
+    if(buffer_size_bytes < image.cols()) return;
+
+    assert(image.palette);
+
+    uint8_t* buffer_gray = reinterpret_cast<uint8_t*>(buffer);
+    for (size_t c = 0; c < (size_t) image.cols(); c++) {
+            buffer_gray[c] = image(1, row, c) & 0xFF;
+    }
+}
+
 
 void FLIF_IMAGE::write_row_RGBA16(uint32_t row, const void* buffer, size_t buffer_size_bytes) {
     if(buffer_size_bytes < image.cols() * sizeof(FLIF_RGBA16))
@@ -236,62 +298,83 @@ FLIF_DLLEXPORT FLIF_IMAGE* FLIF_API flif_create_image_HDR(uint32_t width, uint32
     return 0;
 }
 
-	FLIF_DLLIMPORT FLIF_IMAGE* FLIF_API flif_import_image_RGBA(uint32_t width, uint32_t height, const void* rgba, uint32_t rgba_stride) {
-		try
-		{
-			const int number_components = 4;
-			if (width == 0 || height == 0 || rgba_stride < width*number_components)
-				return 0;
-			std::unique_ptr<FLIF_IMAGE> image(new FLIF_IMAGE());
-			image->image.init(width, height, 0, 255, number_components);
-			const uint8_t* buffer = static_cast<const uint8_t*>(rgba);
-			for (uint32_t row = 0; row < height; ++row) {
-				image->write_row_RGBA8(row, buffer, width*number_components);
-				buffer += rgba_stride;
-			}
-			return image.release();
+FLIF_DLLIMPORT FLIF_IMAGE* FLIF_API flif_import_image_RGBA(uint32_t width, uint32_t height, const void* rgba, uint32_t rgba_stride) {
+	try
+	{
+		const int number_components = 4;
+		if (width == 0 || height == 0 || rgba_stride < width*number_components)
+			return 0;
+		std::unique_ptr<FLIF_IMAGE> image(new FLIF_IMAGE());
+		image->image.init(width, height, 0, 255, number_components);
+		const uint8_t* buffer = static_cast<const uint8_t*>(rgba);
+		for (uint32_t row = 0; row < height; ++row) {
+			image->write_row_RGBA8(row, buffer, width*number_components);
+			buffer += rgba_stride;
 		}
-		catch (...) {}
-		return 0;
+		return image.release();
 	}
+	catch (...) {}
+	return 0;
+}
 
-	FLIF_DLLIMPORT FLIF_IMAGE* FLIF_API flif_import_image_RGB(uint32_t width, uint32_t height, const void* rgb, uint32_t rgb_stride) {
-		try
-		{
-			const int number_components = 3;
-			if (width == 0 || height == 0 || rgb_stride < width*number_components)
-				return 0;
-			std::unique_ptr<FLIF_IMAGE> image(new FLIF_IMAGE());
-			image->image.init(width, height, 0, 255, number_components);
-			const uint8_t* buffer = static_cast<const uint8_t*>(rgb);
-			for (uint32_t row = 0; row < height; ++row) {
-				image->write_row_RGB8(row, buffer, width*number_components);
-				buffer += rgb_stride;
-			}
-			return image.release();
+FLIF_DLLIMPORT FLIF_IMAGE* FLIF_API flif_import_image_RGB(uint32_t width, uint32_t height, const void* rgb, uint32_t rgb_stride) {
+	try
+	{
+		const int number_components = 3;
+		if (width == 0 || height == 0 || rgb_stride < width*number_components)
+			return 0;
+		std::unique_ptr<FLIF_IMAGE> image(new FLIF_IMAGE());
+		image->image.init(width, height, 0, 255, number_components);
+		const uint8_t* buffer = static_cast<const uint8_t*>(rgb);
+		for (uint32_t row = 0; row < height; ++row) {
+			image->write_row_RGB8(row, buffer, width*number_components);
+			buffer += rgb_stride;
 		}
-		catch (...) {}
-		return 0;
+		return image.release();
 	}
+	catch (...) {}
+	return 0;
+}
 
-	FLIF_DLLIMPORT FLIF_IMAGE* FLIF_API flif_import_image_GRAY(uint32_t width, uint32_t height, const void* gray, uint32_t gray_stride) {
-		try
-		{
-			const int number_components = 1;
-			if (width == 0 || height == 0 || gray_stride < width*number_components)
-				return 0;
-			std::unique_ptr<FLIF_IMAGE> image(new FLIF_IMAGE());
-			image->image.init(width, height, 0, 255, number_components);
-			const uint8_t* buffer = static_cast<const uint8_t*>(gray);
-			for (uint32_t row = 0; row < height; ++row) {
-				image->write_row_GRAY8(row, buffer, width*number_components);
-				buffer += gray_stride;
-			}
-			return image.release();
+FLIF_DLLIMPORT FLIF_IMAGE* FLIF_API flif_import_image_GRAY(uint32_t width, uint32_t height, const void* gray, uint32_t gray_stride) {
+	try
+	{
+		const int number_components = 1;
+		if (width == 0 || height == 0 || gray_stride < width*number_components)
+			return 0;
+		std::unique_ptr<FLIF_IMAGE> image(new FLIF_IMAGE());
+		image->image.init(width, height, 0, 255, number_components);
+		const uint8_t* buffer = static_cast<const uint8_t*>(gray);
+		for (uint32_t row = 0; row < height; ++row) {
+			image->write_row_GRAY8(row, buffer, width*number_components);
+			buffer += gray_stride;
 		}
-		catch (...) {}
-		return 0;
+		return image.release();
 	}
+	catch (...) {}
+	return 0;
+}
+
+FLIF_DLLIMPORT FLIF_IMAGE* FLIF_API flif_import_image_PALETTE(uint32_t width, uint32_t height, const void* gray, uint32_t gray_stride) {
+	try
+	{
+		const int number_components = 1;
+		if (width == 0 || height == 0 || gray_stride < width*number_components)
+			return 0;
+		std::unique_ptr<FLIF_IMAGE> image(new FLIF_IMAGE());
+		image->image.semi_init(width, height, 0, 255, 4);
+		image->image.real_init(true);
+		image->image.palette = true;
+		const uint8_t* buffer = static_cast<const uint8_t*>(gray);
+		for (uint32_t row = 0; row < height; ++row) {
+			image->write_row_PALETTE8(row, buffer, width*number_components);
+			buffer += gray_stride;
+		}
+		return image.release();
+	}
+	catch (...) {}
+	return 0;
+}
 
 FLIF_DLLEXPORT void FLIF_API flif_destroy_image(FLIF_IMAGE* image) {
     // delete should never let exceptions out
@@ -334,6 +417,55 @@ FLIF_DLLEXPORT uint8_t FLIF_API flif_image_get_nb_channels(FLIF_IMAGE* image) {
     }
     catch(...) {}
     return 0;
+}
+
+FLIF_DLLEXPORT uint32_t FLIF_API flif_image_get_palette_size(FLIF_IMAGE* image) {
+    try
+    {
+        uint32_t nb = 0;
+        if (image->image.palette && image->image.palette_image) nb = image->image.palette_image->cols();
+        return nb;
+    }
+    catch(...) {}
+    return 0;
+}
+
+FLIF_DLLEXPORT void FLIF_API flif_image_get_palette(FLIF_IMAGE* image, void* buffer) {
+    try
+    {
+        int nb = 0;
+        if (image->image.palette && image->image.palette_image) nb = image->image.palette_image->cols();
+        FLIF_RGBA* buffer_rgba = reinterpret_cast<FLIF_RGBA*>(buffer);
+        for (int i=0; i<nb; i++) {
+            buffer_rgba[i].r = image->image.palette_image->operator()(0,0,i);
+            buffer_rgba[i].g = image->image.palette_image->operator()(1,0,i);
+            buffer_rgba[i].b = image->image.palette_image->operator()(2,0,i);
+            if(image->image.numPlanes() >= 4) {
+              buffer_rgba[i].a = image->image.palette_image->operator()(3,0,i);
+            } else {
+              buffer_rgba[i].a = 255;
+            }
+        }
+    }
+    catch(...) {}
+}
+
+FLIF_DLLEXPORT void FLIF_API flif_image_set_palette(FLIF_IMAGE* image, const void* buffer, uint32_t palette_size) {
+    try
+    {
+        int nb = palette_size;
+        image->image.palette = true;
+        if (image->image.palette_image) delete image->image.palette_image;
+        image->image.palette_image = new Image(nb,1,0,255,4);
+        const FLIF_RGBA* buffer_rgba = reinterpret_cast<const FLIF_RGBA*>(buffer);
+        for (int i=0; i<nb; i++) {
+            image->image.palette_image->set(0,0,i,buffer_rgba[i].r);
+            image->image.palette_image->set(1,0,i,buffer_rgba[i].g);
+            image->image.palette_image->set(2,0,i,buffer_rgba[i].b);
+            image->image.palette_image->set(3,0,i,buffer_rgba[i].a);
+        }
+    }
+    catch(...) {}
 }
 
 FLIF_DLLEXPORT uint32_t FLIF_API flif_image_get_frame_delay(FLIF_IMAGE* image) {
@@ -389,6 +521,37 @@ FLIF_DLLEXPORT void FLIF_API flif_image_read_row_RGBA8(FLIF_IMAGE* image, uint32
     try
     {
         image->read_row_RGBA8(row, buffer, buffer_size_bytes);
+    }
+    catch(...) {}
+}
+
+FLIF_DLLEXPORT void FLIF_API flif_image_write_row_GRAY8(FLIF_IMAGE* image, uint32_t row, const void* buffer, size_t buffer_size_bytes) {
+    try
+    {
+        image->write_row_GRAY8(row, buffer, buffer_size_bytes);
+    }
+    catch(...) {}
+}
+
+FLIF_DLLEXPORT void FLIF_API flif_image_read_row_GRAY8(FLIF_IMAGE* image, uint32_t row, void* buffer, size_t buffer_size_bytes) {
+    try
+    {
+        image->read_row_GRAY8(row, buffer, buffer_size_bytes);
+    }
+    catch(...) {}
+}
+FLIF_DLLEXPORT void FLIF_API flif_image_write_row_PALETTE8(FLIF_IMAGE* image, uint32_t row, const void* buffer, size_t buffer_size_bytes) {
+    try
+    {
+        image->write_row_PALETTE8(row, buffer, buffer_size_bytes);
+    }
+    catch(...) {}
+}
+
+FLIF_DLLEXPORT void FLIF_API flif_image_read_row_PALETTE8(FLIF_IMAGE* image, uint32_t row, void* buffer, size_t buffer_size_bytes) {
+    try
+    {
+        image->read_row_PALETTE8(row, buffer, buffer_size_bytes);
     }
     catch(...) {}
 }

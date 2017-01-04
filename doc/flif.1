@@ -1,4 +1,4 @@
-.TH FLIF 1 "Nov 20, 2016" "Free Lossless Image Format" "User Commands"
+.TH FLIF 1 "Jan 4, 2017" "Free Lossless Image Format" "User Commands"
 .SH NAME
 flif \- convert image files from or to FLIF
 .SH SYNOPSIS
@@ -59,6 +59,21 @@ This option forces the encoder/decoder to strip the color profile.
 \fB\-m\fR, \fB\-\-no\-metadata\fR
 FLIF files can optionally include metadata (Exif and/or XMP).
 This option forces the encoder/decoder to strip metadata.
+.TP
+\fB\-k\fR, \fB\-\-keep\-palette\fR
+By default, FLIF reads and writes PNG files as RGB(A) images, converting internal palette representations
+if needed. This option changes the default behavior as follows:
+.br
+When encoding, this option can be used to preserve the palette of a PNG8 image. This can be useful if
+the existing palette order happens to be particularly good. Without this option, the encoder would probably use
+a palette transformation even without \fB\-k\fR, but it would probably have a different order.
+.br
+When decoding to PNG, this option will produce a palette PNG8 image if the input FLIF file uses a palette
+internally (and if that palette is compatible with the PNG format, i.e. at most 256 colors and either RGB
+or RGBA but not an RGB palette plus an independent alpha channel).
+.br
+In both cases, this option also has the advantage of avoiding the conversion to or from RGBA, so it might be
+somewhat faster and it uses significantly less memory.
 
 .SH DECODING
 To decode a FLIF image, the output filename must have one of the following extensions:
@@ -268,6 +283,10 @@ predictor 2 for the Cg plane, and if there's an alpha channel, use predictor 0 (
 Interlaced FLIF with an alpha channel can use different pixel prediction methods to define the RGB values of invisible (A=0) pixels.
 This can have a (small) effect on compression. The available methods are \fB\-H\fR\fI0\fR, \fB\-H\fR\fI1\fR, and \fB\-H\fR\fI2\fR,
 which have the same meaning as in the option \fB\-G\fR (see above). The default method is \fB\-H\fR\fI2\fR.
+.TP
+\fB\-J\fR, \fB\-\-chroma\-subsample\fR
+Interlaced FLIF can be truncated. This option truncates the chroma channels in such a way that a chroma subsampling
+similar to JPEG's 4:2:0 is obtained. Obviously this introduces loss, since 3/4 of the chroma pixels are not encoded.
 .TP
 \fB\-R\fR, \fB\-\-maniac\-repeats\fR=\fINB_ITERATIONS\fR
 The first and computationally most demanding step of FLIF encoding is performing a number of iterations

@@ -90,8 +90,12 @@ int image_load_png(const char *filename, Image &image, metadata_options &options
   png_set_sig_bytes(png_ptr,8);
 
 
-
-  png_read_png(png_ptr,info_ptr, PNG_TRANSFORM_PACKING | PNG_TRANSFORM_EXPAND, NULL);
+  int png_flags = PNG_TRANSFORM_PACKING | PNG_TRANSFORM_EXPAND;
+  if (image.palette) {
+    // allowed to make a palette image
+    png_flags = PNG_TRANSFORM_PACKING;
+  }
+  png_read_png(png_ptr,info_ptr, png_flags, NULL);
 //      | PNG_TRANSFORM_STRIP_ALPHA | PNG_TRANSFORM_STRIP_16
 
   size_t width = png_get_image_width(png_ptr,info_ptr);
@@ -105,6 +109,7 @@ int image_load_png(const char *filename, Image &image, metadata_options &options
   if (color_type == PNG_COLOR_TYPE_GRAY) nbplanes=1;
   else if (color_type == PNG_COLOR_TYPE_RGB) nbplanes=3;
   else if (color_type == PNG_COLOR_TYPE_RGB_ALPHA || color_type == PNG_COLOR_TYPE_GRAY_ALPHA) nbplanes=4;
+  else if (color_type == PNG_COLOR_TYPE_PALETTE) nbplanes=4;
   else { e_printf("Unsupported PNG color type\n"); return 5; }
 #ifndef SUPPORT_HDR
     if (bit_depth > 8) {
@@ -112,12 +117,41 @@ int image_load_png(const char *filename, Image &image, metadata_options &options
         return 6;
     }
 #endif
-  image.init(width, height, 0, (1<<bit_depth)-1, nbplanes);
+  if (color_type == PNG_COLOR_TYPE_PALETTE) {
+      image.semi_init(width, height, 0, (1<<bit_depth)-1, nbplanes);
+      image.make_constant_plane(0,0);
+      image.make_constant_plane(2,0);
+      image.make_constant_plane(3,1);
+      image.real_init(true);
+      image.palette = true;
+      png_colorp palette;
+      int nb_colors = 0, nb_alpha = 0;
+      png_get_PLTE(png_ptr,info_ptr, &palette,&nb_colors);
+      png_bytep trans;
+      png_get_tRNS(png_ptr,info_ptr, &trans,&nb_alpha, NULL);
+      image.palette_image = new Image(nb_colors,1,0,255,4);
+      for (int i=0; i<nb_colors; i++) {
+        image.palette_image->set(0,0,i,palette[i].red);
+        image.palette_image->set(1,0,i,palette[i].green);
+        image.palette_image->set(2,0,i,palette[i].blue);
+        if (i < nb_alpha) image.palette_image->set(3,0,i,trans[i]);
+        else image.palette_image->set(3,0,i,255);
+      }
+  } else
+      image.init(width, height, 0, (1<<bit_depth)-1, nbplanes);
 
   png_bytepp rows = png_get_rows(png_ptr,info_ptr);
 
   if (bit_depth == 8) {
     switch(color_type) {
+        case PNG_COLOR_TYPE_PALETTE:
+          for (size_t r = 0; r < height; r++) {
+            png_bytep row = rows[r];
+            for (size_t c = 0; c < width; c++) {
+              image.set(1,r,c, (uint8_t) row[c * 1 + 0]);
+            }
+          }
+          break;
         case PNG_COLOR_TYPE_GRAY:
           for (size_t r = 0; r < height; r++) {
             png_bytep row = rows[r];
@@ -354,6 +388,14 @@ int image_save_png(const char *filename, const Image &image) {
   if (nbplanes == 1) colortype=PNG_COLOR_TYPE_GRAY;
   int bit_depth = 8, bytes_per_value=1;
   if (image.max(0) > 255) {bit_depth = 16; bytes_per_value=2;}
+
+  bool do_palette=false;
+
+  if (image.palette_image && image.palette_image->cols() > 0 && image.palette_image->cols() <= 256 && bit_depth == 8) {
+    do_palette = true;
+    colortype = PNG_COLOR_TYPE_PALETTE;
+  }
+
   png_set_IHDR(png_ptr,info_ptr,image.cols(),image.rows(),bit_depth,colortype,PNG_INTERLACE_NONE,PNG_COMPRESSION_TYPE_DEFAULT,
       PNG_FILTER_TYPE_DEFAULT);
 
@@ -386,16 +428,43 @@ int image_save_png(const char *filename, const Image &image) {
    }
   }
 
+  png_color* palette = NULL;
+  if (do_palette) {
+    unsigned paletteSize = image.palette_image->cols();
+    assert(paletteSize <= PNG_MAX_PALETTE_LENGTH);
+    palette = (png_color*)png_malloc(png_ptr, paletteSize*sizeof(png_color));
+    for (unsigned p = 0; p < paletteSize; p++) {
+      png_color* col = &palette[p];
+      col->red = image.palette_image->operator()(0,0,p);
+      col->green = image.palette_image->operator()(1,0,p);
+      col->blue = image.palette_image->operator()(2,0,p);
+    }
+    png_set_PLTE(png_ptr, info_ptr, palette, paletteSize);
+    if (nbplanes > 3) {
+      png_byte trans[256];
+      for (unsigned p = 0; p < paletteSize; p++) {
+        trans[p] = image.palette_image->operator()(3,0,p);
+      }
+      png_set_tRNS(png_ptr, info_ptr, trans, paletteSize, NULL);
+    }
+  }
+
+
   png_write_info(png_ptr,info_ptr);
 
-  png_bytep row = (png_bytep) png_malloc(png_ptr,nbplanes * bytes_per_value * image.cols());
+  int png_nbplanes = (do_palette? 1 : nbplanes);
+  png_bytep row = (png_bytep) png_malloc(png_ptr,png_nbplanes * bytes_per_value * image.cols());
 
   for (size_t r = 0; r < (size_t) image.rows(); r++) {
-    if (bytes_per_value == 1) {
+    if (bytes_per_value == 1 && !do_palette) {
      for (size_t c = 0; c < (size_t) image.cols(); c++) {
       for (int p=0; p<nbplanes; p++) {
         row[c * nbplanes + p] = (png_byte) (image(p,r,c));
       }
+     }
+    } else if (do_palette) {
+     for (size_t c = 0; c < (size_t) image.cols(); c++) {
+        row[c] = (png_byte) (image(1,r,c));
      }
     } else {
      for (size_t c = 0; c < (size_t) image.cols(); c++) {
@@ -409,7 +478,7 @@ int image_save_png(const char *filename, const Image &image) {
   }
 
   png_free(png_ptr,row);
-
+  if (palette) png_free(png_ptr,palette);
   png_write_end(png_ptr,info_ptr);
   png_destroy_write_struct(&png_ptr,&info_ptr);
   fclose(fp);

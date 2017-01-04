@@ -32,6 +32,11 @@ void FLIF_ENCODER::add_image(FLIF_IMAGE* image) {
 }
 
 void FLIF_ENCODER::transformations(std::vector<std::string> &desc) {
+    if (images[0].palette) {
+       desc.push_back("Palette_Alpha");  // force palette (including alpha)
+       options.keep_palette = 1;
+       return;
+    }
     uint64_t nb_pixels = (uint64_t)images[0].rows() * images[0].cols();
     if (nb_pixels > 2) {         // no point in doing anything for 1- or 2-pixel images
      if (options.plc && !options.loss) desc.push_back("Channel_Compact");  // compactify channels

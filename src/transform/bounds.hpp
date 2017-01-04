@@ -113,6 +113,7 @@ protected:
     }
 
     bool process(const ColorRanges *srcRanges, const Images &images) override {
+        if (images[0].palette) return false; // skip if the image is already a palette image
         bounds.clear();
         bool trivialbounds=true;
         int nump=srcRanges->numPlanes();

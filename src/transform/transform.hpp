@@ -50,5 +50,5 @@ public:
 #endif
     const ColorRanges virtual *meta(Images&, const ColorRanges *srcRanges) { return new DupColorRanges(srcRanges); }
     void virtual invData(Images&) const {}
-
+    bool virtual is_palette_transform() const { return false; }
 };

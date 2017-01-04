@@ -195,6 +195,10 @@ public:
     }
 
 #ifdef HAS_ENCODER
+    bool process(const ColorRanges *srcRanges, const Images &images) override {
+        if (images[0].palette) return false; // skip YCoCg if the image is already a palette image
+        return true;
+    }
     void data(Images& images) const override {
 //        printf("TransformYCoCg::data: par=%i\n", par);
         ColorVal R,G,B,Y,Co,Cg;

@@ -24,7 +24,7 @@ FLIF_DECODER::FLIF_DECODER()
 , callback(NULL)
 , first_quality(0)
 , working(false)
-{ options.crc_check = 0; }
+{ options.crc_check = 0; options.keep_palette = 1; }
 
 
 int32_t FLIF_DECODER::decode_file(const char* filename) {

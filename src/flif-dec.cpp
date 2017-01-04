@@ -479,6 +479,9 @@ void flif_decode_plane_zoomlevel_vertical(plane_t &plane, Coder &coder, Images &
 #endif
 }
 
+const ConstantPlane zero_plane(0);
+const ConstantPlane one_plane(1);
+
 //TODO use tuples or something to make this less ugly/more generic
 template<typename Coder, typename alpha_t, typename ranges_t>
 struct horizontal_plane_decoder: public PlaneVisitor {
@@ -497,6 +500,7 @@ struct horizontal_plane_decoder: public PlaneVisitor {
     void visit(Plane<ColorVal_intern_8>   &plane) override {
         // this branching on plane number is just to avoid too much template code blowup
         if (p==0) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_8>,alpha_t,0,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor, invisible_predictor);
+        if (p==1) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_8>,ConstantPlane,1,ranges_t>(plane,coder,images,ranges,one_plane,zero_plane,properties,z,fr,r,alphazero,FRA, predictor, invisible_predictor);
         if (p==3) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_8>,alpha_t,3,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor, invisible_predictor);
 #ifdef SUPPORT_ANIMATION
         if (p==4) flif_decode_plane_zoomlevel_horizontal<Coder,Plane<ColorVal_intern_8>,alpha_t,4,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor, invisible_predictor);
@@ -537,6 +541,7 @@ struct vertical_plane_decoder: public PlaneVisitor {
     void visit(Plane<ColorVal_intern_8>   &plane) override {
         // this branching on plane number is just to avoid too much template code blowup
         if (p==0) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_8>,alpha_t,0,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor, invisible_predictor);
+        if (p==1) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_8>,ConstantPlane,1,ranges_t>(plane,coder,images,ranges,one_plane,zero_plane,properties,z,fr,r,alphazero,FRA, predictor, invisible_predictor);
         if (p==3) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_8>,alpha_t,3,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor, invisible_predictor);
 #ifdef SUPPORT_ANIMATION
         if (p==4) flif_decode_plane_zoomlevel_vertical<Coder,Plane<ColorVal_intern_8>,alpha_t,4,ranges_t>(plane,coder,images,ranges,*alpha,*planeY,properties,z,fr,r,alphazero,FRA, predictor, invisible_predictor);
@@ -1081,7 +1086,7 @@ bool flif_decode(IO& io, Images &images, uint32_t (*callback)(int32_t,int64_t), 
         e_printf("Couldn't allocate enough memory for all frames. Aborting.\n");
         return false;
       }
-      if (!images[i].init(width,height,0,maxmax,numPlanes)) return false;
+      if (!images[i].semi_init(width,height,0,maxmax,numPlanes)) return false;
       images[i].alpha_zero_special = alphazero;
       images[i].metadata = metadata;
       if (numFrames>1) images[i].frame_delay = metaCoder.read_int(0, 60000); // time in ms between frames
@@ -1181,8 +1186,16 @@ bool flif_decode(IO& io, Images &images, uint32_t (*callback)(int32_t,int64_t), 
                 images[fr].make_constant_plane(p,ranges->min(p));
         }
     }
+
+    // actually allocate the buffers
+    bool smaller_buffer=false;
+    // set smaller_buffer to true if it can be decoded to PNG8 (8-bit palette)
+    if (images[0].palette && ranges->max(1) < 256 && options.keep_palette && (ranges->numPlanes() < 4 || ranges->min(3)==ranges->max(3))) smaller_buffer = true;
+
     // Y plane shouldn't be constant, even if it is (because we want to avoid special-casing fast Y plane access)
-    for (int fr = 0; fr < numFrames; fr++) images[fr].undo_make_constant_plane(0);
+    if (!smaller_buffer) for (int fr = 0; fr < numFrames; fr++) images[fr].undo_make_constant_plane(0);
+
+    for (int fr = 0; fr < numFrames; fr++) if (! images[fr].real_init(smaller_buffer)) return false;
 
     // Alpha plane is never special if it is never zero
     if (ranges->numPlanes()>3 && ranges->min(3) > 0)
@@ -1231,20 +1244,46 @@ bool flif_decode(IO& io, Images &images, uint32_t (*callback)(int32_t,int64_t), 
             i.fully_decoded=true;
     }
 
-    while(!transform_ptrs.empty()) {
+    if (!smaller_buffer) {
+      while(!transform_ptrs.empty()) {
         transform_ptrs.back()->invData(images);
         transform_ptrs.pop_back();
+      }
+    } else {
+      // do reverse transforms up to palette
+      while(!transform_ptrs.empty() && !transform_ptrs.back()->is_palette_transform()) {
+        transform_ptrs.back()->invData(images);
+        transform_ptrs.pop_back();
+        rangesList.pop_back();
+      }
+      if (!transform_ptrs.empty()) {
+        // construct palette on a single-row image
+        const ColorRanges* rp = rangesList.back().get();
+        Images palette;
+        palette.push_back(Image(rp->max(1)+1,1,0,maxmax,rp->numPlanes()));
+        for (ColorVal i=0; i<=rp->max(1) ; i++) {
+          palette[0].set(1,0,i,i);
+        }
+        while(!transform_ptrs.empty()) {
+          transform_ptrs.back()->invData(palette);
+          transform_ptrs.pop_back();
+        }
+        Image *p_image = new Image(palette[0].clone());
+        for (Image& i : images) i.palette_image = p_image;
+      }
     }
     transforms.clear();
     rangesList.clear();
 
-    // don't bother making the invisible pixels black if we're not checking the crc anyway
-    if (alphazero && options.crc_check) for (Image& image : images) image.make_invisible_rgb_black();
 
     if (!options.crc_check) {
       v_printf(3,"Not checking checksum, as requested.\n");
+    } else if (images[0].palette_image) {
+      v_printf(2,"Not checking checksum, palette image not decoded to full RGBA.\n");
     } else if (quality>=100 && scale==1 && fully_decoded) {
       if (contains_checksum) {
+        // don't bother making the invisible pixels black if we're not checking the crc anyway
+        if (alphazero && options.crc_check) for (Image& image : images) image.make_invisible_rgb_black();
         const uint32_t checksum = images[0].checksum();
         v_printf(8,"Computed checksum: %X\n", checksum);
         uint32_t checksum2 = metaCoder.read_int(16);

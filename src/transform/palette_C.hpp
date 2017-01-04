@@ -88,6 +88,9 @@ public:
 
 #if HAS_ENCODER
     bool process(const ColorRanges *srcRanges, const Images &images) override {
+
+        if (images[0].palette) return false; // skip if the image is already a palette image
+
         std::set<ColorVal> CPalette;
         bool nontrivial=false;
         for (int p=0; p<srcRanges->numPlanes(); p++) {

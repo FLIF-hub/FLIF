@@ -241,6 +241,7 @@ public:
         data = data_vec.data();
 #endif
         assert(data != nullptr);
+        if (height > 1) v_printf(6,"Allocated %u x %u buffer (%i-bit).\n",width,height,8 * sizeof(pixel_t));
     }
     void clear() {
         data_vec.clear();
@@ -439,6 +440,8 @@ struct metadata_options {
     bool xmp;
 };
 
+class Image;
+
 class Image {
     std::unique_ptr<GeneralPlane> planes[5]; // Red/Y, Green/Co, Blue/Cg, Alpha, Frame-Lookback(animation only)
     uint32_t width, height;
@@ -469,6 +472,7 @@ class Image {
 #endif
       metadata = other.metadata;
       palette = other.palette;
+      palette_image = other.palette_image;
       frame_delay = other.frame_delay;
       col_begin = other.col_begin;
       col_end = other.col_end;
@@ -504,6 +508,7 @@ class Image {
 
 public:
     bool palette;
+    Image * palette_image;
     int frame_delay;
     bool alpha_zero_special = true;
     std::vector<uint32_t> col_begin;
@@ -526,6 +531,7 @@ public:
       depth = 0;
 #endif
       palette = false;
+      palette_image = NULL;
       seen_before = 0;
     }
 
@@ -557,6 +563,8 @@ public:
       other.fully_decoded = false;
 
       palette = other.palette;
+      palette_image = other.palette_image;
+      other.palette_image = NULL;
       alpha_zero_special = other.alpha_zero_special;
       col_begin = std::move(other.col_begin);
       col_end = std::move(other.col_end);
@@ -582,6 +590,7 @@ public:
       depth = other.depth;
 #endif
       palette = other.palette;
+      palette_image = other.palette_image;
       frame_delay = other.frame_delay;
 //      col_begin = other.col_begin;  // not needed and meaningless after downsampling
 //      col_end = other.col_end;
@@ -614,6 +623,10 @@ public:
     }
 
     bool init(uint32_t w, uint32_t h, ColorVal min, ColorVal max, int p) {
+      if (! semi_init(w,h,min,max,p) ) return false;
+      return real_init(false);
+    }
+    bool semi_init(uint32_t w, uint32_t h, ColorVal min, ColorVal max, int p) {
       width = w;
       height = h;
       minval = min;
@@ -627,6 +640,7 @@ public:
 #endif
       frame_delay=0;
       palette=false;
+      palette_image = NULL;
       alpha_zero_special=true;
       assert(min == 0);
       assert(max < (1<<depth));
@@ -639,23 +653,37 @@ public:
       col_begin.resize(height,0);
       col_end.clear();
       col_end.resize(height,width);
-      if (depth <= 8) {
-        if (p>0) planes[0] = make_unique<Plane<ColorVal_intern_8>>(width, height, 0, scale); // R,Y
-        if (p>1) planes[1] = make_unique<Plane<ColorVal_intern_16>>(width, height, 0, scale); // G,I
-        if (p>2) planes[2] = make_unique<Plane<ColorVal_intern_16>>(width, height, 0, scale); // B,Q
-        if (p>3) planes[3] = make_unique<Plane<ColorVal_intern_8>>(width, height, 0, scale); // A
-#ifdef SUPPORT_HDR
-      } else {
-        if (p>0) planes[0] = make_unique<Plane<ColorVal_intern_16u>>(width, height, 0, scale); // R,Y
-        if (p>1) planes[1] = make_unique<Plane<ColorVal_intern_32>>(width, height, 0, scale); // G,I
-        if (p>2) planes[2] = make_unique<Plane<ColorVal_intern_32>>(width, height, 0, scale); // B,Q
-        if (p>3) planes[3] = make_unique<Plane<ColorVal_intern_16u>>(width, height, 0, scale); // A
-#endif
-      }
-      if (p>4) planes[4] = make_unique<Plane<ColorVal_intern_8>>(width, height, 0, scale); // FRA
       }
       catch (std::bad_alloc& ba) {
         e_printf("Error: could not allocate enough memory for image data.\n");
+        return false;
+      }
+      return true;
+    }
+    bool real_init(bool smaller_buffer) {
+      int p = num;
+//      printf("smaller: %i\n",(int)smaller_buffer);
+      try {
+      if (depth <= 8) {
+        if (p>0 && !planes[0]) planes[0] = make_unique<Plane<ColorVal_intern_8>>(width, height, 0, scale); // R,Y
+        if (p>1 && !planes[1]) {
+          if (smaller_buffer)  planes[1] = make_unique<Plane<ColorVal_intern_8>>(width, height, 0, scale);  // 8-bit Palette
+          else                 planes[1] = make_unique<Plane<ColorVal_intern_16>>(width, height, 0, scale); // G,I
+        }
+        if (p>2 && !planes[2]) planes[2] = make_unique<Plane<ColorVal_intern_16>>(width, height, 0, scale); // B,Q
+        if (p>3 && !planes[3]) planes[3] = make_unique<Plane<ColorVal_intern_8>>(width, height, 0, scale); // A
+#ifdef SUPPORT_HDR
+      } else {
+        if (p>0 && !planes[0]) planes[0] = make_unique<Plane<ColorVal_intern_16u>>(width, height, 0, scale); // R,Y
+        if (p>1 && !planes[1]) planes[1] = make_unique<Plane<ColorVal_intern_32>>(width, height, 0, scale); // G,I
+        if (p>2 && !planes[2]) planes[2] = make_unique<Plane<ColorVal_intern_32>>(width, height, 0, scale); // B,Q
+        if (p>3 && !planes[3]) planes[3] = make_unique<Plane<ColorVal_intern_16u>>(width, height, 0, scale); // A
+#endif
+      }
+      if (p>4 && !planes[4]) planes[4] = make_unique<Plane<ColorVal_intern_8>>(width, height, 0, scale); // FRA
+      }
+      catch (std::bad_alloc& ba) {
+        e_printf("Error: could not allocate enough memory for image buffer.\n");
         return false;
       }
       return true;
@@ -683,6 +711,7 @@ public:
 
     void clear() {
         for (int p=0; p<5; p++) planes[p].reset(nullptr);
+        if (palette_image) delete palette_image;
     }
     void reset() {
         clear();
@@ -741,7 +770,7 @@ public:
       planes[p] = make_unique<ConstantPlane>(val);
     }
     void undo_make_constant_plane(const int p) {
-      if (p>3 || p<0) return;
+      if (p>3 || p<0 || !planes[p]) return;
       if (!planes[p]->is_constant()) return;
       ColorVal val = operator()(p,0,0);
       planes[p].reset(nullptr);
@@ -762,9 +791,9 @@ public:
     void ensure_chroma() {
         switch(num) {
             case 1:
-              make_constant_plane(1,((1<<depth)-1));
+              make_constant_plane(1,0);
             case 2:
-              make_constant_plane(2,((1<<depth)-1));
+              make_constant_plane(2,0);
               num=3;
             default:
               assert(num>=3);
@@ -774,7 +803,7 @@ public:
         ensure_chroma();
         switch(num) {
             case 3:
-              make_constant_plane(3,255);
+              make_constant_plane(3,1);
               num=4;
             default:
               assert(num>=4);
