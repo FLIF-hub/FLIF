@@ -61,7 +61,7 @@ protected:
 public:
     // if the image also has alpha, this transform is not a 'real' palette transform
     // (in the sense of PNG)
-    bool is_palette_transform() const { return !has_alpha; }
+    bool is_palette_transform() const override { return !has_alpha; }
 
 
     void configure(const int setting) override {
