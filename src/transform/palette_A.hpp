@@ -66,7 +66,7 @@ protected:
     bool already_has_palette;
 
 public:
-    bool is_palette_transform() const { return true; }
+    bool is_palette_transform() const override { return true; }
 
     // dirty hack: max_palette_size is ignored at decode time, alpha_zero_special will be set at encode time
     void configure(const int setting) override {
