@@ -21,16 +21,17 @@ function check {
 
 set -ex
 
-IN=$1
-OUTF=$2
+FLIF=$1
+IN=$2
+OUTF=$3
 
 runtest() {
   local encArgs=$1
   local decArgs=$2
 
   rm -f ${OUTF} decoded-test-frame*.pam
-  ./flif $encArgs test-frame*.png "${OUTF}"
-  ./flif -d $decArgs ${OUTF} decoded-test-frame.pam
+  $FLIF $encArgs test-frame*.png "${OUTF}"
+  $FLIF -d $decArgs ${OUTF} decoded-test-frame.pam
   check test-frame decoded-test-frame*.pam
   rm decoded-test-frame*.pam
 }
