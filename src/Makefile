@@ -130,3 +130,15 @@ flif.dbg0: $(FILES_H) $(FILES_CPP) flif.cpp
 
 flif.asan: $(FILES_H) $(FILES_CPP) flif.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) $(OPTIMIZATIONS) -fsanitize=address,undefined -fno-omit-frame-pointer -g3 -Wall $(FILES_CPP) flif.cpp $(LDFLAGS) -o flif.asan
+
+test.asan: flif.asan test-interface
+	# make UBSAN print stacktrace
+	export UBSAN_OPTIONS=print_stacktrace=1
+	mkdir -p ../tmp-test
+	./test-interface ../tmp-test/dummy.flif
+# ASAN may find leaks in code which is not ours and in that case it will throw bad exitcodes on first occurence
+# but we want or tests to continue running, so ignore exit code for now
+	../tools/test-roundtrip.sh ./flif.asan ../tools/2_webp_ll.png ../tmp-test/2_webp_ll.flif ../tmp-test/decoded_2_webp_ll.png || true
+	../tools/test-roundtrip.sh ./flif.asan ../tools/kodim01.png ../tmp-test/kodim01.flif ../tmp-test/decoded_kodim01.png  || true
+	../tools/test-roundtrip_anim.sh ./flif.asan ../tools/endless_war.gif ../tmp-test/endless_war.flif || true
+	../tools/test-roundtrip_anim_framedir.sh ./flif.asan ../tools/bouncing_ball_frames ../tmp-test/bouncing_ball.flif || true
