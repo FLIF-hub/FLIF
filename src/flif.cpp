@@ -286,7 +286,7 @@ bool encode_flif(int argc, char **argv, Images &images, flif_options &options) {
     uint64_t nb_pixels = (uint64_t)images[0].rows() * images[0].cols();
     std::vector<std::string> desc;
     if (nb_pixels > 2) {         // no point in doing anything for 1- or 2-pixel images
-      if (options.plc && !options.loss) {
+      if (options.plc && (images[0].getDepth() > 8 || !options.loss)) {
         desc.push_back("Channel_Compact");  // compactify channels (not if lossy, because then loss gets magnified!)
       }
       if (options.ycocg) {
