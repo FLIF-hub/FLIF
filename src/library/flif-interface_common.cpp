@@ -283,6 +283,44 @@ FLIF_DLLEXPORT FLIF_IMAGE* FLIF_API flif_create_image(uint32_t width, uint32_t h
     return 0;
 }
 
+FLIF_DLLEXPORT FLIF_IMAGE* FLIF_API flif_create_image_RGB(uint32_t width, uint32_t height) {
+    try
+    {
+        std::unique_ptr<FLIF_IMAGE> image(new FLIF_IMAGE());
+        image->image.init(width, height, 0, 255, 3);
+        return image.release();
+    }
+    catch(...) {}
+    return 0;
+}
+
+FLIF_DLLEXPORT FLIF_IMAGE* FLIF_API flif_create_image_GRAY(uint32_t width, uint32_t height) {
+    try
+    {
+        std::unique_ptr<FLIF_IMAGE> image(new FLIF_IMAGE());
+        image->image.init(width, height, 0, 255, 1);
+        return image.release();
+    }
+    catch(...) {}
+    return 0;
+}
+
+FLIF_DLLEXPORT FLIF_IMAGE* FLIF_API flif_create_image_PALETTE(uint32_t width, uint32_t height) {
+    try
+    {
+        std::unique_ptr<FLIF_IMAGE> image(new FLIF_IMAGE());
+        image->image.semi_init(width, height, 0, 255, 4);
+        image->image.make_constant_plane(0,0);
+        image->image.make_constant_plane(2,0);
+        image->image.make_constant_plane(3,1);
+        image->image.real_init(true);
+        image->image.palette = true;
+        return image.release();
+    }
+    catch(...) {}
+    return 0;
+}
+
 FLIF_DLLEXPORT FLIF_IMAGE* FLIF_API flif_create_image_HDR(uint32_t width, uint32_t height) {
     try
     {
@@ -363,6 +401,9 @@ FLIF_DLLIMPORT FLIF_IMAGE* FLIF_API flif_import_image_PALETTE(uint32_t width, ui
 			return 0;
 		std::unique_ptr<FLIF_IMAGE> image(new FLIF_IMAGE());
 		image->image.semi_init(width, height, 0, 255, 4);
+		image->image.make_constant_plane(0,0);
+		image->image.make_constant_plane(2,0);
+		image->image.make_constant_plane(3,1);
 		image->image.real_init(true);
 		image->image.palette = true;
 		const uint8_t* buffer = static_cast<const uint8_t*>(gray);
