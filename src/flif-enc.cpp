@@ -433,6 +433,7 @@ void flif_make_lossy_scanlines(Images &images, const ColorRanges *ranges, int lo
               Image& image = images[fr];
               uint32_t begin=image.col_begin[r], end=image.col_end[r];
               for (uint32_t c = begin; c < end; c++) {
+                if (map(0,r,c) == 255) continue;
                 if (alphazero && p<3 && image(3,r,c) == 0) continue;
                 if (FRA && p<4 && image(4,r,c) > 0) continue;
                 ColorVal guess = predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max, minP);
@@ -508,6 +509,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
               uint32_t begin=(image.col_begin[r*image.zoom_rowpixelsize(z)]/image.zoom_colpixelsize(z)),
                          end=(1+(image.col_end[r*image.zoom_rowpixelsize(z)]-1)/image.zoom_colpixelsize(z));
               for (uint32_t c = begin; c < end; c++) {
+                    if ((map(0,z,r-1,c) == 255) || (map(0,z,r+1,c) == 255)) continue;
                     if (alphazero && p<3 && image(3,z,r,c) == 0) continue;
                     if (FRA && p<4 && image(4,z,r,c) > 0) continue;
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max,predictor);
@@ -548,6 +550,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
               if (begin>1 && ((begin&1) ==0)) begin--;
               if (begin==0) begin=1;
               for (uint32_t c = begin; c < end-1; c+=2) {
+                    if ((map(0,z,r,c-1) == 255) || (map(0,z,r,c+1)==255)) continue;
                     if (alphazero && p<3 && image(3,z,r,c) == 0) continue;
                     if (FRA && p<4 && image(4,z,r,c) > 0) continue;
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max,predictor);
@@ -588,6 +591,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
               uint32_t begin=(image.col_begin[r*image.zoom_rowpixelsize(z)]/image.zoom_colpixelsize(z)),
                          end=(1+(image.col_end[r*image.zoom_rowpixelsize(z)]-1)/image.zoom_colpixelsize(z));
               for (uint32_t c = begin; c < end; c++) {
+                    if (map(0,z,r,c) == 255) continue;
                     if (alphazero && p<3 && image(3,z,r,c) == 0) continue;
                     if (FRA && p<4 && image(4,z,r,c) > 0) continue;
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max,predictor);
@@ -628,6 +632,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
               if (begin>1 && ((begin&1) ==0)) begin--;
               if (begin==0) begin=1;
               for (uint32_t c = begin; c < end; c+=2) {
+                    if (map(0,z,r,c) == 255) continue;
                     if (alphazero && p<3 && image(3,z,r,c) == 0) continue;
                     if (FRA && p<4 && image(4,z,r,c) > 0) continue;
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max,predictor);
