@@ -105,17 +105,18 @@ clean:
 
 # The targets below are only meant for developers
 
-test-interface: libflif.dbg.so ../tools/test.c
+test-interface: libflif.dbg$(LIBEXT) libflif$(LIBEXT) ../tools/test.c
 	$(CC) -O0 -ggdb3 -Wall -Ilibrary/ ../tools/test.c -L. -lflif.dbg  -o test-interface
 
 test: flif test-interface
 	mkdir -p ../tmp-test
 	./test-interface ../tmp-test/dummy.flif
-	../tools/test-roundtrip.sh ../tools/2_webp_ll.png ../tmp-test/2_webp_ll.flif ../tmp-test/decoded_2_webp_ll.png
-	../tools/test-roundtrip.sh ../tools/kodim01.png ../tmp-test/kodim01.flif ../tmp-test/decoded_kodim01.png
-	../tools/test-lossy.sh ../tools/kodim01.png ../tmp-test/kodim01-lossy.flif ../tmp-test/decoded_kodim01-lossy.png
-	../tools/test-roundtrip_anim.sh ../tools/endless_war.gif ../tmp-test/endless_war.flif
-	../tools/test-roundtrip_anim_framedir.sh ../tools/bouncing_ball_frames ../tmp-test/bouncing_ball.flif
+	../tools/test-roundtrip.sh ./flif ../tools/2_webp_ll.png ../tmp-test/2_webp_ll.flif ../tmp-test/decoded_2_webp_ll.png
+	../tools/test-roundtrip.sh ./flif ../tools/kodim01.png ../tmp-test/kodim01.flif ../tmp-test/decoded_kodim01.png
+	../tools/test-lossy.sh ./flif ../tools/kodim01.png ../tmp-test/kodim01-lossy.flif ../tmp-test/decoded_kodim01-lossy.png
+	../tools/test-roundtrip_anim.sh ./flif ../tools/endless_war.gif ../tmp-test/endless_war.flif
+	../tools/test-roundtrip_anim_framedir.sh ./flif ../tools/bouncing_ball_frames ../tmp-test/bouncing_ball.flif
+
 
 flif.stats: $(FILES_H) $(FILES_CPP) flif.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) -DSTATS $(OPTIMIZATIONS) -g0 -Wall $(FILES_CPP) flif.cpp $(LDFLAGS) -o flif.stats
@@ -131,3 +132,16 @@ flif.dbg0: $(FILES_H) $(FILES_CPP) flif.cpp
 
 flif.asan: $(FILES_H) $(FILES_CPP) flif.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) $(OPTIMIZATIONS) -fsanitize=address,undefined -fno-omit-frame-pointer -g3 -Wall $(FILES_CPP) flif.cpp $(LDFLAGS) -o flif.asan
+
+# make UBSAN print stacktrace
+test.asan: export UBSAN_OPTIONS = print_stacktrace=1
+test.asan: flif.asan test-interface
+	mkdir -p ../tmp-test
+	./test-interface ../tmp-test/dummy.flif
+# ASAN may find leaks in code which is not ours and in that case it will throw bad exitcodes on first occurence
+# but we want or tests to continue running, so ignore exit code for now
+	../tools/test-roundtrip.sh ./flif.asan ../tools/2_webp_ll.png ../tmp-test/2_webp_ll.flif ../tmp-test/decoded_2_webp_ll.png || true
+	../tools/test-roundtrip.sh ./flif.asan ../tools/kodim01.png ../tmp-test/kodim01.flif ../tmp-test/decoded_kodim01.png  || true
+	../tools/test-lossy.sh ./flif.asan ../tools/kodim01.png ../tmp-test/kodim01-lossy.flif ../tmp-test/decoded_kodim01-lossy.png || true
+	../tools/test-roundtrip_anim.sh ./flif.asan ../tools/endless_war.gif ../tmp-test/endless_war.flif || true
+	../tools/test-roundtrip_anim_framedir.sh ./flif.asan ../tools/bouncing_ball_frames ../tmp-test/bouncing_ball.flif || true

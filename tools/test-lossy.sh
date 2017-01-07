@@ -2,17 +2,18 @@
 
 set -ex
 
-IN=$1
-OUTF=$2
-OUTP=$3
+FLIF=$1
+IN=$2
+OUTF=$3
+OUTP=$4
 
 runtest() {
   local lossyArg=$1
   local orderArg=$2
 
   rm -f ${OUTF} ${OUTP}
-  ./flif $lossyArg $orderArg "${IN}" "${OUTF}"
-  ./flif -d ${OUTF} ${OUTP}
+  ${FLIF} $lossyArg $orderArg "${IN}" "${OUTF}"
+  ${FLIF} -d ${OUTF} ${OUTP}
   test "`compare -metric AE ${IN} ${OUTP} null: 2>&1`" -lt 500000
 }
 
