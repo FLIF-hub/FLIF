@@ -19,5 +19,3 @@ runtest() {
 runtest -I
 
 runtest -N
-
-runtest -Q40
