@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <unistd.h>
 
 #include "image.hpp"
 #include "image-pam.hpp"
@@ -103,9 +104,8 @@ bool image_save_pam(const char *filename, const Image& image)
 {
     if (image.numPlanes() < 4) return image_save_pnm(filename, image);
     FILE *fp = NULL;
-    if (!strcmp(filename,"-")) fp = stdout;
+    if (!strcmp(filename,"-")) fp = fdopen(dup(fileno(stdout)), "wb"); // make sure it is in binary mode (needed in Windows)
     else fp = fopen(filename,"wb");
-
     if (!fp) {
         return false;
     }
@@ -173,7 +173,7 @@ bool image_save_pam(const char *filename, const Image& image)
             }
         }
 
-    if (fp != stdout) fclose(fp);
+//    if (fp != stdout) fclose(fp);
     if (image.get_metadata("iCCP")) {
         v_printf(1,"Warning: input image has color profile, which cannot be stored in output image format.\n");
     }
