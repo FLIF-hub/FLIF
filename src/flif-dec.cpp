@@ -1064,6 +1064,7 @@ bool flif_decode(IO& io, Images &images, uint32_t (*callback)(int32_t,int64_t), 
       if (scale > 1) e_printf("Don't use -s and (-r or -f) at the same time! Ignoring -s...\n");
       scale = 1;
       while ( (rw>0 && (((width-1)/scale)+1) > rw)   || (rh>0 && (((height-1)/scale)+1) > rh) ) scale *= 2;
+      options.scale = scale;
     }
     if (scale != 1 && encoding==flifEncoding::nonInterlaced) { v_printf(1,"Cannot decode non-interlaced FLIF file at lower scale! Ignoring resize target...\n"); scale = 1;}
 
