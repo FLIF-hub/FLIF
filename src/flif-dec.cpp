@@ -677,6 +677,7 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
         if (1<<(z/2) < breakpoints) {
             v_printf(1,"1:%i scale: %li bytes\n",breakpoints,io.ftell());
             breakpoints /= 2;
+            options.show_breakpoints = breakpoints;
             if (options.no_full_decode && breakpoints < 2) return false;
         }
         if (1<<(z/2) < scale) {
