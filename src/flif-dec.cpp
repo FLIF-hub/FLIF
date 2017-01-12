@@ -588,7 +588,7 @@ bool flif_decode_FLIF2_inner_horizontal(const int p, IO& io, Rac &rac, std::vect
                 GeneralPlane &plane = image.getPlane(p);
                 //ConstantPlane null_alpha(1);
                 const alpha_t &planeY = static_cast<const alpha_t&>(image.getPlane(0));
-                const alpha_t &alpha = nump > 3 ? static_cast<const alpha_t&>(image.getPlane(3)) : planeY; //null_alpha;
+                const alpha_t &alpha = nump > 3 && !image.getPlane(3).is_constant() ? static_cast<const alpha_t&>(image.getPlane(3)) : planeY; //null_alpha;
                 rowdecoder.prepare_row(r,fr, &alpha, &planeY);
                 plane.accept_visitor(rowdecoder);
             }
@@ -619,7 +619,7 @@ bool flif_decode_FLIF2_inner_vertical(const int p, IO& io, Rac &rac, std::vector
                 GeneralPlane &plane = image.getPlane(p);
                 //ConstantPlane null_alpha(1);
                 const alpha_t &planeY = static_cast<const alpha_t&>(image.getPlane(0));
-                const alpha_t &alpha = nump > 3 ? static_cast<const alpha_t&>(image.getPlane(3)) : planeY; //null_alpha;
+                const alpha_t &alpha = nump > 3 && !image.getPlane(3).is_constant() ? static_cast<const alpha_t&>(image.getPlane(3)) : planeY; //null_alpha;
                 rowdecoder.prepare_row(r,fr, &alpha, &planeY);
                 plane.accept_visitor(rowdecoder);
             }
