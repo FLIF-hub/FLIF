@@ -1246,7 +1246,7 @@ bool flif_decode(IO& io, Images &images, uint32_t (*callback)(int32_t,int64_t), 
             i.fully_decoded=true;
     }
 
-    if (!smaller_buffer) {
+    if (!smaller_buffer || !images[0].palette) {
       while(!transform_ptrs.empty()) {
         transform_ptrs.back()->invData(images);
         transform_ptrs.pop_back();

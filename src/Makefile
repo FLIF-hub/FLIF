@@ -54,7 +54,7 @@ libflif$(LIBEXT): $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/*.cp
 	ln -sf libflif$(LIBEXTV) libflif$(LIBEXT)
 
 libflif.dbg$(LIBEXT): $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/*.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) -O1 -ggdb3 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -Wl,$(SONAME),libflif$(LIBEXTV) -o libflif.dbg$(LIBEXTV)
+	$(CXX) -std=gnu++11 $(CXXFLAGS) -DDEBUG -O1 -ggdb3 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -Wl,$(SONAME),libflif$(LIBEXTV) -o libflif.dbg$(LIBEXTV)
 	ln -sf libflif.dbg$(LIBEXTV) libflif.dbg$(LIBEXT)
 
 # Example application: simple FLIF viewer - public domain

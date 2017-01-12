@@ -179,6 +179,7 @@ public:
     virtual void set_fast(uint32_t r, uint32_t c, ColorVal x) =0;
 
     virtual bool is_constant() const { return false; }
+    virtual int bytes_per_pixel() const { return 0; }
     virtual ~GeneralPlane() { }
     virtual void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) =0;
     virtual ColorVal get(const int z, const uint32_t r, const uint32_t c) const =0;
@@ -330,6 +331,8 @@ public:
     }
     void normalize_scale() override { s = 0; }
 
+    int bytes_per_pixel() const override { return sizeof(pixel_t); }
+
     void accept_visitor(PlaneVisitor &v) override {
         v.visit(*this);
     }
@@ -405,6 +408,7 @@ public:
     ColorVal get(const int z, const uint32_t r, const uint32_t c) const override {
         return color;
     }
+
 
     void accept_visitor(PlaneVisitor &v) override {
 //        v.visit(*this);
@@ -771,6 +775,15 @@ public:
     }
     void undo_make_constant_plane(const int p) {
       if (p>3 || p<0 || !planes[p]) return;
+      if (p==1 && planes[p]->bytes_per_pixel() == 1) {
+        std::unique_ptr<GeneralPlane> newp1 = make_unique<Plane<ColorVal_intern_16>>(width, height, 0, scale); // G,I
+        for (uint32_t r=0; r<SCALED(height); r++)
+          for (uint32_t c=0; c<SCALED(width); c++)
+            newp1->set(r,c,planes[p]->get(r,c));
+        planes[p].reset(nullptr);
+        planes[p] = std::move(newp1);
+        return;
+      }
       if (!planes[p]->is_constant()) return;
       ColorVal val = operator()(p,0,0);
       planes[p].reset(nullptr);
