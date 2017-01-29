@@ -22,7 +22,7 @@ bool image_load_pam(const char *filename, Image& image) {
     if (!fp) {
         return false;
     }
-    if (!fgets(buf, PPMREADBUFLEN, fp)) return false;
+    if (!fgets(buf, PPMREADBUFLEN, fp)) { fclose(fp); return false; }
     int type=0;
     if ( (!strncmp(buf, "P7\n", 3)) ) type=7;
     if (type==0) {
@@ -181,6 +181,7 @@ bool image_save_pam(const char *filename, const Image& image)
     if (image.get_metadata("iCCP")) {
         v_printf(1,"Warning: input image has color profile, which cannot be stored in output image format.\n");
     }
+    fclose(fp);
     return true;
 
 }

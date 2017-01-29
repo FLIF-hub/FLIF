@@ -175,6 +175,7 @@ bool image_save_pnm(const char *filename, const Image& image)
     if (image.get_metadata("iCCP")) {
         v_printf(1,"Warning: input image has color profile, which cannot be stored in output image format.\n");
     }
+    fclose(fp);
     return true;
 
 }
