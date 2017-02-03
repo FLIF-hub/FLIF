@@ -133,9 +133,12 @@ flif.dbg0: $(FILES_H) $(FILES_CPP) flif.cpp
 flif.asan: $(FILES_H) $(FILES_CPP) flif.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) $(OPTIMIZATIONS) -fsanitize=address,undefined -fno-omit-frame-pointer -g3 -Wall $(FILES_CPP) flif.cpp $(LDFLAGS) -o flif.asan
 
+viewflif.asan: libflif$(LIBEXT) viewflif.c
+	$(CC) -std=gnu11 -O0 -ggdb3 -fsanitize=address,undefined $(shell sdl2-config --cflags) -Wall -Ilibrary/ viewflif.c -L. -lflif $(shell sdl2-config --libs) -o viewflif.asan
+
 # make UBSAN print stacktrace
 test.asan: export UBSAN_OPTIONS = print_stacktrace=1
-test.asan: flif.asan test-interface
+test.asan: flif.asan test-interface viewflif.asan
 	mkdir -p ../tmp-test
 	./test-interface ../tmp-test/dummy.flif
 # ASAN may find leaks in code which is not ours and in that case it will throw bad exitcodes on first occurence
