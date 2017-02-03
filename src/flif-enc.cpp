@@ -497,6 +497,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
 //      printf("[%i] p=%i, z=%i\n",i,p,z);
       int factor=255;
       if (z>4) factor = factor * 4 / z;
+      assert(beginZL && "division by zero");
       factor = ((beginZL-z)*factor/(beginZL));
       if (z==0) factor += loss*2;
       if (z==1) factor += loss;
