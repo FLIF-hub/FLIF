@@ -534,12 +534,15 @@ FLIF_DLLEXPORT void FLIF_API flif_image_set_metadata(FLIF_IMAGE* image, const ch
     catch(...) {}
 }
 
-FLIF_DLLIMPORT void FLIF_API flif_image_get_metadata(FLIF_IMAGE* image, const char* chunkname, unsigned char** data, size_t* length){
+FLIF_DLLIMPORT bool FLIF_API flif_image_get_metadata(FLIF_IMAGE* image, const char* chunkname, unsigned char** data, size_t* length){
+    bool ret = false;
     try
     {
-        image->image.get_metadata(chunkname, data, length);
+        ret = image->image.get_metadata(chunkname, data, length);
     }
     catch(...) {}
+
+    return ret;
 }
 
 FLIF_DLLIMPORT void FLIF_API flif_image_free_metadata(FLIF_IMAGE* image, unsigned char* data){
