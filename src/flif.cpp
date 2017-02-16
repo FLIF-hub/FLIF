@@ -508,6 +508,7 @@ int main(int argc, char **argv)
         {"invisible-guess", 1, NULL, 'H'},
         {"effort", 1, NULL, 'E'},
         {"chroma-subsample", 0, NULL, 'J'},
+        {"no-subtract-green", 0, NULL, 'W'},
 #endif
         {0, 0, 0, 0}
     };
