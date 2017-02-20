@@ -1,4 +1,4 @@
-PREFIX := $(DESTDIR)/usr
+PREFIX := $(DESTDIR)/usr/local
 CXXFLAGS := $(shell pkg-config --cflags zlib libpng) -DLODEPNG_NO_COMPILE_PNG -DLODEPNG_NO_COMPILE_DISK
 LDFLAGS := $(shell pkg-config --libs libpng)
 
