@@ -90,6 +90,7 @@ These will be available on the Release page
 
 * **[Poly FLIF](https://github.com/UprootLabs/poly-flif)** - A javascript polyfill that allows you to use FLIF files in the browser. ([Demo](https://uprootlabs.github.io/poly-flif))
 * **[UGUI: FLIF](http://flif.info/UGUI_FLIF)** - A GUI that allows you to convert and view FLIF files.
+* **[Ivy, the Taggable Image Viewer](https://github.com/lehitoskin/ivy)** – An image viewer that supports FLIF via [riff](https://github.com/lehitoskin/riff)
 * **[flifcrush](https://github.com/FLIF-hub/flifcrush)** - A brute-force FLIF optimizer.
 * **[libflif.js](https://github.com/saschanaz/libflif.js/)** – A javascript FLIF encoder and decoder. ([Demo](https://saschanaz.github.io/libflif.js/)
 * **[flif-rs](https://github.com/panicbit/flif-rs)** – A work-in-progress implementation of FLIF in Rust.
