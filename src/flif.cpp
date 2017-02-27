@@ -334,19 +334,22 @@ bool encode_flif(int argc, char **argv, Images &images, flif_options &options) {
         //if (nb_pixels * images.size() < 5000) learn_repeats--;        // avoid large trees for small images
         if (options.learn_repeats < 0) options.learn_repeats=0;
     }
+    bool result = true;
     if (!options.just_add_loss) {
       FILE *file = NULL;
       if (!strcmp(argv[0],"-")) file = stdout;
       else file = fopen(argv[0],"wb");
       if (!file) return false;
       FileIO fio(file, (file == stdout? "to standard output" : argv[0]));
-      if (!flif_encode(fio, images, desc, options)) return false;
+      if (!flif_encode(fio, images, desc, options)) result = false;
     } else {
       BlobIO bio; // will just contain some unneeded FLIF header stuff
-      if (!flif_encode(bio, images, desc, options)) return false;
-      if (!images[0].save(argv[0])) return false;
+      if (!flif_encode(bio, images, desc, options)) result = false;
+      else if (!images[0].save(argv[0])) result = false;
     }
-    return true;
+    // get rid of palette
+    images[0].clear();
+    return result;
 }
 
 bool handle_encode(int argc, char **argv, Images &images, flif_options &options) {
@@ -449,6 +452,8 @@ int handle_decode(int argc, char **argv, Images &images, flif_options &options) 
             v_printf(2,"    (%i/%i)         \r",counter,(int)images.size()); v_printf(4,"\n");
         }
     }
+    // get rid of palette (should also do this in the non-standard/error paths, but being lazy here since the tool will exit anyway)
+    images[0].clear();
     v_printf(2,"\n");
     return 0;
 }

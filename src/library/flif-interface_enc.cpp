@@ -24,12 +24,21 @@
 FLIF_ENCODER::FLIF_ENCODER()
 : options(FLIF_DEFAULT_OPTIONS)
 {
+    options.learn_repeats = TREE_LEARN_REPEATS;
 }
 
 void FLIF_ENCODER::add_image(FLIF_IMAGE* image) {
     if (!options.alpha_zero_special) image->image.alpha_zero_special = false;
     images.push_back(image->image.clone()); // make a clone so the library user can safely destroy an image after adding it
 }
+
+
+void FLIF_ENCODER::add_image_move(FLIF_IMAGE* image) {
+    if (!options.alpha_zero_special) image->image.alpha_zero_special = false;
+    images.emplace_back(std::move(image->image)); // variant without cloning, will destroy input image during encoding
+    image = NULL;
+}
+
 
 void FLIF_ENCODER::transformations(std::vector<std::string> &desc) {
     uint64_t nb_pixels = (uint64_t)images[0].rows() * images[0].cols();
@@ -187,6 +196,10 @@ FLIF_DLLEXPORT void FLIF_API flif_encoder_set_chance_alpha(FLIF_ENCODER* encoder
 
 FLIF_DLLEXPORT void FLIF_API flif_encoder_add_image(FLIF_ENCODER* encoder, FLIF_IMAGE* image) {
     try { encoder->add_image(image); }
+    catch(...) {}
+}
+FLIF_DLLEXPORT void FLIF_API flif_encoder_add_image_move(FLIF_ENCODER* encoder, FLIF_IMAGE* image) {
+    try { encoder->add_image_move(image); }
     catch(...) {}
 }
 

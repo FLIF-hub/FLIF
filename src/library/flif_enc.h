@@ -30,8 +30,13 @@ extern "C" {
     // initialize a FLIF encoder
     FLIF_DLLIMPORT FLIF_ENCODER* FLIF_API flif_create_encoder();
 
-    // give it an image to encode; add more than one image to encode an animation
+    // give it an image to encode; add more than one image to encode an animation; it will CLONE the image
+    // (so the input image is not touched and you have to call flif_destroy_image on it yourself to free that memory)
     FLIF_DLLIMPORT void FLIF_API flif_encoder_add_image(FLIF_ENCODER* encoder, FLIF_IMAGE* image);
+
+    // give it an image to encode; add more than one image to encode an animation; it will MOVE the input image
+    // (input image becomes invalid during encode and flif_destroy_encoder will free it)
+    FLIF_DLLIMPORT void FLIF_API flif_encoder_add_image_move(FLIF_ENCODER* encoder, FLIF_IMAGE* image);
 
     // encode to a file
     FLIF_DLLIMPORT int32_t FLIF_API flif_encoder_encode_file(FLIF_ENCODER* encoder, const char* filename);

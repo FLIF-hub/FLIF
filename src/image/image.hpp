@@ -475,14 +475,15 @@ class Image {
       depth = other.depth;
 #endif
       metadata = other.metadata;
+      clear();
       palette = other.palette;
-      palette_image = other.palette_image;
+      if (other.palette_image) palette_image = new Image(*other.palette_image);
+      else palette_image = NULL;
       frame_delay = other.frame_delay;
       col_begin = other.col_begin;
       col_end = other.col_end;
       seen_before = other.seen_before;
       fully_decoded = other.fully_decoded;
-      clear();
       {
       int p=num;
       if (depth <= 8) {
@@ -512,7 +513,7 @@ class Image {
 
 public:
     bool palette;
-    Image * palette_image;
+    Image * palette_image = NULL;
     int frame_delay;
     bool alpha_zero_special = true;
     std::vector<uint32_t> col_begin;
@@ -715,7 +716,11 @@ public:
 
     void clear() {
         for (int p=0; p<5; p++) planes[p].reset(nullptr);
-        if (palette_image) delete palette_image;
+        if (palette_image) {
+//            printf("Deleting palette image\n");
+            delete palette_image;
+        }
+        palette_image = NULL;
     }
     void reset() {
         clear();

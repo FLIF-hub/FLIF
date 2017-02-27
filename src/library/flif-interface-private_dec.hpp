@@ -35,6 +35,11 @@ struct FLIF_DECODER
     flif_options options;
     void* callback;
     int32_t first_quality;
+    ~FLIF_DECODER() {
+        // get rid of palettes
+        if (internal_images.size()) internal_images[0].clear();
+        if (images.size()) images[0].clear();
+    }
 
 private:
     Images internal_images;
