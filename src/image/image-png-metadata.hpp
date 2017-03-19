@@ -39,7 +39,6 @@ static unsigned char* HexStringToBytes(const char* hexstring,
   return raw_data;
 }
 
-// rewrite
 static int ProcessRawProfile(const char* profile, size_t profile_len,
                              unsigned char ** payload, size_t* payload_len) {
   const char* src = profile;
