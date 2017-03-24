@@ -116,6 +116,7 @@ test: flif test-interface
 	../tools/test-lossy.sh ./flif ../tools/kodim01.png ../tmp-test/kodim01-lossy.flif ../tmp-test/decoded_kodim01-lossy.png
 	../tools/test-roundtrip_anim.sh ./flif ../tools/endless_war.gif ../tmp-test/endless_war.flif
 	../tools/test-roundtrip_anim_framedir.sh ./flif ../tools/bouncing_ball_frames ../tmp-test/bouncing_ball.flif
+	../tools/test-metadata.sh ./flif ../testFiles/sig05-014.png ../tmp-test/out-meta.flif ../tmp-test/out-meta.png
 
 
 flif.stats: $(FILES_H) $(FILES_CPP) flif.cpp
