@@ -1326,6 +1326,9 @@ bool flif_decode(IO& io, Images &images, uint32_t (*callback)(int32_t,int64_t), 
         callback(10000*pixels_done/pixels_todo,io.ftell());
     }
 
+    if (options.metadata) {
+      images[0].metadata = metadata;
+    }
     return true;
 }
 

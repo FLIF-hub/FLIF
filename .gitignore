@@ -25,7 +25,7 @@ src/test-interface
 src/viewflif
 src/dflif
 
-*.png
+/*.png
 *.xcworkspace/*
 *.xcworkspace
 *.xcodeproj

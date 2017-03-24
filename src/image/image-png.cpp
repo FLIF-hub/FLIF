@@ -416,7 +416,7 @@ int image_save_png(const char *filename, const Image &image) {
 #ifdef PNG_iTXt_SUPPORTED
     png_text txt;
     txt.key = (png_charp) "XML:com.adobe.xmp";
-    txt.compression = PNG_ITXT_COMPRESSION_NONE;
+    txt.compression = PNG_ITXT_COMPRESSION_zTXt;
     txt.text_length = 0;
     txt.text = (png_charp) profile;
     txt.lang = NULL;
