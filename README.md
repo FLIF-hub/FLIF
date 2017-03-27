@@ -80,9 +80,9 @@ On Fedora:
 
 ## Pre-Built Binaries
 
-These will be available on the Release page
+Windows, OSX, and Ubuntu prebuilt binaries packaged together in a single zip:
 
-* https://github.com/FLIF-hub/FLIF/releases
+* [flif_cli.zip](https://github.com/FLIF-hub/UGUI_FLIF/releases/download/v0.3.5/flif_cli.zip) - V0.1 (Built on October 15th, 2015)
 
 * * *
 
