@@ -7,6 +7,10 @@ compiler:
 sudo: true
 dist: trusty
 
+env:
+  - BUILDTYPE=GNUMAKE
+
+
 before_install:
   - sudo apt-get install build-essential imagemagick libsdl2-dev libimage-exiftool-perl
   # workaround clang not system wide, fail on sudo make install for adms
