@@ -21,6 +21,9 @@ src/flif.prof
 src/flif.stats
 src/libflif.dbg.so
 src/libflif.so
+src/libflif.dylib
+src/libflif.0.dylib
+
 src/test-interface
 src/viewflif
 src/dflif

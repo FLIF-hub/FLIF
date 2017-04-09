@@ -64,22 +64,29 @@ viewflif: libflif$(LIBEXT) viewflif.c
 
 install: flif libflif$(LIBEXT)
 	install -d $(PREFIX)/bin $(PREFIX)/lib $(PREFIX)/share/man/man1
-	install -s -m 755 flif $(PREFIX)/bin
-	install -s -m 755 libflif$(LIBEXT) libflif$(LIBEXTV) $(PREFIX)/lib
+	install -m 755 flif $(PREFIX)/bin
+	strip -x $(PREFIX)/bin/flif
+	install -m 755 libflif$(LIBEXT) libflif$(LIBEXTV) $(PREFIX)/lib
+	strip -x $(PREFIX)/lib/libflif$(LIBEXT) \
+	  $(PREFIX)/lib/libflif$(LIBEXTV)
 	install -m 644 ../doc/flif.1 $(PREFIX)/share/man/man1
 	install -m 755 ../tools/gif2flif $(PREFIX)/bin
 	install -m 755 ../tools/apng2flif $(PREFIX)/bin
 
 install-viewflif:
-	install -s -m 755 viewflif $(PREFIX)/bin
+	install -m 755 viewflif $(PREFIX)/bin
+	strip -x $(PREFIX)/bin/viewflif
 
 install-dev:
 	install -d $(PREFIX)/include
 	install -m 644 library/*.h $(PREFIX)/include
 
 install-decoder: decoder
-	install -s -m 755 dflif $(PREFIX)/bin
-	install -s -m 755 libflif_dec$(LIBEXT) libflif_dec$(LIBEXTV) $(PREFIX)/lib
+	install -m 755 dflif $(PREFIX)/bin
+	strip -x $(PREFIX)/bin/dflif
+	install -m 755 libflif_dec$(LIBEXT) libflif_dec$(LIBEXTV) $(PREFIX)/lib
+	strip -x $(PREFIX)/lib/libflif_dec$(LIBEXT) \
+	  $(PREFIX)/lib/libflif_dec$(LIBEXTV)
 
 magic:
 	if ! grep -q FLIF /etc/magic; then cat ../doc/flif.magic >> /etc/magic; fi
