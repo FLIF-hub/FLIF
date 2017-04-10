@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <SDL.h>
+#include <time.h>
 
 // SDL2 for Visual Studio C++ 2015
 
@@ -46,8 +47,8 @@ int frame = 0;
 int nb_frames = 0;
 int* frame_delay = NULL;
 
-int drawing = 0;
-int loading = 0;
+volatile int drawing = 0;
+volatile int loading = 0;
 int window_size_set = 0;
 int framecount = 0;
 
@@ -102,14 +103,33 @@ int do_event(SDL_Event e) {
     return 1;
 }
 
+clock_t last_preview_time = -CLOCKS_PER_SEC;
+
 // Callback function: converts (partially) decoded image/animation to a/several SDL_Texture(s),
 //                    resizes the viewer window if needed, and calls draw_image()
 // Input arguments are: quality (0..10000), current position in the .flif file
 // Output is the desired minimal quality before doing the next callback
-uint32_t progressive_render(int32_t quality, int64_t bytes_read) {
+uint32_t progressive_render(callback_info_t *info, void *user_data) {
     loading = 1;
     while (drawing) {SDL_Delay(50);} // don't touch the textures until we're done drawing
+
+    uint32_t quality = info->quality;
+
+    clock_t now = clock();
+    double timeElapsed = ((double)(now - last_preview_time)) / CLOCKS_PER_SEC;
+    if (quality != 10000 && timeElapsed < 0.4) {
+      return quality + 1000;
+    }
+    last_preview_time = now;
+
+    int64_t bytes_read = info->bytes_read;
     printf("%lli bytes read, rendering at quality=%.2f%%\n",(long long int) bytes_read, 0.01*quality);
+
+    // For benchmarking
+    // if (quality == 10000) printf("Total time: %.2lf\n", ((double)now ) / CLOCKS_PER_SEC);
+
+    flif_decoder_generate_preview(info);
+
     FLIF_IMAGE* image = flif_decoder_get_image(d, 0);
     if (!image) { printf("Error: No decoded image found\n"); return 1; }
     uint32_t w = flif_image_get_width(image);
@@ -193,7 +213,7 @@ static int decodeThread(void * arg) {
     // flif_decoder_set_fit(d, dm.w, 0);   // the default is to not have a maximum size
 #ifdef PROGRESSIVE_DECODING
     // set the callback function to render the partial (and final) decoded images
-    flif_decoder_set_callback(d, &(progressive_render));  // the default is "no callback"; decode completely until quality/scale/size target is reached
+    flif_decoder_set_callback(d, &(progressive_render), NULL);  // the default is "no callback"; decode completely until quality/scale/size target is reached
     // do the first callback when at least 5.00% quality has been decoded
     flif_decoder_set_first_callback_quality(d, 500);      // the default is to callback almost immediately
 #endif

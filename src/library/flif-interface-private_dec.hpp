@@ -34,6 +34,7 @@ struct FLIF_DECODER
 
     flif_options options;
     void* callback;
+    void* user_data;
     int32_t first_quality;
     ~FLIF_DECODER() {
         // get rid of palettes

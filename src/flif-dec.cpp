@@ -145,7 +145,7 @@ struct scanline_plane_decoder: public PlaneVisitor {
 
 template<typename IO, typename Rac, typename Coder>
 bool flif_decode_scanlines_inner(IO &io, Rac &rac, std::vector<Coder> &coders, Images &images, const ColorRanges *ranges, int quality,
-                                 std::vector<Transform<IO>*> &transforms, uint32_t (*callback)(int32_t,int64_t), Images &partial_images) {
+                                 std::vector<Transform<IO>*> &transforms, callback_t callback, void *user_data, Images &partial_images) {
     const int nump = images[0].numPlanes();
     const bool alphazero = images[0].alpha_zero_special;
     const bool FRA = (nump == 5);
@@ -202,10 +202,12 @@ bool flif_decode_scanlines_inner(IO &io, Rac &rac, std::vector<Coder> &coders, I
           }
           int qual = 10000*pixels_done/pixels_todo;
           if (callback && p != 4 && qual >= progressive_qual_target) {
-            for (unsigned int n=0; n < images.size(); n++) partial_images[n] = images[n].clone(); // make a copy to work with
-            for (int i=transforms.size()-1; i>=0; i--) if (transforms[i]->undo_redo_during_decode()) transforms[i]->invData(partial_images);
+            auto populatePartialImages = [&] () {
+              for (unsigned int n=0; n < images.size(); n++) partial_images[n] = images[n].clone(); // make a copy to work with
+              for (int i=transforms.size()-1; i>=0; i--) if (transforms[i]->undo_redo_during_decode()) transforms[i]->invData(partial_images);
+            };
             progressive_qual_shown = qual;
-            progressive_qual_target = callback(qual,io.ftell());
+            progressive_qual_target = issue_callback(callback, user_data, qual, io.ftell(), populatePartialImages);
             if (qual >= progressive_qual_target) return false;
           }
         }
@@ -213,9 +215,17 @@ bool flif_decode_scanlines_inner(IO &io, Rac &rac, std::vector<Coder> &coders, I
     return true;
 }
 
+uint32_t issue_callback(callback_t callback, void *user_data, uint32_t quality, int64_t bytes_read, std::function<void ()> func) {
+  callback_info_t *cb_info = (callback_info_t *) malloc(sizeof(callback_info_t));
+  cb_info->quality = quality;
+  cb_info->bytes_read = bytes_read;
+  cb_info->populateContext = (void *) &func;
+  return callback(cb_info, user_data);
+}
+
 template<typename IO, typename Rac, typename Coder>
 bool flif_decode_scanlines_pass(IO& io, Rac &rac, Images &images, const ColorRanges *ranges, std::vector<Tree> &forest, flif_options &options,
-                                std::vector<Transform<IO>*> &transforms, uint32_t (*callback)(int32_t,int64_t), Images &partial_images) {
+                                std::vector<Transform<IO>*> &transforms, callback_t callback, void *user_data, Images &partial_images) {
     std::vector<Coder> coders;
     coders.reserve(images[0].numPlanes());
     for (int p = 0; p < images[0].numPlanes(); p++) {
@@ -223,7 +233,7 @@ bool flif_decode_scanlines_pass(IO& io, Rac &rac, Images &images, const ColorRan
         initPropRanges_scanlines(propRanges, *ranges, p);
         coders.emplace_back(rac, propRanges, forest[p], 0, options.cutoff, options.alpha);
     }
-    return flif_decode_scanlines_inner<IO,Rac,Coder>(io, rac, coders, images, ranges, options.quality, transforms, callback, partial_images);
+    return flif_decode_scanlines_inner<IO,Rac,Coder>(io, rac, coders, images, ranges, options.quality, transforms, callback, user_data, partial_images);
 }
 
 // interpolate rest of the image
@@ -632,7 +642,7 @@ bool flif_decode_FLIF2_inner_vertical(const int p, IO& io, Rac &rac, std::vector
 template<typename IO, typename Rac, typename Coder, typename ranges_t>
 bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Images &images, const ranges_t *ranges,
                              const int beginZL, const int endZL, flif_options &options, std::vector<Transform<IO>*> &transforms,
-                             uint32_t (*callback)(int32_t,int64_t), Images &partial_images) {
+                             callback_t callback, void *user_data, Images &partial_images) {
     const int nump = images[0].numPlanes();
     int quality=options.quality, scale=options.scale;
 //    const bool alphazero = images[0].alpha_zero_special;
@@ -711,17 +721,29 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
         zoomlevels[p]--;
         int qual = 10000*pixels_done/pixels_todo;
         if (callback && p<4 && (endZL==0 || i+1 == plane_zoomlevels(images[0], beginZL, endZL)) && qual >= progressive_qual_target) {
-          for (unsigned int n=0; n < images.size(); n++) partial_images[n] = images[n].clone(); // make a copy to work with
-          int64_t pixels_really_done = pixels_done;
-          std::vector<Transform<IO>*> transforms_copy = transforms;
-          std::vector<int> zoomlevels_copy = zoomlevels;
-          flif_decode_FLIF2_inner_interpol(partial_images, ranges, 0, beginZL, endZL, -1, scale, zoomlevels_copy, transforms_copy);
-          if (endZL>0) flif_decode_FLIF2_inner_interpol(partial_images, ranges, 0, endZL-1, 0, -1, scale, zoomlevels_copy, transforms_copy);
-          pixels_done = pixels_really_done;
-          for (Image& image : partial_images) image.normalize_scale();
-          for (int i=transforms_copy.size()-1; i>=0; i--) if (transforms_copy[i]->undo_redo_during_decode()) transforms_copy[i]->invData(partial_images);
+          auto populatePartialImages = [&] () {
+            for (unsigned int n=0; n < images.size(); n++) {
+              partial_images[n] = images[n].clone(); // make a copy to work with
+            }
+            int64_t pixels_really_done = pixels_done;
+            std::vector<Transform<IO>*> transforms_copy = transforms;
+            std::vector<int> zoomlevels_copy = zoomlevels;
+            flif_decode_FLIF2_inner_interpol(partial_images, ranges, 0, beginZL, endZL, -1, scale, zoomlevels_copy, transforms_copy);
+            if (endZL>0) {
+              flif_decode_FLIF2_inner_interpol(partial_images, ranges, 0, endZL-1, 0, -1, scale, zoomlevels_copy, transforms_copy);
+            }
+            pixels_done = pixels_really_done;
+            for (Image& image : partial_images) {
+              image.normalize_scale();
+            }
+            for (int i=transforms_copy.size()-1; i>=0; i--) {
+              if (transforms_copy[i]->undo_redo_during_decode()) {
+                transforms_copy[i]->invData(partial_images);
+              }
+            }
+          };
           progressive_qual_shown = qual;
-          progressive_qual_target = callback(qual,io.ftell());
+          progressive_qual_target = issue_callback(callback, user_data, qual, io.ftell(), populatePartialImages);
           if (qual >= progressive_qual_target) return false;
         }
       } else zoomlevels[p]--;
@@ -732,7 +754,7 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
 template<typename IO, typename Rac, typename Coder>
 bool flif_decode_FLIF2_pass(IO &io, Rac &rac, Images &images, const ColorRanges *ranges, std::vector<Tree> &forest,
                             const int beginZL, const int endZL, flif_options &options, std::vector<Transform<IO>*> &transforms,
-                            uint32_t (*callback)(int32_t,int64_t), Images &partial_images) {
+                            callback_t callback, void *user_data, Images &partial_images) {
     std::vector<Coder> coders;
     coders.reserve(images[0].numPlanes());
     for (int p = 0; p < images[0].numPlanes(); p++) {
@@ -758,12 +780,12 @@ bool flif_decode_FLIF2_pass(IO &io, Rac &rac, Images &images, const ColorRanges 
 #if LARGE_BINARY > 1
     // de-virtualize some of those ColorRanges
     if (const ColorRangesCB * rangesCB = dynamic_cast<const ColorRangesCB*>(ranges))
-        return flif_decode_FLIF2_inner<IO,Rac,Coder,ColorRangesCB>(io, rac, coders, images, rangesCB, beginZL, endZL, options, transforms, callback, partial_images);
+        return flif_decode_FLIF2_inner<IO,Rac,Coder,ColorRangesCB>(io, rac, coders, images, rangesCB, beginZL, endZL, options, transforms, callback, user_data, partial_images);
     if (const ColorRangesBounds * rangesB = dynamic_cast<const ColorRangesBounds*>(ranges))
-        return flif_decode_FLIF2_inner<IO,Rac,Coder,ColorRangesBounds>(io, rac, coders, images, rangesB, beginZL, endZL, options, transforms, callback, partial_images);
+        return flif_decode_FLIF2_inner<IO,Rac,Coder,ColorRangesBounds>(io, rac, coders, images, rangesB, beginZL, endZL, options, transforms, callback, user_data, partial_images);
     else
 #endif
-        return flif_decode_FLIF2_inner<IO,Rac,Coder,ColorRanges>(io, rac, coders, images, ranges, beginZL, endZL, options, transforms, callback, partial_images);
+        return flif_decode_FLIF2_inner<IO,Rac,Coder,ColorRanges>(io, rac, coders, images, ranges, beginZL, endZL, options, transforms, callback, user_data, partial_images);
 }
 
 
@@ -789,7 +811,7 @@ template<typename IO, typename BitChance, typename Rac> bool flif_decode_tree(IO
 
 template <int bits, typename IO>
 bool flif_decode_main(RacIn<IO>& rac, IO& io, Images &images, const ColorRanges *ranges,
-        std::vector<Transform<IO>*> &transforms, flif_options &options, uint32_t (*callback)(int32_t,int64_t), Images &partial_images) {
+        std::vector<Transform<IO>*> &transforms, flif_options &options, callback_t callback, void *user_data, Images &partial_images) {
     int scale=options.scale;
     std::vector<Tree> forest(ranges->numPlanes(), Tree());
     int roughZL = 0;
@@ -799,7 +821,7 @@ bool flif_decode_main(RacIn<IO>& rac, IO& io, Images &images, const ColorRanges 
       UniformSymbolCoder<RacIn<IO>> metaCoder(rac);
       roughZL = metaCoder.read_int(0,images[0].zooms());
 //      v_printf(2,"Decoding rough data\n");
-      if (!flif_decode_FLIF2_pass<IO, RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, bits> >(io, rac, images, ranges, forest, images[0].zooms(), roughZL+1, options, transforms, callback, partial_images)) {
+      if (!flif_decode_FLIF2_pass<IO, RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, bits> >(io, rac, images, ranges, forest, images[0].zooms(), roughZL+1, options, transforms, callback, user_data, partial_images)) {
         std::vector<int> zoomlevels(ranges->numPlanes(),roughZL);
         flif_decode_FLIF2_inner_interpol(images, ranges, 0, roughZL, 0, -1, scale, zoomlevels, transforms);
         return false;
@@ -824,10 +846,10 @@ bool flif_decode_main(RacIn<IO>& rac, IO& io, Images &images, const ColorRanges 
 
     switch(options.method.encoding) {
         case flifEncoding::nonInterlaced: v_printf(3,"Decoding data (scanlines)\n");
-                return flif_decode_scanlines_pass<IO, RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, bits> >(io, rac, images, ranges, forest, options, transforms, callback, partial_images);
+                return flif_decode_scanlines_pass<IO, RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, bits> >(io, rac, images, ranges, forest, options, transforms, callback, user_data, partial_images);
                 break;
         case flifEncoding::interlaced: v_printf(3,"Decoding data (interlaced)\n");
-                return flif_decode_FLIF2_pass<IO, RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, bits> >(io, rac, images, ranges, forest, roughZL, 0, options, transforms, callback, partial_images);
+                return flif_decode_FLIF2_pass<IO, RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, bits> >(io, rac, images, ranges, forest, roughZL, 0, options, transforms, callback, user_data, partial_images);
                 break;
     }
     return false;
@@ -878,7 +900,7 @@ int read_chunk(IO& io, MetaData& metadata) {
 
 
 template <typename IO>
-bool flif_decode(IO& io, Images &images, uint32_t (*callback)(int32_t,int64_t), int first_callback_quality, Images &partial_images, flif_options &options, metadata_options &md, FLIF_INFO* info) {
+bool flif_decode(IO& io, Images &images, callback_t callback, void *user_data, int first_callback_quality, Images &partial_images, flif_options &options, metadata_options &md, FLIF_INFO* info) {
     int quality = options.quality;
     int scale = options.scale;
     int rw = options.resize_width;
@@ -1225,10 +1247,10 @@ bool flif_decode(IO& io, Images &images, uint32_t (*callback)(int32_t,int64_t), 
 #endif
     bool fully_decoded;
     if (bits == 10) {
-       fully_decoded = flif_decode_main<10>(rac, io, images, ranges, transform_ptrs, options, callback, partial_images);
+       fully_decoded = flif_decode_main<10>(rac, io, images, ranges, transform_ptrs, options, callback, user_data, partial_images);
 #ifdef SUPPORT_HDR
     } else {
-       fully_decoded = flif_decode_main<18>(rac, io, images, ranges, transform_ptrs, options, callback, partial_images);
+       fully_decoded = flif_decode_main<18>(rac, io, images, ranges, transform_ptrs, options, callback, user_data, partial_images);
 #endif
     }
 
@@ -1322,8 +1344,10 @@ bool flif_decode(IO& io, Images &images, uint32_t (*callback)(int32_t,int64_t), 
     // ensure that the callback gets called even if the image is completely constant
     if (progressive_qual_target > 10000) progressive_qual_target = 10000;
     if (callback && progressive_qual_target > progressive_qual_shown) {
-        for (unsigned int n=0; n < images.size(); n++) partial_images[n] = images[n].clone(); // make a copy to work with
-        callback(10000*pixels_done/pixels_todo,io.ftell());
+        auto populatePartialImages = [&] () {
+          for (unsigned int n=0; n < images.size(); n++) partial_images[n] = images[n].clone(); // make a copy to work with
+        };
+        issue_callback(callback, user_data, 10000*pixels_done/pixels_todo, io.ftell(), populatePartialImages);
     }
 
     if (options.metadata) {
@@ -1333,5 +1357,5 @@ bool flif_decode(IO& io, Images &images, uint32_t (*callback)(int32_t,int64_t), 
 }
 
 
-template bool flif_decode(FileIO& io, Images &images, uint32_t (*callback)(int32_t,int64_t), int, Images &partial_images, flif_options &, metadata_options &, FLIF_INFO* info);
-template bool flif_decode(BlobReader& io, Images &images, uint32_t (*callback)(int32_t,int64_t), int, Images &partial_images, flif_options &, metadata_options &, FLIF_INFO* info);
+template bool flif_decode(FileIO& io, Images &images, callback_t callback, void *user_data, int, Images &partial_images, flif_options &, metadata_options &, FLIF_INFO* info);
+template bool flif_decode(BlobReader& io, Images &images, callback_t callback, void *user_data, int, Images &partial_images, flif_options &, metadata_options &, FLIF_INFO* info);

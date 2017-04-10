@@ -25,6 +25,16 @@ limitations under the License.
 extern "C" {
 #endif // __cplusplus
 
+    typedef struct callback_info_struct {
+      uint32_t quality;
+      int64_t  bytes_read;
+
+      // Private context
+      void *populateContext;
+    } callback_info_t;
+
+    typedef uint32_t (*callback_t)(callback_info_t *info, void *user_data);
+
     typedef struct FLIF_DECODER FLIF_DECODER;
     typedef struct FLIF_INFO FLIF_INFO;
 
@@ -43,6 +53,8 @@ extern "C" {
     // returns a pointer to a given frame, counting from 0 (use index=0 for still images)
     FLIF_DLLIMPORT FLIF_IMAGE* FLIF_API flif_decoder_get_image(FLIF_DECODER* decoder, size_t index);
 
+    FLIF_DLLIMPORT void FLIF_API flif_decoder_generate_preview(callback_info_t *info);
+
     // release an decoder (has to be called after decoding is done, to avoid memory leaks)
     FLIF_DLLIMPORT void FLIF_API flif_destroy_decoder(FLIF_DECODER* decoder);
     // abort a decoder (can be used before decoding is completed)
@@ -58,7 +70,7 @@ extern "C" {
     // Progressive decoding: set a callback function. The callback will be called after a certain quality is reached,
     // and it should return the desired next quality that should be reached before it will be called again.
     // The qualities are expressed on a scale from 0 to 10000 (not 0 to 100!) for fine-grained control.
-    FLIF_DLLIMPORT void FLIF_API flif_decoder_set_callback(FLIF_DECODER* decoder, uint32_t (*callback)(int32_t quality, int64_t bytes_read));
+    FLIF_DLLIMPORT void FLIF_API flif_decoder_set_callback(FLIF_DECODER* decoder, callback_t callback, void *user_data);
     FLIF_DLLIMPORT void FLIF_API flif_decoder_set_first_callback_quality(FLIF_DECODER* decoder, int32_t quality); // valid quality: 0-10000
 
     // Reads the header of a FLIF file and packages it as a FLIF_INFO struct.
