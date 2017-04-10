@@ -208,6 +208,7 @@ static int decodeThread(void * arg) {
     progressive_render(10000,-1);
 #endif
     flif_destroy_decoder(d);
+    d = NULL;
     return 0;
 }
 
@@ -255,10 +256,12 @@ int main(int argc, char **argv) {
         }
         while (SDL_PollEvent(&e)) do_event(e);
     }
+
     if (nb_frames > 1) printf("Rendered %i frames in %.2f seconds, %.4f frames per second\n", framecount, 0.001*(SDL_GetTicks()-begin), 1000.0*framecount/(SDL_GetTicks()-begin));
+
 #ifdef PROGRESSIVE_DECODING
     // make sure the decoding gets properly aborted (in case it was not done yet)
-    while(flif_abort_decoder(d)) SDL_Delay(100);
+    while(d != NULL && flif_abort_decoder(d)) SDL_Delay(100);
     SDL_WaitThread(decode_thread, &result);
 #endif
     SDL_DestroyWindow(window);
