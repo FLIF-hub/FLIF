@@ -277,7 +277,7 @@ void flif_decode_FLIF2_inner_interpol(Images &images, const ColorRanges *ranges,
       while(images[0].palette && transforms.size()>0) { transforms.back()->invData(images); transforms.pop_back(); ranges = ranges->previous();}
       zoomlevels[0] = zoomlevels[1];
       zoomlevels[2] = zoomlevels[1];
-      zoomlevels[3] = zoomlevels[1];
+      if (zoomlevels.size() > 3) zoomlevels[3] = zoomlevels[1];
     }
 
     // interpolate the next zoomlevels
