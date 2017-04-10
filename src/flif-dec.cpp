@@ -220,7 +220,9 @@ uint32_t issue_callback(callback_t callback, void *user_data, uint32_t quality, 
   cb_info->quality = quality;
   cb_info->bytes_read = bytes_read;
   cb_info->populateContext = (void *) &func;
-  return callback(cb_info, user_data);
+  uint32_t retValue = callback(cb_info, user_data);
+  free(cb_info);
+  return retValue;
 }
 
 template<typename IO, typename Rac, typename Coder>
