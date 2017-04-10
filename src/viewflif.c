@@ -241,6 +241,8 @@ int main(int argc, char **argv) {
     }
 
     SDL_Init(SDL_INIT_VIDEO);
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "2");
+
     SDL_EventState(SDL_MOUSEMOTION,SDL_IGNORE);
     window = SDL_CreateWindow("FLIF Viewer -- Loading...", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 200, 200, SDL_WINDOW_RESIZABLE);
 
