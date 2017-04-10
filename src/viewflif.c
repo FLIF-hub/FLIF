@@ -37,6 +37,7 @@ typedef struct RGBA { uint8_t r,g,b,a; } RGBA;
 FLIF_DECODER* d = NULL;
 SDL_Window* window = NULL;
 SDL_DisplayMode dm;
+SDL_DisplayMode ddm;
 SDL_Renderer* renderer = NULL;
 SDL_Texture** image_frame = NULL;
 SDL_Surface* decsurf = NULL;
@@ -207,7 +208,7 @@ static int decodeThread(void * arg) {
     // set the scale-down factor to 1 (a higher value will decode a downsampled preview)
     flif_decoder_set_scale(d, 1);                 // this is the default, so can be omitted
     // set the maximum size to twice the screen resolution; if an image is larger, a downsampled preview will be decoded
-    flif_decoder_set_resize(d, dm.w*2, dm.h*2);   // the default is to not have a maximum size
+    flif_decoder_set_resize(d, ddm.w*2, ddm.h*2);   // the default is to not have a maximum size
 
     // alternatively, set the decode width to exactly the screen width (the height will be set to respect aspect ratio)
     // flif_decoder_set_fit(d, dm.w, 0);   // the default is to not have a maximum size
@@ -242,10 +243,14 @@ int main(int argc, char **argv) {
     SDL_Init(SDL_INIT_VIDEO);
     SDL_EventState(SDL_MOUSEMOTION,SDL_IGNORE);
     window = SDL_CreateWindow("FLIF Viewer -- Loading...", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 200, 200, SDL_WINDOW_RESIZABLE);
+
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     SDL_SetRenderDrawColor(renderer, 127, 127, 127, 255); // background color (in case aspect ratio of window doesn't match image)
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
+
+    int displayIndex = SDL_GetWindowDisplayIndex(window);
+    if (SDL_GetDesktopDisplayMode(displayIndex,&ddm)) { printf("Error: SDL_GetWindowDisplayMode\n"); return 1; }
     if (SDL_GetWindowDisplayMode(window,&dm)) { printf("Error: SDL_GetWindowDisplayMode\n"); return 1; }
     int result = 0;
 #ifdef PROGRESSIVE_DECODING
