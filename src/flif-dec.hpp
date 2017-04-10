@@ -11,14 +11,24 @@ struct FLIF_INFO
     size_t num_images;
 };
 
+typedef struct callback_info_struct {
+  uint32_t quality;
+  int64_t  bytes_read;
+
+  // Private context
+  void *populateContext;
+} callback_info_t;
+
+typedef uint32_t (*callback_t)(callback_info_t *info, void *user_data);
+
 /*!
 * @param[out] info An info struct to fill. If this is not a null pointer, the decoding will exit after reading the file header.
 */
 
 template <typename IO>
-bool flif_decode(IO& io, Images &images, uint32_t (*callback)(int32_t,int64_t), int, Images &partial_images, flif_options &options, metadata_options &md, FLIF_INFO* info);
+bool flif_decode(IO& io, Images &images, callback_t callback, void *user_data, int, Images &partial_images, flif_options &options, metadata_options &md, FLIF_INFO* info);
 
 template <typename IO>
 bool flif_decode(IO& io, Images &images, flif_options &options, metadata_options &md) {
-    return flif_decode(io, images, NULL, 0, images, options, md, 0);
+    return flif_decode(io, images, NULL, NULL, 0, images, options, md, 0);
 }

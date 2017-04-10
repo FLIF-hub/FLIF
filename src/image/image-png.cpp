@@ -302,8 +302,9 @@ int image_load_png(const char *filename, Image &image, metadata_options &options
         }
         if (rawprofile) {
           unsigned char * buffer = NULL;
-          if (ProcessRawProfile(txt->text, length, &buffer)) {
-            image.set_metadata(chunkname, buffer, length);
+          size_t buffer_len = 0;
+          if (ProcessRawProfile(txt->text, length, &buffer, &buffer_len)) {
+            image.set_metadata(chunkname, buffer, buffer_len);
             free(buffer);
           }
         } else {
@@ -415,7 +416,7 @@ int image_save_png(const char *filename, const Image &image) {
 #ifdef PNG_iTXt_SUPPORTED
     png_text txt;
     txt.key = (png_charp) "XML:com.adobe.xmp";
-    txt.compression = PNG_ITXT_COMPRESSION_NONE;
+    txt.compression = PNG_ITXT_COMPRESSION_zTXt;
     txt.text_length = 0;
     txt.text = (png_charp) profile;
     txt.lang = NULL;

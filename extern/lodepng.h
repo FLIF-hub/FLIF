@@ -1,5 +1,5 @@
 /*
-LodePNG version 20160501
+LodePNG version 20161127
 
 Copyright (c) 2005-2016 Lode Vandevenne
 
@@ -559,11 +559,11 @@ Used internally by default if "auto_convert" is enabled. Public because it's use
 typedef struct LodePNGColorProfile
 {
   unsigned colored; /*not greyscale*/
-  unsigned key; /*if true, image is not opaque. Only if true and alpha is false, color key is possible.*/
-  unsigned short key_r; /*these values are always in 16-bit bitdepth in the profile*/
+  unsigned key; /*image is not opaque and color key is possible instead of full alpha*/
+  unsigned short key_r; /*key values, always as 16-bit, in 8-bit case the byte is duplicated, e.g. 65535 means 255*/
   unsigned short key_g;
   unsigned short key_b;
-  unsigned alpha; /*alpha channel or alpha palette required*/
+  unsigned alpha; /*image is not opaque and alpha channel or alpha palette required*/
   unsigned numcolors; /*amount of colors, up to 257. Not valid if bits == 16.*/
   unsigned char palette[1024]; /*Remembers up to the first 256 RGBA colors, in no particular order*/
   unsigned bits; /*bits per channel (not for palette). 1,2 or 4 for greyscale only. 16 if 16-bit per channel required.*/
@@ -1608,6 +1608,7 @@ yyyymmdd.
 Some changes aren't backwards compatible. Those are indicated with a (!)
 symbol.
 
+*) 27 nov 2016: grey+alpha auto color model detection bugfix
 *) 18 apr 2016: Changed qsort to custom stable sort (for platforms w/o qsort).
 *) 09 apr 2016: Fixed colorkey usage detection, and better file loading (within
    the limits of pure C90).
