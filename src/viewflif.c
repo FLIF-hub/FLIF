@@ -106,7 +106,10 @@ int do_event(SDL_Event e) {
     return 1;
 }
 
-clock_t last_preview_time = -CLOCKS_PER_SEC;
+
+const double preview_interval= .6;
+
+clock_t last_preview_time = 0;
 
 // returns true on success
 bool updateTextures(uint32_t quality, int64_t bytes_read) {
@@ -189,7 +192,7 @@ uint32_t progressive_render(callback_info_t *info, void *user_data) {
 
       clock_t now = clock();
       double timeElapsed = ((double)(now - last_preview_time)) / CLOCKS_PER_SEC;
-      if (quality != 10000 && timeElapsed < 0.4) {
+      if (quality != 10000 && timeElapsed< preview_interval) {
         SDL_UnlockMutex(mutex);
         return quality + 1000;
       }
@@ -278,6 +281,8 @@ int main(int argc, char **argv) {
       fprintf(stderr, "Couldn't create mutex\n");
       return 1;
     }
+
+    last_preview_time = (-2*preview_interval* CLOCKS_PER_SEC);
 
     SDL_Init(SDL_INIT_VIDEO);
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "2");
