@@ -177,6 +177,7 @@ bool updateTextures(uint32_t quality, int64_t bytes_read) {
     return true;
 }
 
+#ifdef PROGRESSIVE_DECODING
 // Callback function: converts (partially) decoded image/animation to a/several SDL_Texture(s),
 //                    resizes the viewer window if needed, and calls draw_image()
 // Input arguments are: quality (0..10000), current position in the .flif file
@@ -219,6 +220,7 @@ uint32_t progressive_render(callback_info_t *info, void *user_data) {
     }
 
 }
+#endif
 
 // When decoding progressively, this is a separate thread (so a partially loaded animation keeps playing while decoding more detail)
 static int decodeThread(void * arg) {
