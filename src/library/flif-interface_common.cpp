@@ -125,7 +125,7 @@ void FLIF_IMAGE::read_row_RGBA8(uint32_t row, void* buffer, size_t buffer_size_b
     int mult = 1;
     ColorVal m=image.max(0);
     while (m > 0xFF) { rshift++; m = m >> 1; } // in case the image has bit depth higher than 8
-    if (m < 0xFF) mult = 0xFF / m;
+    if ((m != 0) && m < 0xFF) mult = 0xFF / m;
     if (image.palette) {
       assert(image.numPlanes() >= 3);
       // always color
@@ -179,7 +179,7 @@ void FLIF_IMAGE::read_row_GRAY8(uint32_t row, void* buffer, size_t buffer_size_b
     int mult = 1;
     ColorVal m=image.max(0);
     while (m > 0xFF) { rshift++; m = m >> 1; } // in case the image has bit depth higher than 8
-    if (m < 0xFF) mult = 0xFF / m;
+    if ((m != 0) && m < 0xFF) mult = 0xFF / m;
 
     for (size_t c = 0; c < (size_t) image.cols(); c++) {
             buffer_gray[c] = ((image(0, row, c) >> rshift) * mult) & 0xFF;
@@ -227,7 +227,7 @@ void FLIF_IMAGE::read_row_RGBA16(uint32_t row, void* buffer, size_t buffer_size_
     int mult = 1;
     ColorVal m=image.max(0);
     while (m > 0xFFFF) { rshift++; m = m >> 1; } // in the unlikely case that the image has bit depth higher than 16
-    if (m < 0xFFFF) mult = 0xFFFF / m;
+    if ((m != 0) && m < 0xFFFF) mult = 0xFFFF / m;
 
     if(image.numPlanes() >= 3) {
         // color
