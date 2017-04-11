@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <SDL.h>
 #include <time.h>
+#include <stdbool.h>
 
 // SDL2 for Visual Studio C++ 2015
 
@@ -107,6 +108,75 @@ int do_event(SDL_Event e) {
 
 clock_t last_preview_time = -CLOCKS_PER_SEC;
 
+// returns true on success
+bool updateTextures(uint32_t quality, int64_t bytes_read) {
+    printf("%lli bytes read, rendering at quality=%.2f%%\n",(long long int) bytes_read, 0.01*quality);
+
+    FLIF_IMAGE* image = flif_decoder_get_image(d, 0);
+    if (!image) { printf("Error: No decoded image found\n"); return false; }
+    uint32_t w = flif_image_get_width(image);
+    uint32_t h = flif_image_get_height(image);
+
+    // set the window title and size
+    if (!window) { printf("Error: Could not create window\n"); return false; }
+    char title[100];
+    sprintf(title,"FLIF image decoded at %ix%i [read %lli bytes, quality=%.2f%%]",w,h,(long long int) bytes_read, 0.01*quality);
+    SDL_SetWindowTitle(window,title);
+    if (!window_size_set) {
+      int ww = (w > dm.w ? dm.w : w);
+      int wh = (h > dm.h ? dm.h : h);
+      if (ww > w * wh / h) ww = wh * w / h;
+      else if (ww < w * wh / h) wh = ww * h / w;
+      if (w > dm.w*8/10 && h > dm.h*8/10) { ww = ww*8/10; wh = wh*8/10; }
+      SDL_SetWindowSize(window,ww,wh);
+      SDL_SetWindowPosition(window,SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED);
+      if (w > dm.w*8/10 && h > dm.h*8/10) { SDL_MaximizeWindow(window); }
+      window_size_set = 1;
+    }
+
+    // allocate enough room for the texture pointers and frame delays
+    if (!image_frame) image_frame = (SDL_Texture**) calloc(flif_decoder_num_images(d), sizeof(FLIF_IMAGE*));
+    if (!frame_delay) frame_delay = (int*) calloc(flif_decoder_num_images(d), sizeof(int));
+
+    // produce one SDL_Texture per frame
+    for (int f = 0; f < flif_decoder_num_images(d); f++) {
+        if (quit) {
+          return 0;
+        }
+        FLIF_IMAGE* image = flif_decoder_get_image(d, f);
+        if (!image) { printf("Error: No decoded image found\n"); return false; }
+        frame_delay[f] = flif_image_get_frame_delay(image);
+        // Copy the decoded pixels to a temporary surface
+        if (!tmpsurf) tmpsurf = SDL_CreateRGBSurface(0,w,h,32,0x000000FF,0x0000FF00,0x00FF0000,0xFF000000);
+        if (!tmpsurf) { printf("Error: Could not create surface\n"); return false; }
+        char* pp =(char*) tmpsurf->pixels;
+        for (uint32_t r=0; r<h; r++) {
+            flif_image_read_row_RGBA8(image, r, pp, w * sizeof(RGBA));
+            pp += tmpsurf->pitch;
+        }
+        // Draw checkerboard background for image/animation with alpha channel
+        if (flif_image_get_nb_channels(image) > 3) {
+          if (!bgsurf) bgsurf = SDL_CreateRGBSurface(0,w,h,32,0x000000FF,0x0000FF00,0x00FF0000,0xFF000000);
+          if (!bgsurf) { printf("Error: Could not create surface\n"); return false; }
+          SDL_Rect sq; sq.w=20; sq.h=20;
+          for (sq.y=0; sq.y<h; sq.y+=sq.h) for (sq.x=0; sq.x<w; sq.x+=sq.w)
+              SDL_FillRect(bgsurf,&sq,(((sq.y/sq.h + sq.x/sq.w)&1) ? 0xFF606060 : 0xFFA0A0A0));
+          // Alpha-blend decoded frame on top of checkerboard background
+          SDL_BlitSurface(tmpsurf,NULL,bgsurf,NULL);
+          SDL_FreeSurface(tmpsurf); tmpsurf = bgsurf; bgsurf = NULL;
+        }
+        if (!renderer) { printf("Error: Could not get renderer\n"); return false; }
+        if (image_frame[f]) SDL_DestroyTexture(image_frame[f]);
+        // Convert the surface to a texture (for accelerated blitting)
+        image_frame[f] = SDL_CreateTextureFromSurface(renderer, tmpsurf);
+        if (!image_frame[f]) { printf("Could not create texture!\n"); quit=1; return 1; }
+        SDL_SetTextureBlendMode(image_frame[f],SDL_BLENDMODE_NONE);
+    }
+    SDL_FreeSurface(tmpsurf); tmpsurf=NULL;
+
+    return true;
+}
+
 // Callback function: converts (partially) decoded image/animation to a/several SDL_Texture(s),
 //                    resizes the viewer window if needed, and calls draw_image()
 // Input arguments are: quality (0..10000), current position in the .flif file
@@ -125,81 +195,23 @@ uint32_t progressive_render(callback_info_t *info, void *user_data) {
       last_preview_time = now;
 
       int64_t bytes_read = info->bytes_read;
-      printf("%lli bytes read, rendering at quality=%.2f%%\n",(long long int) bytes_read, 0.01*quality);
 
       // For benchmarking
       // if (quality == 10000) printf("Total time: %.2lf\n", ((double)now ) / CLOCKS_PER_SEC);
 
       flif_decoder_generate_preview(info);
 
-      FLIF_IMAGE* image = flif_decoder_get_image(d, 0);
-      if (!image) { printf("Error: No decoded image found\n"); return 1; }
-      uint32_t w = flif_image_get_width(image);
-      uint32_t h = flif_image_get_height(image);
-
-      // set the window title and size
-      if (!window) { printf("Error: Could not create window\n"); return 2; }
-      char title[100];
-      sprintf(title,"FLIF image decoded at %ix%i [read %lli bytes, quality=%.2f%%]",w,h,(long long int) bytes_read, 0.01*quality);
-      SDL_SetWindowTitle(window,title);
-      if (!window_size_set) {
-        int ww = (w > dm.w ? dm.w : w);
-        int wh = (h > dm.h ? dm.h : h);
-        if (ww > w * wh / h) ww = wh * w / h;
-        else if (ww < w * wh / h) wh = ww * h / w;
-        if (w > dm.w*8/10 && h > dm.h*8/10) { ww = ww*8/10; wh = wh*8/10; }
-        SDL_SetWindowSize(window,ww,wh);
-        SDL_SetWindowPosition(window,SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED);
-        if (w > dm.w*8/10 && h > dm.h*8/10) { SDL_MaximizeWindow(window); }
-        window_size_set = 1;
-      }
-
-      // allocate enough room for the texture pointers and frame delays
-      if (!image_frame) image_frame = (SDL_Texture**) calloc(flif_decoder_num_images(d), sizeof(FLIF_IMAGE*));
-      if (!frame_delay) frame_delay = (int*) calloc(flif_decoder_num_images(d), sizeof(int));
-
-      // produce one SDL_Texture per frame
-      for (int f = 0; f < flif_decoder_num_images(d); f++) {
-          if (quit) {
-            SDL_UnlockMutex(mutex);
-            return 0;
-          }
-          FLIF_IMAGE* image = flif_decoder_get_image(d, f);
-          if (!image) { printf("Error: No decoded image found\n"); return 1; }
-          frame_delay[f] = flif_image_get_frame_delay(image);
-          // Copy the decoded pixels to a temporary surface
-          if (!tmpsurf) tmpsurf = SDL_CreateRGBSurface(0,w,h,32,0x000000FF,0x0000FF00,0x00FF0000,0xFF000000);
-          if (!tmpsurf) { printf("Error: Could not create surface\n"); return 1; }
-          char* pp =(char*) tmpsurf->pixels;
-          for (uint32_t r=0; r<h; r++) {
-              flif_image_read_row_RGBA8(image, r, pp, w * sizeof(RGBA));
-              pp += tmpsurf->pitch;
-          }
-          // Draw checkerboard background for image/animation with alpha channel
-          if (flif_image_get_nb_channels(image) > 3) {
-            if (!bgsurf) bgsurf = SDL_CreateRGBSurface(0,w,h,32,0x000000FF,0x0000FF00,0x00FF0000,0xFF000000);
-            if (!bgsurf) { printf("Error: Could not create surface\n"); return 1; }
-            SDL_Rect sq; sq.w=20; sq.h=20;
-            for (sq.y=0; sq.y<h; sq.y+=sq.h) for (sq.x=0; sq.x<w; sq.x+=sq.w)
-                SDL_FillRect(bgsurf,&sq,(((sq.y/sq.h + sq.x/sq.w)&1) ? 0xFF606060 : 0xFFA0A0A0));
-            // Alpha-blend decoded frame on top of checkerboard background
-            SDL_BlitSurface(tmpsurf,NULL,bgsurf,NULL);
-            SDL_FreeSurface(tmpsurf); tmpsurf = bgsurf; bgsurf = NULL;
-          }
-          if (!renderer) { printf("Error: Could not get renderer\n"); return 1; }
-          if (image_frame[f]) SDL_DestroyTexture(image_frame[f]);
-          // Convert the surface to a texture (for accelerated blitting)
-          image_frame[f] = SDL_CreateTextureFromSurface(renderer, tmpsurf);
-          if (!image_frame[f]) { printf("Could not create texture!\n"); quit=1; return 1; }
-          SDL_SetTextureBlendMode(image_frame[f],SDL_BLENDMODE_NONE);
-      }
-      SDL_FreeSurface(tmpsurf); tmpsurf=NULL;
+      bool success = updateTextures(quality, bytes_read);
       SDL_UnlockMutex(mutex);
-      // setting nb_frames to a value > 1 will make sure the main thread keeps calling draw_image()
-      nb_frames = flif_decoder_num_images(d);
-      draw_image();
 
-      if (quit) return 0; // stop decoding
+      if (!success || quit) {
+        return 0; // stop decoding
+      } else {
+        // setting nb_frames to a value > 1 will make sure the main thread keeps calling draw_image()
+        nb_frames = flif_decoder_num_images(d);
+        draw_image();
+      }
+
       return quality + 1000; // call me back when you have at least 10.00% better quality
     } else {
       fprintf(stderr, "Couldn't lock mutex\n");
@@ -236,7 +248,7 @@ static int decodeThread(void * arg) {
     }
 #ifndef PROGRESSIVE_DECODING
     // no callback was set, so we manually call our callback function to render the final image/frames
-    progressive_render(10000,-1);
+    updateTextures(10000,-1);
 #endif
     flif_destroy_decoder(d);
     d = NULL;
