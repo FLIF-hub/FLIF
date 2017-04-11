@@ -257,6 +257,15 @@ static int decodeThread(void * arg) {
     return 0;
 }
 
+bool abort_decode() {
+  if (SDL_LockMutex(mutex) == 0) {
+    int retValue = flif_abort_decoder(d);
+    SDL_UnlockMutex(mutex);
+    return retValue;
+  } else {
+    return false;
+  }
+}
 
 int main(int argc, char **argv) {
     if (argc < 2 || argc > 2) {
@@ -317,11 +326,8 @@ int main(int argc, char **argv) {
     if (nb_frames > 1) printf("Rendered %i frames in %.2f seconds, %.4f frames per second\n", framecount, 0.001*(SDL_GetTicks()-begin), 1000.0*framecount/(SDL_GetTicks()-begin));
 
 #ifdef PROGRESSIVE_DECODING
-    if (SDL_LockMutex(mutex) == 0) {
-      // make sure the decoding gets properly aborted (in case it was not done yet)
-      while(d != NULL && flif_abort_decoder(d)) SDL_Delay(100);
-      SDL_UnlockMutex(mutex);
-    }
+    // make sure the decoding gets properly aborted (in case it was not done yet)
+    while(d != NULL && abort_decode()) SDL_Delay(100);
     SDL_WaitThread(decode_thread, &result);
 #endif
     SDL_DestroyWindow(window);
