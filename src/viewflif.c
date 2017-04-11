@@ -197,8 +197,6 @@ uint32_t progressive_render(callback_info_t *info, void *user_data) {
         return quality + 1000;
       }
 
-      last_preview_time = now;
-
       int64_t bytes_read = info->bytes_read;
 
       // For benchmarking
@@ -207,6 +205,9 @@ uint32_t progressive_render(callback_info_t *info, void *user_data) {
       flif_decoder_generate_preview(info);
 
       bool success = updateTextures(quality, bytes_read);
+
+      last_preview_time = clock();
+
       SDL_UnlockMutex(mutex);
 
       if (!success || quit) {
