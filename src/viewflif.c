@@ -303,8 +303,11 @@ int main(int argc, char **argv) {
     if (nb_frames > 1) printf("Rendered %i frames in %.2f seconds, %.4f frames per second\n", framecount, 0.001*(SDL_GetTicks()-begin), 1000.0*framecount/(SDL_GetTicks()-begin));
 
 #ifdef PROGRESSIVE_DECODING
-    // make sure the decoding gets properly aborted (in case it was not done yet)
-    while(d != NULL && flif_abort_decoder(d)) SDL_Delay(100);
+    if (SDL_LockMutex(mutex) == 0) {
+      // make sure the decoding gets properly aborted (in case it was not done yet)
+      while(d != NULL && flif_abort_decoder(d)) SDL_Delay(100);
+      SDL_UnlockMutex(mutex);
+    }
     SDL_WaitThread(decode_thread, &result);
 #endif
     SDL_DestroyWindow(window);
