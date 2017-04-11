@@ -19,6 +19,8 @@ limitations under the License.
 #include "flif-interface-private_dec.hpp"
 #include "flif-interface_common.cpp"
 
+#include <functional>
+
 FLIF_DECODER::FLIF_DECODER()
 : options(FLIF_DEFAULT_OPTIONS)
 , callback(NULL)
