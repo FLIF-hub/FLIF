@@ -26,10 +26,17 @@ struct FLIF_ENCODER
     FLIF_ENCODER();
 
     void add_image(FLIF_IMAGE* image);
+    void add_image_move(FLIF_IMAGE* image);
     int32_t encode_file(const char* filename);
     int32_t encode_memory(void** buffer, size_t* buffer_size_bytes);
 
     flif_options options;
+
+    ~FLIF_ENCODER() {
+        // get rid of palette
+        if (images.size()) images[0].clear();
+    }
+
 
 private:
     void transformations(std::vector<std::string> &desc);

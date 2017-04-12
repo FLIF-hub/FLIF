@@ -84,6 +84,7 @@ public:
         subtract = setting;
     }
     bool process(const ColorRanges *srcRanges, const Images &images) override {
+        if (images[0].palette) return false; // skip if the image is already a palette image
         const int perm[5] = {1,0,2,3,4}; // just always transform RGB to GRB, we can do something more complicated later
         for (int p=0; p<srcRanges->numPlanes(); p++) {
             permutation[p] = perm[p];

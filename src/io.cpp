@@ -34,7 +34,11 @@ void e_printf(const char *format, ...) {
     va_end(args);
 }
 
+#ifdef DEBUG
+static int verbosity = 10;
+#else
 static int verbosity = 1;
+#endif
 static FILE * my_stdout = stdout;
 void increase_verbosity(int how_much) {
     verbosity += how_much;

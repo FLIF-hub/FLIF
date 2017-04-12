@@ -279,7 +279,7 @@ int main(int argc, char** argv)
                depth != 8 ||
                n != 1)
             {
-                printf("Error: info should be %dx%d, %d channels, %d bit, %d images.\n"
+                printf("Error: info should be %zux%zu, %d channels, %d bit, %d images.\n"
                        "       Instead it is %dx%d, %d channels, %d bit, %d images.\n",
                        WIDTH, HEIGHT, 4, 8, 1,
                        w, h, channels, depth, n);

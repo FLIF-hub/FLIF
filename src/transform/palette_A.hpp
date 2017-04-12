@@ -63,8 +63,11 @@ protected:
     unsigned int max_palette_size;
     bool alpha_zero_special;
     bool ordered_palette;
+    bool already_has_palette;
 
 public:
+    bool is_palette_transform() const override { return true; }
+
     // dirty hack: max_palette_size is ignored at decode time, alpha_zero_special will be set at encode time
     void configure(const int setting) override {
         alpha_zero_special = setting;
@@ -74,6 +77,7 @@ public:
     bool init(const ColorRanges *srcRanges) override {
         if (srcRanges->numPlanes() < 4) return false;
         if (srcRanges->min(3) == srcRanges->max(3)) return false; // don't try this if the alpha plane is not actually used
+        already_has_palette=false;
         return true;
     }
 
@@ -108,6 +112,34 @@ public:
 #if HAS_ENCODER
     bool process(const ColorRanges *srcRanges, const Images &images) override {
         if (images[0].alpha_zero_special) alpha_zero_special = true; else alpha_zero_special = false;
+        if (images[0].palette && images[0].palette_image) {
+            // image is already a palette image
+            Image& image = *images[0].palette_image;
+            for (unsigned int i=0; i < image.cols(); i++) {
+                ColorVal R=image(0,0,i), G=image(1,0,i), B=image(2,0,i), A=image(3,0,i);
+                if (alpha_zero_special && A==0) { R=G=B=0; }
+                Color C(A,R,G,B);
+                Palette_vector.push_back(C);
+            }
+            for (unsigned int k=1; k < images.size(); k++) {
+              if (!images[k].palette || !images[k].palette_image) {
+                e_printf("Attempting to construct an animation with -k from frames with and without palettes.\nTry again without -k.\n");
+                return false;
+              }
+              Image& otherpalette = *images[k].palette_image;
+              for (unsigned int i=0; i < image.cols(); i++) {
+                ColorVal R=otherpalette(0,0,i), G=otherpalette(1,0,i), B=otherpalette(2,0,i), A=otherpalette(3,0,i);
+                if (alpha_zero_special && A==0) { R=G=B=0; }
+                Color C(A,R,G,B);
+                if (C == Palette_vector[i]) continue; // OK, palette colors match
+                e_printf("Attempting to construct an animation with -k from frames with different palettes.\nTry again without -k.\n");
+                return false;
+              }
+            }
+            ordered_palette = false;
+            already_has_palette = true;
+            return true;
+        }
         if (ordered_palette) {
           std::set<Color> Palette;
           for (const Image& image : images)
@@ -143,6 +175,7 @@ public:
         return true;
     }
     void data(Images& images) const override {
+        if (already_has_palette) return;
 //        printf("TransformPalette::data\n");
         for (Image& image : images) {
           for (uint32_t r=0; r<image.rows(); r++) {
@@ -151,13 +184,13 @@ public:
                 if (alpha_zero_special && std::get<0>(C) == 0) { std::get<1>(C) = std::get<2>(C) = std::get<3>(C) = 0; }
                 ColorVal P=0;
                 for (Color c : Palette_vector) {if (c==C) break; else P++;}
-//                image.set(0,r,c, 0);
+                image.set(0,r,c, 0);
                 image.set(1,r,c, P);
 //                image.set(2,r,c, 0);
                 image.set(3,r,c, 1);
             }
           }
-          image.make_constant_plane(0,0);
+//          image.make_constant_plane(0,0);
           image.make_constant_plane(2,0);
           image.make_constant_plane(3,1);
         }
@@ -170,7 +203,7 @@ public:
         SimpleSymbolCoder<FLIFBitChanceMeta, RacOut<IO>, 18> coderA(rac);
         coder.write_int2(1, MAX_PALETTE_SIZE, Palette_vector.size());
         prevPlanes pp(2);
-        int sorted=1;
+        int sorted=(ordered_palette? 1 : 0);
         coder.write_int2(0, 1, sorted);
         if (sorted) {
             Color min(srcRanges->min(3), srcRanges->min(0), srcRanges->min(1), srcRanges->min(2));
@@ -210,6 +243,7 @@ public:
         }
 //        printf("\nSaved palette of size: %lu\n",Palette_vector.size());
         v_printf(5,"[%lu]",Palette_vector.size());
+        if (!ordered_palette) v_printf(5,"Unsorted");
     }
 #endif
     bool load(const ColorRanges *srcRanges, RacIn<IO> &rac) override {

@@ -45,5 +45,9 @@ struct FLIF_IMAGE
 
     void write_row_RGB8(uint32_t row, const void* buffer, size_t buffer_size_bytes);
     void write_row_GRAY8(uint32_t row, const void* buffer, size_t buffer_size_bytes);
+    void read_row_GRAY8(uint32_t row, void* buffer, size_t buffer_size_bytes);
+    void write_row_PALETTE8(uint32_t row, const void* buffer, size_t buffer_size_bytes);
+    void read_row_PALETTE8(uint32_t row, void* buffer, size_t buffer_size_bytes);
+
     Image image;
 };

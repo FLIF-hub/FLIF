@@ -31,20 +31,14 @@ limitations under the License.
 class ColorRangesPalette final : public ColorRanges {
 protected:
     const ColorRanges *ranges;
-    int nb_colors;
+    const int nb_colors;
 public:
     ColorRangesPalette(const ColorRanges *rangesIn, const int nb) : ranges(rangesIn), nb_colors(nb) { }
     bool isStatic() const override { return false; }
     int numPlanes() const override { return ranges->numPlanes(); }
 
     ColorVal min(int p) const override { if (p<3) return 0; else return ranges->min(p); }
-    ColorVal max(int p) const override { switch(p) {
-                                        case 0: return 0;
-                                        case 1: return nb_colors-1;
-                                        case 2: return 0;
-                                        default: return ranges->max(p);
-                                         };
-                              }
+    ColorVal max(int p) const override { if (p==1) return nb_colors-1; else if (p<3) return 0; else return ranges->max(p); }
     void minmax(const int p, const prevPlanes &pp, ColorVal &minv, ColorVal &maxv) const override {
          if (p==1) { minv=0; maxv=nb_colors-1; return;}
          else if (p<3) { minv=0; maxv=0; return;}
@@ -62,8 +56,14 @@ protected:
     std::vector<Color> Palette_vector;
     unsigned int max_palette_size;
     bool ordered_palette;
+    bool has_alpha;
 
 public:
+    // if the image also has alpha, this transform is not a 'real' palette transform
+    // (in the sense of PNG)
+    bool is_palette_transform() const override { return !has_alpha; }
+
+
     void configure(const int setting) override {
         if (setting>0) { ordered_palette=true; max_palette_size = setting;}
         else {ordered_palette=false; max_palette_size = -setting;}
@@ -75,18 +75,20 @@ public:
 //        if (srcRanges->min(0) < 0 || srcRanges->min(1) < 0 || srcRanges->min(2) < 0) return false;
         if (srcRanges->min(1) == srcRanges->max(1)
          && srcRanges->min(2) == srcRanges->max(2)) return false;  // probably grayscale/monochrome, better not use palette then
+        if (srcRanges->numPlanes() > 3) has_alpha=true; else has_alpha=false;
         return true;
     }
 
     const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) override {
         for (Image& image : images) image.palette=true;
-        return new ColorRangesPalette(srcRanges, Palette_vector.size());
+        int nb_colors = Palette_vector.size();
+        return new ColorRangesPalette(srcRanges, nb_colors);
     }
     void invData(Images& images) const override {
 //        v_printf(5,"invData Palette\n");
         for (Image& image : images) {
           image.undo_make_constant_plane(0);
-          image.undo_make_constant_plane(1); // only needed when there is only one palette color, so plane 1 is also constant
+          image.undo_make_constant_plane(1);
           image.undo_make_constant_plane(2);
           for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
@@ -143,13 +145,13 @@ public:
             for (uint32_t c=0; c<image.cols(); c++) {
                 Color C(image(0,r,c), image(1,r,c), image(2,r,c));
                 ColorVal P=0;
-                for (Color c : Palette_vector) {if (c==C) break; else P++;}
-//                image.set(0,r,c, 0);
+                for (Color c : Palette_vector) {if (c==C) break; else P++;} // slow for large palettes
+                image.set(0,r,c, 0);
                 image.set(1,r,c, P);
 //                image.set(2,r,c, 0);
             }
           }
-          image.make_constant_plane(0,0);
+//          image.make_constant_plane(0,0);
           image.make_constant_plane(2,0);
         }
     }

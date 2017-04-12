@@ -80,6 +80,7 @@ void show_help(int mode) {
     v_printf(2,"   -m, --no-metadata           strip Exif/XMP metadata (default is to keep it)\n");
     v_printf(2,"   -p, --no-color-profile      strip ICC color profile (default is to keep it)\n");
     v_printf(2,"   -o, --overwrite             overwrite existing files\n");
+    v_printf(2,"   -k, --keep-palette          use input PNG palette / write palette PNG if possible\n");
 #ifdef HAS_ENCODER
     if (mode != 1) {
     v_printf(1,"Encode options: (-e, --encode)\n");
@@ -107,8 +108,9 @@ void show_help(int mode) {
     v_printf(3,"   -Z, --chance-alpha=N        chance decay factor; default: -Z19\n");
     v_printf(3,"   -U, --adaptive              adaptive lossy, second input image is saliency map\n");
     v_printf(3,"   -G, --guess=N[N..]          pixel predictor for each plane (Y,Co,Cg,Alpha,Lookback)\n");
-    v_printf(3,"                               ?=pick heuristically, 0=avg, 1=median_grad, 2=median_nb, 3=mixed\n");
+    v_printf(3,"                               ?=pick heuristically, 0=avg, 1=median_grad, 2=median_nb, X=mixed\n");
     v_printf(3,"   -H, --invisible-guess=N     predictor for invisible pixels (only if -K is not used)\n");
+    v_printf(3,"   -J, --chroma-subsample      write an incomplete 4:2:0 chroma subsampled FLIF file (lossy!)\n");
     }
 #endif
     if (mode != 0) {
@@ -144,7 +146,7 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  ____ _(_)____\n");
-    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.2.3 [15 Nov 2016]\n");
+    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.3 [4 Jan 2017]\n");
     v_printf(3,"  (__ | |_| __)    ");v_printf(3,"Copyright (C) 2016 Jon Sneyers and Pieter Wuille\n");
     v_printf(3,"    (_|___|_)      ");
 #ifdef HAS_ENCODER
@@ -224,6 +226,7 @@ bool encode_load_input_images(int argc, char **argv, Images &images, flif_option
              stop_searching = 0;
         }
         Image image;
+        if (options.keep_palette) image.palette = true; // tells the PNG loader to keep palette intact
         v_printf_tty(2,"\r");
         if (!image.load(filename,md)) {
             e_printf("Could not read input file: %s\n", argv[0]);
@@ -283,7 +286,7 @@ bool encode_flif(int argc, char **argv, Images &images, flif_options &options) {
     uint64_t nb_pixels = (uint64_t)images[0].rows() * images[0].cols();
     std::vector<std::string> desc;
     if (nb_pixels > 2) {         // no point in doing anything for 1- or 2-pixel images
-      if (options.plc && !options.loss) {
+      if (options.plc && (images[0].getDepth() > 8 || !options.loss)) {
         desc.push_back("Channel_Compact");  // compactify channels (not if lossy, because then loss gets magnified!)
       }
       if (options.ycocg) {
@@ -292,7 +295,6 @@ bool encode_flif(int argc, char **argv, Images &images, flif_options &options) {
       desc.push_back("PermutePlanes");  // permute RGB to GRB
       desc.push_back("Bounds");  // get the bounds of the color spaces
     }
-    if (!options.loss) {
     // only use palette/CB if we're lossless, because lossy and palette don't go well together...
     if (options.palette_size == -1) {
         options.palette_size = DEFAULT_MAX_PALETTE_SIZE;
@@ -300,10 +302,11 @@ bool encode_flif(int argc, char **argv, Images &images, flif_options &options) {
           options.palette_size = nb_pixels * images.size() / 3;
         }
     }
-    if (options.palette_size != 0) {
+    if (!options.loss && options.palette_size != 0) {
         desc.push_back("Palette_Alpha");  // try palette (including alpha)
         desc.push_back("Palette");  // try palette (without alpha)
     }
+    if (!options.loss) {
     if (options.acb == -1) {
       // not specified if ACB should be used
       if (nb_pixels * images.size() > 10000) {
@@ -331,19 +334,22 @@ bool encode_flif(int argc, char **argv, Images &images, flif_options &options) {
         //if (nb_pixels * images.size() < 5000) learn_repeats--;        // avoid large trees for small images
         if (options.learn_repeats < 0) options.learn_repeats=0;
     }
+    bool result = true;
     if (!options.just_add_loss) {
       FILE *file = NULL;
       if (!strcmp(argv[0],"-")) file = stdout;
       else file = fopen(argv[0],"wb");
       if (!file) return false;
       FileIO fio(file, (file == stdout? "to standard output" : argv[0]));
-      if (!flif_encode(fio, images, desc, options)) return false;
+      if (!flif_encode(fio, images, desc, options)) result = false;
     } else {
       BlobIO bio; // will just contain some unneeded FLIF header stuff
-      if (!flif_encode(bio, images, desc, options)) return false;
-      if (!images[0].save(argv[0])) return false;
+      if (!flif_encode(bio, images, desc, options)) result = false;
+      else if (!images[0].save(argv[0])) result = false;
     }
-    return true;
+    // get rid of palette
+    images[0].clear();
+    return result;
 }
 
 bool handle_encode(int argc, char **argv, Images &images, flif_options &options) {
@@ -394,6 +400,9 @@ int handle_decode(int argc, char **argv, Images &images, flif_options &options) 
         e_printf("Error: expected \".png\", \".pnm\" or \".pam\" file name extension for output file\n");
         return 1;
     }
+    if (!(ext && ( !strcasecmp(ext,".png"))))
+        options.keep_palette = false;   // don't try to make a palette PNM
+
     try {
       if (!decode_flif(argv, images, options)) {
         e_printf("Error: could not decode FLIF file\n"); return 3;
@@ -443,6 +452,8 @@ int handle_decode(int argc, char **argv, Images &images, flif_options &options) 
             v_printf(2,"    (%i/%i)         \r",counter,(int)images.size()); v_printf(4,"\n");
         }
     }
+    // get rid of palette (should also do this in the non-standard/error paths, but being lazy here since the tool will exit anyway)
+    images[0].clear();
     v_printf(2,"\n");
     return 0;
 }
@@ -475,6 +486,7 @@ int main(int argc, char **argv)
         {"version", 0, NULL, 'V'},
         {"overwrite", 0, NULL, 'o'},
         {"breakpoints", 0, NULL, 'b'},
+        {"keep-palette", 0, NULL, 'k'},
 #ifdef HAS_ENCODER
         {"encode", 0, NULL, 'e'},
         {"transcode", 0, NULL, 't'},
@@ -500,14 +512,16 @@ int main(int argc, char **argv)
         {"guess", 1, NULL, 'G'},
         {"invisible-guess", 1, NULL, 'H'},
         {"effort", 1, NULL, 'E'},
+        {"chroma-subsample", 0, NULL, 'J'},
+        {"no-subtract-green", 0, NULL, 'W'},
 #endif
         {0, 0, 0, 0}
     };
     int i,c;
 #ifdef HAS_ENCODER
-    while ((c = getopt_long (argc, argv, "hdvcmiVq:s:r:f:obetINnF:KP:ABYWCL:SR:D:M:T:X:Z:Q:UG:H:E:", optlist, &i)) != -1) {
+    while ((c = getopt_long (argc, argv, "hdvcmiVq:s:r:f:obketINnF:KP:ABYWCL:SR:D:M:T:X:Z:Q:UG:H:E:J", optlist, &i)) != -1) {
 #else
-    while ((c = getopt_long (argc, argv, "hdvcmiVq:s:r:f:ob", optlist, &i)) != -1) {
+    while ((c = getopt_long (argc, argv, "hdvcmiVq:s:r:f:obk", optlist, &i)) != -1) {
 #endif
         switch (c) {
         case 'd': mode=1; break;
@@ -535,6 +549,7 @@ int main(int argc, char **argv)
                   break;
         case 'i': options.scale = -1; break;
         case 'b': options.show_breakpoints = 8; mode=1; break;
+        case 'k': options.keep_palette = true; break;
 #ifdef HAS_ENCODER
         case 'e': mode=0; break;
         case 't': mode=2; break;
@@ -621,6 +636,8 @@ int main(int argc, char **argv)
                   break;
         case 'H': options.invisible_predictor=atoi(optarg);
                   if (options.invisible_predictor < 0 || options.invisible_predictor > 2) {e_printf("Not a sensible value for option -H\nValid values are: 0 (avg), 1 (median avg/gradients), 2 (median neighbors)\n"); return 1; }
+                  break;
+        case 'J': options.chroma_subsampling = 1;
                   break;
         case 'E': {
                   int effort=atoi(optarg);
@@ -727,6 +744,9 @@ int main(int argc, char **argv)
     }
 
 #ifdef HAS_ENCODER
+    if (options.chroma_subsampling)
+        v_printf(1,"Warning: chroma subsampling produces a truncated FLIF file. Image will not be lossless!\n");
+    if (options.loss > 0) options.keep_palette = false; // not going to add loss to indexed colors
     if (options.adaptive) options.loss = -options.loss; // use negative loss to indicate we want to do adaptive lossy encoding
     if (mode == 0) {
         if (!handle_encode(argc, argv, images, options)) return 2;

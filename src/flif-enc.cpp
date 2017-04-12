@@ -193,22 +193,24 @@ int find_best_predictor(const Images &images, const ColorRanges *ranges, const i
 
 template<typename IO, typename Rac, typename Coder>
 void flif_encode_FLIF2_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const Images &images,
-                             const ColorRanges *ranges, const int beginZL, const int endZL, const int the_predictor[]) {
+                             const ColorRanges *ranges, const int beginZL, const int endZL, flif_options &options) {
     ColorVal min,max;
     const int nump = images[0].numPlanes();
     const bool alphazero = (nump>3 && images[0].alpha_zero_special);
+    const int *the_predictor = options.predictor;
 #ifdef SUPPORT_ANIMATION
     const bool FRA = (nump == 5);
 #endif
     long fs = io.ftell();
     UniformSymbolCoder<Rac> metaCoder(rac);
-    const bool default_order = true;
+    const bool default_order = (options.chroma_subsampling==0);
     metaCoder.write_int(0, 1, (default_order? 1 : 0)); // we're using the default zoomlevel/plane ordering
     for (int p=0; p<nump; p++) metaCoder.write_int(-1, MAX_PREDICTOR, the_predictor[p]);
     for (int i = 0; i < plane_zoomlevels(images[0], beginZL, endZL); i++) {
       std::pair<int, int> pzl = plane_zoomlevel(images[0], beginZL, endZL, i, ranges);
       int p = pzl.first;
       int z = pzl.second;
+      if (options.chroma_subsampling && p > 0 && p < 3 && z < 2) continue;
       if (!default_order) metaCoder.write_int(0, nump-1, p);
       if (ranges->min(p) >= ranges->max(p)) continue;
       int predictor = (the_predictor[p] < 0 ? find_best_predictor(images, ranges, p, z) : the_predictor[p]);
@@ -281,6 +283,7 @@ void flif_encode_FLIF2_inner(IO& io, Rac& rac, std::vector<Coder> &coders, const
           fs = io.ftell();
       }
     }
+    if (options.chroma_subsampling && nump>1 && endZL==0) metaCoder.write_int(0, nump-1, 1); // pretend to be interrupted right after Co zoomlevel 1 started
 }
 
 template<typename IO, typename Rac, typename Coder>
@@ -305,7 +308,7 @@ void flif_encode_FLIF2_pass(IO& io, Rac &rac, const Images &images, const ColorR
       }
     }
     while(repeats-- > 0) {
-     flif_encode_FLIF2_inner<IO,Rac,Coder>(io, rac, coders, images, ranges, beginZL, endZL, options.predictor);
+     flif_encode_FLIF2_inner<IO,Rac,Coder>(io, rac, coders, images, ranges, beginZL, endZL, options);
     }
     for (int p = 0; p < images[0].numPlanes(); p++) {
         coders[p].simplify(options.divisor, options.min_size, p);
@@ -430,6 +433,7 @@ void flif_make_lossy_scanlines(Images &images, const ColorRanges *ranges, int lo
               Image& image = images[fr];
               uint32_t begin=image.col_begin[r], end=image.col_end[r];
               for (uint32_t c = begin; c < end; c++) {
+                if (adaptive && (map(0,r,c) == 255)) continue;
                 if (alphazero && p<3 && image(3,r,c) == 0) continue;
                 if (FRA && p<4 && image(4,r,c) > 0) continue;
                 ColorVal guess = predict_and_calcProps_scanlines(properties,ranges,image,p,r,c,min,max, minP);
@@ -493,6 +497,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
 //      printf("[%i] p=%i, z=%i\n",i,p,z);
       int factor=255;
       if (z>4) factor = factor * 4 / z;
+      assert(beginZL && "division by zero");
       factor = ((beginZL-z)*factor/(beginZL));
       if (z==0) factor += loss*2;
       if (z==1) factor += loss;
@@ -505,6 +510,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
               uint32_t begin=(image.col_begin[r*image.zoom_rowpixelsize(z)]/image.zoom_colpixelsize(z)),
                          end=(1+(image.col_end[r*image.zoom_rowpixelsize(z)]-1)/image.zoom_colpixelsize(z));
               for (uint32_t c = begin; c < end; c++) {
+                    if (adaptive && ((map(0,z,r-1,c) == 255) || (map(0,z,r+1,c) == 255))) continue;
                     if (alphazero && p<3 && image(3,z,r,c) == 0) continue;
                     if (FRA && p<4 && image(4,z,r,c) > 0) continue;
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max,predictor);
@@ -545,6 +551,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
               if (begin>1 && ((begin&1) ==0)) begin--;
               if (begin==0) begin=1;
               for (uint32_t c = begin; c < end-1; c+=2) {
+                    if (adaptive && ((map(0,z,r,c-1) == 255) || (map(0,z,r,c+1)==255))) continue;
                     if (alphazero && p<3 && image(3,z,r,c) == 0) continue;
                     if (FRA && p<4 && image(4,z,r,c) > 0) continue;
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max,predictor);
@@ -585,6 +592,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
               uint32_t begin=(image.col_begin[r*image.zoom_rowpixelsize(z)]/image.zoom_colpixelsize(z)),
                          end=(1+(image.col_end[r*image.zoom_rowpixelsize(z)]-1)/image.zoom_colpixelsize(z));
               for (uint32_t c = begin; c < end; c++) {
+                    if (adaptive && (map(0,z,r,c) == 255)) continue;
                     if (alphazero && p<3 && image(3,z,r,c) == 0) continue;
                     if (FRA && p<4 && image(4,z,r,c) > 0) continue;
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max,predictor);
@@ -625,6 +633,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
               if (begin>1 && ((begin&1) ==0)) begin--;
               if (begin==0) begin=1;
               for (uint32_t c = begin; c < end; c+=2) {
+                    if (adaptive && (map(0,z,r,c) == 255)) continue;
                     if (alphazero && p<3 && image(3,z,r,c) == 0) continue;
                     if (FRA && p<4 && image(4,z,r,c) > 0) continue;
                     ColorVal guess = predict_and_calcProps(properties,ranges,image,z,p,r,c,min,max,predictor);
@@ -678,6 +687,9 @@ void flif_encode_main(RacOut<IO>& rac, IO& io, Images &images, const ColorRanges
     int realnumplanes = 0;
     for (int i=0; i<ranges->numPlanes(); i++) if (ranges->min(i)<ranges->max(i)) realnumplanes++;
     pixels_todo = (int64_t)image.rows()*image.cols()*realnumplanes*(learn_repeats+1);
+    for (int i=1; i<ranges->numPlanes(); i++)
+        if (options.chroma_subsampling && ranges->min(i)<ranges->max(i))
+            pixels_todo -= (image.rows()*image.cols()-image.rows(2)*image.cols(2))*(learn_repeats+1);
     pixels_done = 0;
     if (pixels_todo == 0) pixels_todo = pixels_done = 1;
 
@@ -875,6 +887,7 @@ bool flif_encode(IO& io, Images &images, const std::vector<std::string> &transDe
     options.alpha = 0xFFFFFFFF/options.alpha;
 
     uint32_t checksum = 0;
+    if (images[0].palette) options.crc_check = false;
     if (options.crc_check && !options.loss) {
       if (alphazero) for (Image& i : images) i.make_invisible_rgb_black();
       checksum = image.checksum(); // if there are multiple frames, the checksum is based only on the first frame.
@@ -887,6 +900,7 @@ bool flif_encode(IO& io, Images &images, const std::vector<std::string> &transDe
 
     std::vector<std::unique_ptr<Transform<IO>>> transforms;
 
+    int warn_about_incompatibility = 0;
     try {
       for (unsigned int i=0; i<transDesc.size(); i++) {
         auto trans = create_transform<IO>(transDesc[i]);
@@ -900,6 +914,10 @@ bool flif_encode(IO& io, Images &images, const std::vector<std::string> &transDe
             (!trans->process(previous_range, images)
               && !(options.acb==1 && transDesc[i] == "Color_Buckets" && (v_printf(3,", forced "), (tcount=0), true) ))) {
             //e_printf( "Transform '%s' failed\n", transDesc[i].c_str());
+            if (images[0].palette && transDesc[i] == "Palette_Alpha" && options.keep_palette) {
+                v_printf(2,"Could not keep palette for some reason. Aborting.\n");
+                return false;
+            }
         } else {
             if (tcount++ > 0) v_printf(3,", ");
             v_printf(3,"%s", transDesc[i].c_str());
@@ -910,6 +928,9 @@ bool flif_encode(IO& io, Images &images, const std::vector<std::string> &transDe
             fflush(stdout);
             rangesList.push_back(std::unique_ptr<const ColorRanges>(trans->meta(images, previous_range)));
             trans->data(images);
+            if (transDesc[i] == "Color_Buckets") warn_about_incompatibility = 1;
+            if (warn_about_incompatibility && (transDesc[i] == "Frame_Lookback" || transDesc[i] == "Duplicate_Frame" || transDesc[i] == "Frame_Shape"))
+                warn_about_incompatibility = 2;
             if (options.just_add_loss) transforms.push_back(std::move(trans));
         }
       }
@@ -918,6 +939,7 @@ bool flif_encode(IO& io, Images &images, const std::vector<std::string> &transDe
          return false;
     }
     if (tcount==0) v_printf(3,"none\n"); else v_printf(3,"\n");
+    if (warn_about_incompatibility > 1) v_printf(1,"WARNING: This animated FLIF will probably not be properly decoded by older FLIF decoders (version < 0.3) since they have a bug in this particular combination of transformations.\nIf backwards compatibility is important, you can use the option -B to avoid the issue.\n");
     rac.write_bit(false);
     const ColorRanges* ranges = rangesList.back().get();
 
@@ -959,7 +981,9 @@ bool flif_encode(IO& io, Images &images, const std::vector<std::string> &transDe
         }
     }
     // Y plane shouldn't be constant, even if it is (because we want to avoid special-casing fast Y plane access)
-    for (int fr = 0; fr < numFrames; fr++) images[fr].undo_make_constant_plane(0);
+    bool smaller_buffer = false;
+    if (images[0].palette && ranges->max(1) < 256 && options.keep_palette && (ranges->numPlanes() < 4 || ranges->min(3)==ranges->max(3))) smaller_buffer = true;
+    if (!smaller_buffer) for (int fr = 0; fr < numFrames; fr++) images[fr].undo_make_constant_plane(0);
 
     if (options.loss>0) for(int p=0; p<numPlanes; p++) options.predictor[p]=0;
 
@@ -1019,7 +1043,7 @@ bool flif_encode(IO& io, Images &images, const std::vector<std::string> &transDe
 #endif
     }
 
-    if (options.crc_check && !options.loss && (options.crc_check>0 || io.ftell() > 100)) {
+    if (options.crc_check && !options.loss && (options.crc_check>0 || io.ftell() > 100) && !options.chroma_subsampling) {
       v_printf(2,"Writing checksum: %X\n", checksum);
       metaCoder.write_int(0,1,1);
       metaCoder.write_int(16, (checksum >> 16) & 0xFFFF);

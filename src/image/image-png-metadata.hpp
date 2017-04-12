@@ -40,7 +40,7 @@ static unsigned char* HexStringToBytes(const char* hexstring,
 }
 
 static int ProcessRawProfile(const char* profile, size_t profile_len,
-                             unsigned char ** payload) {
+                             unsigned char ** payload, size_t* payload_len) {
   const char* src = profile;
   char* end;
   int expected_length;
@@ -67,6 +67,7 @@ static int ProcessRawProfile(const char* profile, size_t profile_len,
 
   // 'end' now points to the profile payload.
   *payload = HexStringToBytes(end, expected_length);
+  *payload_len = expected_length;
   if (*payload == NULL) return 0;
   return 1;
 }

@@ -1,4 +1,4 @@
-PREFIX := $(DESTDIR)/usr
+PREFIX := $(DESTDIR)/usr/local
 CXXFLAGS := $(shell pkg-config --cflags zlib libpng) -DLODEPNG_NO_COMPILE_PNG -DLODEPNG_NO_COMPILE_DISK
 LDFLAGS := $(shell pkg-config --libs libpng)
 
@@ -14,7 +14,7 @@ ifeq ($(OSNAME),Darwin)
 endif
 
 # for running interface-test
-export LD_LIBRARY_PATH=$(shell pwd):$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$(shell pwd):/usr/local/lib:$LD_LIBRARY_PATH
 
 FILES_H := maniac/*.hpp maniac/*.cpp image/*.hpp transform/*.hpp flif-enc.hpp flif-dec.hpp common.hpp flif_config.h fileio.hpp io.hpp io.cpp config.h compiler-specific.hpp ../extern/lodepng.h
 FILES_CPP := maniac/chance.cpp maniac/symbol.cpp image/crc32k.cpp image/image.cpp image/image-png.cpp image/image-pnm.cpp image/image-pam.cpp image/image-rggb.cpp image/image-metadata.cpp image/color_range.cpp transform/factory.cpp common.cpp flif-enc.cpp flif-dec.cpp io.cpp ../extern/lodepng.cpp
@@ -54,7 +54,7 @@ libflif$(LIBEXT): $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/*.cp
 	ln -sf libflif$(LIBEXTV) libflif$(LIBEXT)
 
 libflif.dbg$(LIBEXT): $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/*.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) -O1 -ggdb3 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -Wl,$(SONAME),libflif$(LIBEXTV) -o libflif.dbg$(LIBEXTV)
+	$(CXX) -std=gnu++11 $(CXXFLAGS) -DDEBUG -O1 -ggdb3 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -Wl,$(SONAME),libflif$(LIBEXTV) -o libflif.dbg$(LIBEXTV)
 	ln -sf libflif.dbg$(LIBEXTV) libflif.dbg$(LIBEXT)
 
 # Example application: simple FLIF viewer - public domain
@@ -64,22 +64,29 @@ viewflif: libflif$(LIBEXT) viewflif.c
 
 install: flif libflif$(LIBEXT)
 	install -d $(PREFIX)/bin $(PREFIX)/lib $(PREFIX)/share/man/man1
-	install -s -m 755 flif $(PREFIX)/bin
-	install -s -m 755 libflif$(LIBEXT) libflif$(LIBEXTV) $(PREFIX)/lib
+	install -m 755 flif $(PREFIX)/bin
+	strip -x $(PREFIX)/bin/flif
+	install -m 755 libflif$(LIBEXT) libflif$(LIBEXTV) $(PREFIX)/lib
+	strip -x $(PREFIX)/lib/libflif$(LIBEXT) \
+	  $(PREFIX)/lib/libflif$(LIBEXTV)
 	install -m 644 ../doc/flif.1 $(PREFIX)/share/man/man1
 	install -m 755 ../tools/gif2flif $(PREFIX)/bin
 	install -m 755 ../tools/apng2flif $(PREFIX)/bin
 
 install-viewflif:
-	install -s -m 755 viewflif $(PREFIX)/bin
+	install -m 755 viewflif $(PREFIX)/bin
+	strip -x $(PREFIX)/bin/viewflif
 
 install-dev:
 	install -d $(PREFIX)/include
 	install -m 644 library/*.h $(PREFIX)/include
 
 install-decoder: decoder
-	install -s -m 755 dflif $(PREFIX)/bin
-	install -s -m 755 libflif_dec$(LIBEXT) libflif_dec$(LIBEXTV) $(PREFIX)/lib
+	install -m 755 dflif $(PREFIX)/bin
+	strip -x $(PREFIX)/bin/dflif
+	install -m 755 libflif_dec$(LIBEXT) libflif_dec$(LIBEXTV) $(PREFIX)/lib
+	strip -x $(PREFIX)/lib/libflif_dec$(LIBEXT) \
+	  $(PREFIX)/lib/libflif_dec$(LIBEXTV)
 
 magic:
 	if ! grep -q FLIF /etc/magic; then cat ../doc/flif.magic >> /etc/magic; fi
@@ -105,16 +112,19 @@ clean:
 
 # The targets below are only meant for developers
 
-test-interface: libflif.dbg.so ../tools/test.c
+test-interface: libflif.dbg$(LIBEXT) libflif$(LIBEXT) ../tools/test.c
 	$(CC) -O0 -ggdb3 -Wall -Ilibrary/ ../tools/test.c -L. -lflif.dbg  -o test-interface
 
 test: flif test-interface
 	mkdir -p ../tmp-test
 	./test-interface ../tmp-test/dummy.flif
-	../tools/test-roundtrip.sh ../tools/2_webp_ll.png ../tmp-test/2_webp_ll.flif ../tmp-test/decoded_2_webp_ll.png
-	../tools/test-roundtrip.sh ../tools/kodim01.png ../tmp-test/kodim01.flif ../tmp-test/decoded_kodim01.png
-	../tools/test-roundtrip_anim.sh ../tools/endless_war.gif ../tmp-test/endless_war.flif
-	../tools/test-roundtrip_anim_framedir.sh ../tools/bouncing_ball_frames ../tmp-test/bouncing_ball.flif
+	../tools/test-roundtrip.sh ./flif ../tools/2_webp_ll.png ../tmp-test/2_webp_ll.flif ../tmp-test/decoded_2_webp_ll.png
+	../tools/test-roundtrip.sh ./flif ../tools/kodim01.png ../tmp-test/kodim01.flif ../tmp-test/decoded_kodim01.png
+	../tools/test-lossy.sh ./flif ../tools/kodim01.png ../tmp-test/kodim01-lossy.flif ../tmp-test/decoded_kodim01-lossy.png
+	../tools/test-roundtrip_anim.sh ./flif ../tools/endless_war.gif ../tmp-test/endless_war.flif
+	../tools/test-roundtrip_anim_framedir.sh ./flif ../tools/bouncing_ball_frames ../tmp-test/bouncing_ball.flif
+	../tools/test-metadata.sh ./flif ../testFiles/sig05-014.png ../tmp-test/out-meta.flif ../tmp-test/out-meta.png
+
 
 flif.stats: $(FILES_H) $(FILES_CPP) flif.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) -DSTATS $(OPTIMIZATIONS) -g0 -Wall $(FILES_CPP) flif.cpp $(LDFLAGS) -o flif.stats
@@ -129,4 +139,20 @@ flif.dbg0: $(FILES_H) $(FILES_CPP) flif.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) -O0 -ggdb3 -Wall $(FILES_CPP) flif.cpp $(LDFLAGS) -o flif.dbg
 
 flif.asan: $(FILES_H) $(FILES_CPP) flif.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) $(OPTIMIZATIONS) -fsanitize=address,undefined -fno-omit-frame-pointer -g3 -Wall $(FILES_CPP) flif.cpp $(LDFLAGS) -o flif.asan
+	$(CXX) -std=gnu++11 $(CXXFLAGS) $(OPTIMIZATIONS) -DDEBUG -fsanitize=address,undefined -fno-omit-frame-pointer -g3 -Wall $(FILES_CPP) flif.cpp $(LDFLAGS) -o flif.asan
+
+viewflif.asan: libflif$(LIBEXT) viewflif.c
+	$(CC) -std=gnu11 -O0 -ggdb3 -fsanitize=address,undefined $(shell sdl2-config --cflags) -Wall -Ilibrary/ viewflif.c -L. -lflif $(shell sdl2-config --libs) -o viewflif.asan
+
+# make UBSAN print stacktrace
+test.asan: export UBSAN_OPTIONS = print_stacktrace=1
+test.asan: flif.asan test-interface viewflif.asan
+	mkdir -p ../tmp-test
+	./test-interface ../tmp-test/dummy.flif
+# ASAN may find leaks in code which is not ours and in that case it will throw bad exitcodes on first occurence
+# but we want or tests to continue running, so ignore exit code for now
+	../tools/test-roundtrip.sh ./flif.asan ../tools/2_webp_ll.png ../tmp-test/2_webp_ll.flif ../tmp-test/decoded_2_webp_ll.png || true
+	../tools/test-roundtrip.sh ./flif.asan ../tools/kodim01.png ../tmp-test/kodim01.flif ../tmp-test/decoded_kodim01.png  || true
+	../tools/test-lossy.sh ./flif.asan ../tools/kodim01.png ../tmp-test/kodim01-lossy.flif ../tmp-test/decoded_kodim01-lossy.png || true
+	../tools/test-roundtrip_anim.sh ./flif.asan ../tools/endless_war.gif ../tmp-test/endless_war.flif || true
+	../tools/test-roundtrip_anim_framedir.sh ./flif.asan ../tools/bouncing_ball_frames ../tmp-test/bouncing_ball.flif || true

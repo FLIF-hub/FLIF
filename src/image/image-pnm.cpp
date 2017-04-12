@@ -2,6 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#ifdef _WIN32
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
 
 #include "image.hpp"
 #include "image-pnm.hpp"
@@ -28,7 +33,7 @@ unsigned int read_pnm_int(FILE *fp, char* buf, char** t) {
 
 bool image_load_pnm(const char *filename, Image& image) {
     FILE *fp = NULL;
-    if (!strcmp(filename,"-")) fp = stdin;
+    if (!strcmp(filename,"-")) fp = fdopen(dup(fileno(stdin)), "rb"); // make sure it is in binary mode (needed in Windows)
     else fp = fopen(filename,"rb");
 
     char buf[PPMREADBUFLEN], *t;
@@ -107,7 +112,7 @@ bool image_load_pnm(const char *filename, Image& image) {
         }
       }
     }
-    if (fp != stdin) fclose(fp);
+//    if (fp != stdin) fclose(fp);
     return true;
 }
 #endif
@@ -115,7 +120,7 @@ bool image_load_pnm(const char *filename, Image& image) {
 bool image_save_pnm(const char *filename, const Image& image)
 {
     FILE *fp = NULL;
-    if (!strcmp(filename,"-")) fp = stdout;
+    if (!strcmp(filename,"-")) fp = fdopen(dup(fileno(stdout)), "wb"); // make sure it is in binary mode (needed in Windows)
     else fp = fopen(filename,"wb");
     if (!fp) {
         return false;
@@ -166,10 +171,11 @@ bool image_save_pnm(const char *filename, const Image& image)
         fclose(fp);
         return false;
     }
-    if (fp != stdout) fclose(fp);
+//    if (fp != stdout) fclose(fp);
     if (image.get_metadata("iCCP")) {
         v_printf(1,"Warning: input image has color profile, which cannot be stored in output image format.\n");
     }
+    fclose(fp);
     return true;
 
 }
