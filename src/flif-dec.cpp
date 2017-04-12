@@ -216,13 +216,11 @@ bool flif_decode_scanlines_inner(IO &io, Rac &rac, std::vector<Coder> &coders, I
 }
 
 uint32_t issue_callback(callback_t callback, void *user_data, uint32_t quality, int64_t bytes_read, std::function<void ()> func) {
-  callback_info_t *cb_info = (callback_info_t *) malloc(sizeof(callback_info_t));
-  cb_info->quality = quality;
-  cb_info->bytes_read = bytes_read;
-  cb_info->populateContext = (void *) &func;
-  uint32_t retValue = callback(cb_info, user_data);
-  free(cb_info);
-  return retValue;
+  callback_info_t cb_info;
+  cb_info.quality = quality;
+  cb_info.bytes_read = bytes_read;
+  cb_info.populateContext = (void *) &func;
+  return callback(&cb_info, user_data);
 }
 
 template<typename IO, typename Rac, typename Coder>

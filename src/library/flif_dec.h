@@ -70,6 +70,8 @@ extern "C" {
     // Progressive decoding: set a callback function. The callback will be called after a certain quality is reached,
     // and it should return the desired next quality that should be reached before it will be called again.
     // The qualities are expressed on a scale from 0 to 10000 (not 0 to 100!) for fine-grained control.
+    // `user_data` can be NULL or a pointer to any user-defined context. The decoder doesn't care about its contents;
+    // it just passes the pointer value back to the callback.
     FLIF_DLLIMPORT void FLIF_API flif_decoder_set_callback(FLIF_DECODER* decoder, callback_t callback, void *user_data);
     FLIF_DLLIMPORT void FLIF_API flif_decoder_set_first_callback_quality(FLIF_DECODER* decoder, int32_t quality); // valid quality: 0-10000
 

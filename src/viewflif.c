@@ -107,10 +107,6 @@ int do_event(SDL_Event e) {
 }
 
 
-const double preview_interval= .6;
-
-clock_t last_preview_time = 0;
-
 // returns true on success
 bool updateTextures(uint32_t quality, int64_t bytes_read) {
     printf("%lli bytes read, rendering at quality=%.2f%%\n",(long long int) bytes_read, 0.01*quality);
@@ -181,6 +177,10 @@ bool updateTextures(uint32_t quality, int64_t bytes_read) {
 }
 
 #ifdef PROGRESSIVE_DECODING
+const double preview_interval= .6;
+
+clock_t last_preview_time = 0;
+
 // Callback function: converts (partially) decoded image/animation to a/several SDL_Texture(s),
 //                    resizes the viewer window if needed, and calls draw_image()
 // Input arguments are: quality (0..10000), current position in the .flif file
@@ -196,7 +196,6 @@ uint32_t progressive_render(callback_info_t *info, void *user_data) {
         SDL_UnlockMutex(mutex);
         return quality + 1000;
       }
-      last_preview_time = now;
 
       int64_t bytes_read = info->bytes_read;
 
@@ -206,6 +205,9 @@ uint32_t progressive_render(callback_info_t *info, void *user_data) {
       flif_decoder_generate_preview(info);
 
       bool success = updateTextures(quality, bytes_read);
+
+      last_preview_time = clock();
+
       SDL_UnlockMutex(mutex);
 
       if (!success || quit) {
@@ -282,7 +284,9 @@ int main(int argc, char **argv) {
       return 1;
     }
 
+#ifdef PROGRESSIVE_DECODING
     last_preview_time = (-2*preview_interval* CLOCKS_PER_SEC);
+#endif
 
     SDL_Init(SDL_INIT_VIDEO);
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "2");
