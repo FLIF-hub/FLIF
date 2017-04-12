@@ -16,6 +16,7 @@ Variable-size integer encoding:
   All the bytes except the last one have a '1' as their first bit.
   The unsigned integer is represented as the concatenation of the remaining 7 bit codewords.
 
+All non-obligatory chunks have a contents that is compressed with DEFLATE.
 
 The simplest FLIF file is simply a FLIF chunk followed by a \0 chunk with the actual image data.
 
@@ -23,8 +24,9 @@ The simplest FLIF file is simply a FLIF chunk followed by a \0 chunk with the ac
 Chunk name: FLIF
 Obligatory: yes
 Description: header chunk
+Chunk size: not encoded
 Contents:
-First byte (byte 5 in the file) : encodes number of channels, animation or not
+First byte (byte 5 in the file) : encodes number of channels, animation or not ("1"=Grayscale non-interlaced, "3"=RGB, "4"=RGBA, +0x10 for interlaced, +0x20 for animation)
 Second byte (byte 6) : encodes color depth ("1" = 8-bit, "2" = 16-bit, "0" = custom)
 Next the image width - 1, encoded in a variable number of bytes
 Next the image height - 1, encoded in a variable number of bytes
@@ -37,7 +39,8 @@ Description: list of truncation offsets
 Contents:
 To be defined.
 Will contain a list of offsets which correspond to good truncation points,
-e.g. for use on a web server that uses Client Hints to send truncated FLIF files.
+e.g. for use on a web server that uses Client Hints to send truncated FLIF files.  Offsets should be relative to the start of the image data (\0 chunk
+for a FLIF16 image).
 
 
 Chunk name: iCCP
@@ -49,14 +52,16 @@ Contents:
 Chunk name: eXif
 Obligatory: no
 Description: Exif metadata
+Contents: "Exif\0\0" header followed immediately by a TIFF header and the EXIF data.
 
 Chunk name: eXmp
 Obligatory: no
 Description: XMP metadata
+Contents: XMP contained within a read-only xpacket with no padding.
 
 Chunk name: \0
 Obligatory: yes
 Description: image data encoded in the FLIF16 format (future revisions of the format will use a different name, we have room for 30 revisions)
-Chunk size: unspecified
+Chunk size: not encoded
 Has to be the last chunk in the stream
 Contains actual image data

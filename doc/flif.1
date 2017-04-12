@@ -1,26 +1,33 @@
-.TH FLIF 1 "Mar 10, 2016" "Free Lossless Image Format" "User Commands"
+.TH FLIF 1 "Nov 20, 2016" "Free Lossless Image Format" "User Commands"
 .SH NAME
-flif \- convert a image files from or to FLIF
+flif \- convert image files from or to FLIF
 .SH SYNOPSIS
 .B flif
-[\fIOPTION\fR]... [\fI-d\fR] \fIinput_file.flif output_file\fR
+[\fIOPTION\fR]... [\fB-d\fR] \fIinput_file.flif output_file\fR
 .br
 .B flif
-[\fIOPTION\fR]... [\fI-e\fR] \fIinput_file\fR... \fIoutput_file.flif\fR
+[\fIOPTION\fR]... [\fB-e\fR] \fIinput_file\fR... \fIoutput_file.flif\fR
 .br
 .B flif
-[\fIOPTION\fR]... [\fI-t\fR] \fIinput_file.flif output_file.flif\fR
+[\fIOPTION\fR]... [\fB-t\fR] \fIinput_file.flif output_file.flif\fR
 .SH DESCRIPTION
 This program can encode and decode images in the \fBFree Lossless Image Format\fP (FLIF).
 Input and output formats can be either PNG, PAM, PNM (PPM, PGM, PBM) or FLIF.
-Metadata can be extracted or inserted using input/output files with specific extensions;
-for now, only ICC color profiles are supported (with extension \fI.icc\fR).
+Metadata can be extracted or inserted using input/output files with specific extensions:
+ICC color profiles (with extension \fI.icc\fR), Exif metadata (extension \fI.exif\fR), or
+XMP metadata (extension \fI.xmp\fR).
 .PP
 .B flif
 will automatically deduce the action (encode, decode or transcode) from the names and
-contents of the files. The specifiers \fI-e\fR (encode), \fI-d\fR (decode) and \fI-t\fR (transcode)
+contents of the files. The specifiers \fB-e\fR (encode), \fB-d\fR (decode) and \fB-t\fR (transcode)
 are optional and can be safely omitted. The extension of the output file (the last argument) determines
 the image format that is used.
+.PP
+The special name '\fI\-\fR' means standard input or output, depending on the position.
+In this case, the action has to be specified explicitly, and the only supported image formats
+are FLIF and PAM/PNM.
+For example, \fBflif \-e \- \-\fR encodes a PPM file from standard input to a FLIF file written to standard output;
+\fBflif \-e input.ppm \- | flif \-d \- output.png\fR is a very slow way to convert a PPM file to a PNG file.
 
 .SH OPTIONS
 The general options are:
@@ -28,9 +35,30 @@ The general options are:
 \fB\-v\fR, \fB\-\-verbose\fR
 Increases verbosity. By default, \fBflif\fP is silent (unless there is a problem).
 Adding one or more \fB-v\fR will produce more output.
+Verbose output normally goes to standard output; error messages go to standard error.
+If the output file is '\fI\-\fR' (standard output), then all messages go to standard error.
 .TP
 \fB\-h\fR, \fB\-\-help\fR
-Display help and quit. Use in combination with \fB-v\fP for advanced help.
+Display help and quit. Use in combination with \fB-v\fP for help on advanced features.
+.TP
+\fB\-o\fR, \fB\-\-overwrite\fR
+By default, \fBflif\fP does not overwrite existing files. To force it to overwrite the output file, use this option.
+.TP
+\fB\-c\fR, \fB\-\-no\-crc\fR
+FLIF files can optionally contain a CRC to verify the integrity of the image data.
+The default is to check the CRC when decoding, and to include a CRC when encoding (unless the image is tiny).
+This option changes the default behavior as follows:
+When decoding: don't check the CRC.
+When encoding: don't include a CRC.
+.TP
+\fB\-p\fR, \fB\-\-no\-color\-profile\fR
+FLIF files can optionally include an ICC color profile. When converting to or from PNG, the color profile
+will be copied (if there is any).
+This option forces the encoder/decoder to strip the color profile.
+.TP
+\fB\-m\fR, \fB\-\-no\-metadata\fR
+FLIF files can optionally include metadata (Exif and/or XMP).
+This option forces the encoder/decoder to strip metadata.
 
 .SH DECODING
 To decode a FLIF image, the output filename must have one of the following extensions:
@@ -52,6 +80,12 @@ This is a non-standard format which is used to represent raw camera image with R
 .TP
 \fI.icc\fR
 Saves just the ICC color profile, if there is any.
+.TP
+\fI.exif\fR
+Saves just the Exif metadata, if there is any.
+.TP
+\fI.xmp\fR
+Saves just the XMP metadata, if there is any.
 .PP
 Alternatively, the special output filename \fBnull:\fR can be used if the decoded output does not need to be saved.
 This might be useful to verify the integrity of a FLIF image, or to benchmark the decode time.
@@ -109,8 +143,14 @@ and color depth. You can specify multiple input files when this option is used.
 
 .SH ENCODING
 To encode an image to FLIF, the input file(s) can be in any of the output formats supported by the decoder:
-PNG, PAM, or PNM. Additionally it is possible to transcode from FLIF to FLIF, which might be useful when
+PNG, PAM, or PNM.
+Additionally it is possible to transcode from FLIF to FLIF, which might be useful when
 using non-default encoder settings.
+.PP
+If the input file contains Exif/XMP metadata or an ICC color profile, it will also
+be included in the output FLIF file, unless the option \fB\-m\fR (for metadata) and/or \fB\-p\fR (for the color profile)
+is specified. You can also explicitly add metadata by providing (an) input file(s) with the extension \fI.exif\fR
+\fI.xmp\fR, and/or \fI.icc\fR.
 .PP
 All of the encode options are optional; the defaults are supposed to be OK.
 If progressive decoding is not useful in your particular use case, then \fB\-N\fR might be a good idea,
@@ -201,6 +241,10 @@ This option disables the YCoCg color transform. This color space transform is ai
 and usually leads to better compression. It also helps to improve the quality of progressive decoding, by encoding the
 most important Y channel earlier than the chroma channels.
 .TP
+\fB\-W\fR, \fB\-\-no\-subtract\-green\fR
+When specifying \fB\-Y\fR, the fallback color transformation is RGB to  G(R-G)(B-G), i.e. the Green value gets subtracted from
+the Red and Blue channels. With this option, the green subtraction is not done.
+.TP
 \fB\-G\fR, \fB\-\-guess\fR=\fIMETHOD\fR[\fIMETHOD\fR]...
 Interlaced FLIF can use different pixel prediction (guess) methods. By default, the encoder uses a simple heuristic
 to automatically pick a good method. This option lets you manually override that choice.
@@ -213,7 +257,7 @@ to automatically pick a good method. This option lets you manually override that
 .br
 \fB\-G\fR\fI?\fR picks one of the above predictors, depending on some heuristic. This is the default setting.
 .br
-\fB\-G\fR\fI3\fR uses different predictors (any of the above) for each plane/zoomlevel, depending on some heuristic. This is usually a bad idea.
+\fB\-G\fR\fIX\fR uses different predictors (any of the above) for each plane/zoomlevel, depending on some heuristic. This is usually a bad idea.
 .br
 For photographs, \fB\-G\fR\fI0\fR tends to be better, while for line art, \fB\-G\fR\fI1\fR or \fB\-G\fR\fI2\fR are usually best.
 You can specify the pixel predictor separately for each plane (Y,Co,Cg,A). Unspecified predictors are set to the Y plane predictor.
@@ -286,6 +330,22 @@ are constructed as follows: if the output filename is \fIfilename.ext\fR, then t
 \fIfilename\fR\fB-002\fR\fI.ext\fR, ...,
 \fIfilename\fR\fB-<nb_frames - 1>\fR\fI.ext\fR.
 .PP
+Custom output filenames can be specified as in C
+.BR printf (3),
+e.g. \fIframe\fR\fB%02X\fR\fI.png\fR will produce output files
+\fIframe00.png\fR,
+\fIframe01.png\fR, ...,
+\fIframe09.png\fR,
+\fIframe0A.png\fR,
+\fIframe0B.png\fR, ...,
+\fIframe0F.png\fR,
+\fIframe10.png\fR, ...
+.PP
+When encoding an animated FLIF file, multiple input files can be specified by simply listing all the files, using
+shell patterns (e.g. \fIframe*.png\fR), or using
+.BR printf (3)-style
+notation, as above.
+.PP
 Options specific to encoding (or transcoding) animations are as follows:
 .TP
 \fB\-F\fR, \fB\-\-frame\-delay\fR=\fIDELAY\fR[,\fIDELAY\fR]...
@@ -357,7 +417,7 @@ Please refer to http://flif.info/ and http://github.com/FLIF-hub/ for additional
 information.
 
 .SH COPYRIGHT
-Copyright (C) 2010-2015 Jon Sneyers & Pieter Wuille.
+Copyright (C) 2010-2016 Jon Sneyers & Pieter Wuille.
 
 .SH LICENSE
 This program is free software: you can redistribute it and/or modify

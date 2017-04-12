@@ -110,12 +110,6 @@ template <int bits, typename SymbolCoder> void writer(SymbolCoder& coder, int mi
 }
 
 
-template <typename BitChance, typename RAC>
-void SimpleBitCoder<BitChance,RAC>::write(bool bit) {
-        rac.write(ctx.get(), bit);
-        ctx.put(bit, table);
-}
-
 template <typename BitChance, typename RAC, int bits>
 void SimpleSymbolBitCoder<BitChance,RAC,bits>::write(bool bit, SymbolChanceBitType typ, int i) {
         BitChance& bch = ctx.bit(typ, i);

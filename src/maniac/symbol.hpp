@@ -29,26 +29,23 @@ private:
     RAC &rac;
 
 public:
-    UniformSymbolCoder(RAC &racIn) : rac(racIn) { }
+    explicit UniformSymbolCoder(RAC &racIn) : rac(racIn) { }
 
 #ifdef HAS_ENCODER
     void write_int(int min, int max, int val);
     void write_int(int bits, int val) { write_int(0, (1<<bits) -1, val); };
 #endif
-    int read_int(int min, int max) {
-        assert(max >= min);
-        if (min != 0) {
-            max -= min;
-        }
-        if (max == 0) return min;
+    int read_int(int min, int len) {
+        assert(len >= 0);
+        if (len == 0) return min;
 
-        // split in [0..med] [med+1..max]
-        int med = max/2;
+        // split in [0..med] [med+1..len]
+        int med = len/2;
         bool bit = rac.read_bit();
         if (bit) {
-            return read_int(min+med+1, min+max);
+            return read_int(min+med+1, len-(med+1));
         } else {
-            return read_int(min, min+med);
+            return read_int(min, med);
         }
     }
     int read_int(int bits) { return read_int(0, (1<<bits)-1); }
@@ -197,7 +194,6 @@ template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min
     const int emax = maniac::util::ilog2(amax);
     int e = maniac::util::ilog2(amin);
 
-    //for (; e < emax; e++) {
     for (; e < emax; e++) {
         // if exponent >e is impossible, we are done
         // actually that cannot happen
@@ -225,30 +221,6 @@ template <int bits, typename SymbolCoder> int reader(SymbolCoder& coder, int min
     }
     return (sign ? have : -have);
 }
-
-template <typename BitChance, typename RAC> class SimpleBitCoder {
-    typedef typename BitChance::Table Table;
-
-private:
-    const Table table;
-    BitChance ctx;
-    RAC &rac;
-
-public:
-    SimpleBitCoder(RAC &racIn, int cut = 2, int alpha = 0xFFFFFFFF / 19) : rac(racIn), table(cut,alpha) {}
-
-    void set(uint16_t chance) {
-        ctx.set(chance);
-    }
-#ifdef HAS_ENCODER
-    void write(bool bit);
-#endif
-    bool read() {
-        bool bit = rac.read(ctx.get());
-        ctx.put(bit, table);
-        return bit;
-    }
-};
 
 template <typename BitChance, typename RAC, int bits> class SimpleSymbolBitCoder {
     typedef typename BitChance::Table Table;

@@ -22,6 +22,9 @@ limitations under the License.
 FLIF_IMAGE::FLIF_IMAGE() { }
 
 #pragma pack(push,1)
+struct FLIF_RGB {
+	uint8_t r, g, b;
+};
 struct FLIF_RGBA {
     uint8_t r,g,b,a;
 };
@@ -48,6 +51,52 @@ void FLIF_IMAGE::write_row_RGBA8(uint32_t row, const void* buffer, size_t buffer
             image.set(3, row, c, buffer_rgba[c].a);
         }
     }
+}
+
+void FLIF_IMAGE::write_row_RGB8(uint32_t row, const void * buffer, size_t buffer_size_bytes)
+{
+	if (buffer_size_bytes < image.cols() * sizeof(FLIF_RGB))
+		return;
+
+	const FLIF_RGB* buffer_rgb = reinterpret_cast<const FLIF_RGB*>(buffer);
+
+	if (image.numPlanes() >= 3) {
+		for (size_t c = 0; c < (size_t)image.cols(); c++) {
+			image.set(0, row, c, buffer_rgb[c].r);
+			image.set(1, row, c, buffer_rgb[c].g);
+			image.set(2, row, c, buffer_rgb[c].b);
+		}
+	}
+	if (image.numPlanes() >= 4) {
+		for (size_t c = 0; c < (size_t)image.cols(); c++) {
+			image.set(3, row, c, 0xFF); // fully opaque
+		}
+	}
+}
+
+void FLIF_IMAGE::write_row_GRAY8(uint32_t row, const void * buffer, size_t buffer_size_bytes)
+{
+	if (buffer_size_bytes < image.cols() * sizeof(uint8_t))
+		return;
+
+	const uint8_t* buffer_gray = reinterpret_cast<const uint8_t*>(buffer);
+
+	if (image.numPlanes() >= 1) {
+		for (size_t c = 0; c < (size_t)image.cols(); c++) {
+			image.set(0, row, c, buffer_gray[c]);
+		}
+	}
+	if (image.numPlanes() >= 3) {
+		for (size_t c = 0; c < (size_t)image.cols(); c++) {
+			image.set(1, row, c, buffer_gray[c]);
+			image.set(2, row, c, buffer_gray[c]);
+		}
+	}
+	if (image.numPlanes() >= 4) {
+		for (size_t c = 0; c < (size_t)image.cols(); c++) {
+			image.set(3, row, c, 0xFF); // fully opaque
+		}
+	}
 }
 
 void FLIF_IMAGE::read_row_RGBA8(uint32_t row, void* buffer, size_t buffer_size_bytes) {
@@ -187,6 +236,63 @@ FLIF_DLLEXPORT FLIF_IMAGE* FLIF_API flif_create_image_HDR(uint32_t width, uint32
     return 0;
 }
 
+	FLIF_DLLIMPORT FLIF_IMAGE* FLIF_API flif_import_image_RGBA(uint32_t width, uint32_t height, const void* rgba, uint32_t rgba_stride) {
+		try
+		{
+			const int number_components = 4;
+			if (width == 0 || height == 0 || rgba_stride < width*number_components)
+				return 0;
+			std::unique_ptr<FLIF_IMAGE> image(new FLIF_IMAGE());
+			image->image.init(width, height, 0, 255, number_components);
+			const uint8_t* buffer = static_cast<const uint8_t*>(rgba);
+			for (uint32_t row = 0; row < height; ++row) {
+				image->write_row_RGBA8(row, buffer, width*number_components);
+				buffer += rgba_stride;
+			}
+			return image.release();
+		}
+		catch (...) {}
+		return 0;
+	}
+
+	FLIF_DLLIMPORT FLIF_IMAGE* FLIF_API flif_import_image_RGB(uint32_t width, uint32_t height, const void* rgb, uint32_t rgb_stride) {
+		try
+		{
+			const int number_components = 3;
+			if (width == 0 || height == 0 || rgb_stride < width*number_components)
+				return 0;
+			std::unique_ptr<FLIF_IMAGE> image(new FLIF_IMAGE());
+			image->image.init(width, height, 0, 255, number_components);
+			const uint8_t* buffer = static_cast<const uint8_t*>(rgb);
+			for (uint32_t row = 0; row < height; ++row) {
+				image->write_row_RGB8(row, buffer, width*number_components);
+				buffer += rgb_stride;
+			}
+			return image.release();
+		}
+		catch (...) {}
+		return 0;
+	}
+
+	FLIF_DLLIMPORT FLIF_IMAGE* FLIF_API flif_import_image_GRAY(uint32_t width, uint32_t height, const void* gray, uint32_t gray_stride) {
+		try
+		{
+			const int number_components = 1;
+			if (width == 0 || height == 0 || gray_stride < width*number_components)
+				return 0;
+			std::unique_ptr<FLIF_IMAGE> image(new FLIF_IMAGE());
+			image->image.init(width, height, 0, 255, number_components);
+			const uint8_t* buffer = static_cast<const uint8_t*>(gray);
+			for (uint32_t row = 0; row < height; ++row) {
+				image->write_row_GRAY8(row, buffer, width*number_components);
+				buffer += gray_stride;
+			}
+			return image.release();
+		}
+		catch (...) {}
+		return 0;
+	}
+
 FLIF_DLLEXPORT void FLIF_API flif_destroy_image(FLIF_IMAGE* image) {
     // delete should never let exceptions out
     delete image;
@@ -243,6 +349,30 @@ FLIF_DLLEXPORT void FLIF_API flif_image_set_frame_delay(FLIF_IMAGE* image, uint3
     try
     {
         image->image.frame_delay = delay;
+    }
+    catch(...) {}
+}
+
+FLIF_DLLEXPORT void FLIF_API flif_image_set_metadata(FLIF_IMAGE* image, const char* chunkname, const unsigned char* data, size_t length) {
+    try
+    {
+        image->image.set_metadata(chunkname, data, length);
+    }
+    catch(...) {}
+}
+
+FLIF_DLLIMPORT void FLIF_API flif_image_get_metadata(FLIF_IMAGE* image, const char* chunkname, unsigned char** data, size_t* length){
+    try
+    {
+        image->image.get_metadata(chunkname, data, length);
+    }
+    catch(...) {}
+}
+
+FLIF_DLLIMPORT void FLIF_API flif_image_free_metadata(FLIF_IMAGE* image, unsigned char* data){
+    try
+    {
+        image->image.free_metadata(data);
     }
     catch(...) {}
 }

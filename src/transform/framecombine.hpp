@@ -149,7 +149,7 @@ protected:
     }
 #endif
 
-    void configure(int setting) override { user_max_lookback=nb_frames=setting; }
+    void configure(const int setting) override { user_max_lookback=nb_frames=setting; }
     void invData(Images &images) const override {
         // most work has to be done on the fly in the decoder, this is just some cleaning up
         for (Image& image : images) image.drop_frame_lookbacks();

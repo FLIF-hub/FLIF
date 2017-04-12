@@ -24,9 +24,11 @@ enum {
 #include "image.hpp"
 #include "image-png.hpp"
 
-
 #ifdef HAS_ENCODER
-int image_load_png(const char *filename, Image &image) {
+#include "image-png-metadata.hpp"
+
+
+int image_load_png(const char *filename, Image &image, metadata_options &options) {
 #ifdef FLIF_USE_STB_IMAGE
 
   int x,y,n;
@@ -44,7 +46,7 @@ int image_load_png(const char *filename, Image &image) {
   if (color_type == PNG_COLOR_TYPE_GRAY) nbplanes=1;
   else if (color_type == PNG_COLOR_TYPE_RGB) nbplanes=3;
   else if (color_type == PNG_COLOR_TYPE_RGB_ALPHA || color_type == PNG_COLOR_TYPE_GRAY_ALPHA) nbplanes=4;
-  else { printf("Unsupported PNG color type\n"); return 5; }
+  else { e_printf("Unsupported PNG color type\n"); return 5; }
   image.init(width, height, 0, (1 << bit_depth) - 1, nbplanes);
 
   for (size_t r = 0; r < height; r++) {
@@ -103,7 +105,7 @@ int image_load_png(const char *filename, Image &image) {
   if (color_type == PNG_COLOR_TYPE_GRAY) nbplanes=1;
   else if (color_type == PNG_COLOR_TYPE_RGB) nbplanes=3;
   else if (color_type == PNG_COLOR_TYPE_RGB_ALPHA || color_type == PNG_COLOR_TYPE_GRAY_ALPHA) nbplanes=4;
-  else { printf("Unsupported PNG color type\n"); return 5; }
+  else { e_printf("Unsupported PNG color type\n"); return 5; }
 #ifndef SUPPORT_HDR
     if (bit_depth > 8) {
         e_printf("PNG file has more than 8 bit per channel, this FLIF cannot handle that.\n");
@@ -206,7 +208,8 @@ int image_load_png(const char *filename, Image &image) {
     }
   } else e_printf("Should not happen: unsupported PNG bit depth: %i!\n",bit_depth);
 
-  {
+  // look for ICC color profile
+  if (options.icc) {
       png_charp name;
       int comp_type;
 #if ((PNG_LIBPNG_VER_MAJOR << 8) | PNG_LIBPNG_VER_MINOR << 0) < \
@@ -219,9 +222,63 @@ int image_load_png(const char *filename, Image &image) {
 
       if (png_get_iCCP(png_ptr, info_ptr,
                        &name, &comp_type, &profile, &len) == PNG_INFO_iCCP) {
-        image.set_metadata("iCCP", (const char*)profile, len);
+        image.set_metadata("iCCP", (const unsigned char*)profile, len);
       }
   }
+  // look for Exif/XMP metadata
+  if (options.exif || options.xmp) {
+      png_textp txt = NULL;
+      int nb_txt_chunks = png_get_text(png_ptr, info_ptr, &txt, NULL);
+      for (int i = 0; i < nb_txt_chunks; i++, txt++) {
+        const char * chunkname;
+        bool rawprofile = false;
+        if (!strcmp(txt->key, "Raw profile type APP1")
+         || !strcmp(txt->key, "Raw profile type exif")) {
+            if (!options.exif) continue;
+            chunkname = "eXif";
+            rawprofile = true;
+            v_printf(3, "PNG contains Exif metadata, copying it.\n");
+        } else if (!strcmp(txt->key, "Raw profile type xmp")) {
+            if (!options.xmp) continue;
+            chunkname = "eXmp";
+            rawprofile = true;
+            v_printf(3, "PNG contains XMP metadata, copying it.\n");
+        } else if (!strcmp(txt->key, "XML:com.adobe.xmp")) {
+            if (!options.xmp) continue;
+            chunkname = "eXmp";
+            v_printf(3, "PNG contains XMP metadata, copying it.\n");
+        } else {
+            v_printf(4, "Encountered unknown PNG text chunk (key: %s), ignoring it.\n", txt->key);
+            continue;
+        }
+
+        png_size_t length;
+        switch (txt->compression) {
+#ifdef PNG_iTXt_SUPPORTED
+            case PNG_ITXT_COMPRESSION_NONE:
+            case PNG_ITXT_COMPRESSION_zTXt:
+              length = txt->itxt_length;
+              break;
+#endif
+            case PNG_TEXT_COMPRESSION_NONE:
+            case PNG_TEXT_COMPRESSION_zTXt:
+            default:
+              length = txt->text_length;
+              break;
+        }
+        if (rawprofile) {
+          unsigned char * buffer = NULL;
+          if (ProcessRawProfile(txt->text, length, &buffer)) {
+            image.set_metadata(chunkname, buffer, length);
+            free(buffer);
+          }
+        } else {
+          image.set_metadata(chunkname, (const unsigned char*)txt->text, length);
+        }
+
+      }
+  }
+
 
   png_destroy_read_struct(&png_ptr,&info_ptr,(png_infopp) NULL);
   fclose(fp);
@@ -232,6 +289,12 @@ int image_load_png(const char *filename, Image &image) {
 #endif
 
 int image_save_png(const char *filename, const Image &image) {
+
+  if (image.cols() > 0x7fffffffL || image.rows() > 0x7fffffffL) {
+    e_printf("Image too large to be saved as PNG.\n");
+    return 4;
+  }
+
 #ifdef FLIF_USE_STB_IMAGE
 
   int nbplanes = image.numPlanes();
@@ -245,6 +308,7 @@ int image_save_png(const char *filename, const Image &image) {
 
   size_t w = image.cols();
   size_t h = image.rows();
+
 
   std::vector<unsigned char> data( w * h * nbplanes * bytes_per_value );
   unsigned char *row = data.data();
@@ -260,6 +324,7 @@ int image_save_png(const char *filename, const Image &image) {
   stbi_write_png( filename, w, h, nbplanes, row, w * nbplanes * bytes_per_value );
   return 0;
 #else
+
   FILE *fp = fopen(filename,"wb");
   if (!fp) {
     return (1);
@@ -278,7 +343,7 @@ int image_save_png(const char *filename, const Image &image) {
   }
 
   png_init_io(png_ptr,fp);
-
+  png_set_user_limits(png_ptr, 0x7fffffffL, 0x7fffffffL);
 //  png_set_filter(png_ptr,0,PNG_FILTER_PAETH);
 //  png_set_compression_level(png_ptr,Z_BEST_COMPRESSION);
 
@@ -300,8 +365,24 @@ int image_save_png(const char *filename, const Image &image) {
 #else  // >= libpng 1.5.0
       png_bytep profile;
 #endif
-   if (image.get_metadata("iCCP", (const char **) (&profile), &length)) {
+   if (image.get_metadata("iCCP", (unsigned char **) (&profile), &length)) {
     png_set_iCCP(png_ptr, info_ptr,  (png_charp) "icc", 0, profile, length);
+    free(profile);
+   }
+   if (image.get_metadata("eXmp", (unsigned char **) (&profile), &length)) {
+#ifdef PNG_iTXt_SUPPORTED
+    png_text txt;
+    txt.key = (png_charp) "XML:com.adobe.xmp";
+    txt.compression = PNG_ITXT_COMPRESSION_NONE;
+    txt.text_length = 0;
+    txt.text = (png_charp) profile;
+    txt.lang = NULL;
+    txt.lang_key = NULL;
+    png_set_text(png_ptr, info_ptr, &txt, 1);
+#else
+    v_printf(1,"Warning: could not write XMP metadata to PNG file because this version of libpng does not support iTXt.\n");
+#endif
+    free(profile);
    }
   }
 

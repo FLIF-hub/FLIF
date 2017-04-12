@@ -12,15 +12,12 @@
 #ifdef HAS_ENCODER
 bool image_load_pam(const char *filename, Image& image) {
     FILE *fp = fopen(filename,"rb");
-    char buf[PPMREADBUFLEN], *t;
+    char buf[PPMREADBUFLEN];
 
     if (!fp) {
         return false;
     }
-    unsigned int width=0,height=0;
-    unsigned int maxval=0;
-    unsigned int depth = 0;
-    t = fgets(buf, PPMREADBUFLEN, fp);
+    if (!fgets(buf, PPMREADBUFLEN, fp)) return false;
     int type=0;
     if ( (!strncmp(buf, "P7\n", 3)) ) type=7;
     if (type==0) {
@@ -33,7 +30,14 @@ bool image_load_pam(const char *filename, Image& image) {
         e_printf("PAM file is not of type P7, cannot read other types.\n");
         return false;
     }
+    return image_load_pam_fp(fp, image);
+}
+bool image_load_pam_fp(FILE *fp, Image& image) {
+    char buf[PPMREADBUFLEN], *t;
     int maxlines=100;
+    unsigned int width=0,height=0;
+    unsigned int maxval=0;
+    unsigned int depth = 0;
     do {
         t = fgets(buf, PPMREADBUFLEN, fp);
         if ( t == NULL ) {
@@ -90,7 +94,7 @@ bool image_load_pam(const char *filename, Image& image) {
         }
       }
 
-    fclose(fp);
+    if (fp!=stdin) fclose(fp);
     return true;
 }
 #endif
@@ -98,7 +102,10 @@ bool image_load_pam(const char *filename, Image& image) {
 bool image_save_pam(const char *filename, const Image& image)
 {
     if (image.numPlanes() < 4) return image_save_pnm(filename, image);
-    FILE *fp = fopen(filename,"wb");
+    FILE *fp = NULL;
+    if (!strcmp(filename,"-")) fp = stdout;
+    else fp = fopen(filename,"wb");
+
     if (!fp) {
         return false;
     }
@@ -166,7 +173,10 @@ bool image_save_pam(const char *filename, const Image& image)
             }
         }
 
-    fclose(fp);
+    if (fp != stdout) fclose(fp);
+    if (image.get_metadata("iCCP")) {
+        v_printf(1,"Warning: input image has color profile, which cannot be stored in output image format.\n");
+    }
     return true;
 
 }

@@ -30,6 +30,9 @@ limitations under the License.
 #include "../config.h"
 #include "../compiler-specific.hpp"
 
+
+#include "../../extern/lodepng.h"
+
 #ifdef SUPPORT_HDR
 typedef int32_t ColorVal;  // used in computations
 #else
@@ -50,19 +53,19 @@ typedef int32_t ColorVal_intern_32;
 struct FourColorVals {
     __m128i vec;
     FourColorVals() : vec() {}
-    FourColorVals(__m128i &v) : vec(v) {}
-    FourColorVals(int v) : vec(_mm_set1_epi32(v)) {}
+    explicit FourColorVals(__m128i &v) : vec(v) {}
+    explicit FourColorVals(int v) : vec(_mm_set1_epi32(v)) {}
     FourColorVals(int v1, int v2, int v3, int v4): vec(_mm_set_epi32(v1, v2, v3, v4)) {}
-    FourColorVals(const int32_t *p) {
+    explicit FourColorVals(const int32_t *p) {
         assert(((uintptr_t)p & 15) == 0);//assert aligned
         vec = _mm_load_si128((__m128i*)p);
     }    
-    FourColorVals(const uint16_t *p) {
+    explicit FourColorVals(const uint16_t *p) {
         assert(((uintptr_t)p & 7) == 0);//assert aligned
         vec = _mm_unpacklo_epi16(_mm_loadl_epi64((__m128i*)p),_mm_setzero_si128());
     }
-    FourColorVals(const uint8_t *p) : vec() {}
-    FourColorVals(const int16_t *p) : vec() {}
+    explicit FourColorVals(const uint8_t *p) : vec() {}
+    explicit FourColorVals(const int16_t *p) : vec() {}
     void store(int32_t *p) const{
         assert(((uintptr_t)p & 15) == 0);//assert aligned
         _mm_store_si128((__m128i*)p,vec);
@@ -88,26 +91,26 @@ struct FourColorVals {
     FourColorVals VCALL operator-(FourColorVals b) { return FourColorVals(_mm_sub_epi32(vec,b.vec)); }    
     FourColorVals VCALL operator-() { return FourColorVals(_mm_sub_epi32(_mm_setzero_si128(),vec)); }
     FourColorVals VCALL operator>>(int n) { return FourColorVals(_mm_srai_epi32(vec,n)); }
-    operator __m128i() { return vec; }
+    operator __m128i() const { return vec; }
 };
 inline FourColorVals VCALL operator-(int a, FourColorVals b) { return FourColorVals(_mm_sub_epi32(_mm_set1_epi32(a),b.vec)); }
 inline FourColorVals VCALL operator>(FourColorVals a, FourColorVals b) { return FourColorVals(_mm_cmpgt_epi32(a.vec,b.vec)); }
 struct EightColorVals {
     __m128i vec;
     EightColorVals() : vec() {}
-    EightColorVals(__m128i &v) : vec(v) {}
-    EightColorVals(short v) : vec(_mm_set1_epi16(v)) {}
+    explicit EightColorVals(__m128i &v) : vec(v) {}
+    explicit EightColorVals(short v) : vec(_mm_set1_epi16(v)) {}
     EightColorVals(short v8, short v7, short v6, short v5, short v4, short v3, short v2, short v1): vec(_mm_set_epi16(v1, v2, v3, v4, v5, v6, v7, v8)) {}
-    EightColorVals(const int16_t *p) {
+    explicit EightColorVals(const int16_t *p) {
         assert(((uintptr_t)p & 15) == 0);//assert aligned
         vec = _mm_load_si128((__m128i*)p);
     }
-    EightColorVals(const uint8_t *p) {
+    explicit EightColorVals(const uint8_t *p) {
         assert(((uintptr_t)p & 7) == 0);//assert aligned
         vec = _mm_unpacklo_epi8(_mm_loadl_epi64((__m128i*)p),_mm_setzero_si128());
     }
-    EightColorVals(const uint16_t *p) : vec() {}
-    EightColorVals(const int32_t *p) : vec() {}
+    explicit EightColorVals(const uint16_t *p) : vec() {}
+    explicit EightColorVals(const int32_t *p) : vec() {}
     void store(int16_t *p) const{
         assert(((uintptr_t)p & 15) == 0);//assert aligned
         _mm_store_si128((__m128i*)p,vec);
@@ -118,12 +121,13 @@ struct EightColorVals {
     }
     void store(int32_t *p) const {}
     void store(uint16_t *p) const {}
-    int operator[](int i) const{ return vec.m128i_i16[i]; }
+	short& operator[](int i) { return vec.m128i_i16[i]; }
+	short operator[](int i) const { return vec.m128i_i16[i]; }
     EightColorVals VCALL operator+(EightColorVals b) { return EightColorVals(_mm_add_epi16(vec,b.vec)); }
     EightColorVals VCALL operator-(EightColorVals b) { return EightColorVals(_mm_sub_epi16(vec,b.vec)); }
     EightColorVals VCALL operator-() { return EightColorVals(_mm_sub_epi16(_mm_setzero_si128(),vec)); }
     EightColorVals VCALL operator>>(int n) { return EightColorVals(_mm_srai_epi16(vec,n)); }
-    VCALL operator __m128i() { return vec; }
+    VCALL operator __m128i() const { return vec; }
 };
 inline EightColorVals VCALL operator-(short a, EightColorVals b) { return EightColorVals(_mm_sub_epi16(_mm_set1_epi16(a),b.vec)); }
 inline EightColorVals VCALL operator>(EightColorVals a, EightColorVals b) { return EightColorVals(_mm_cmpgt_epi16(a.vec,b.vec)); }
@@ -182,11 +186,11 @@ public:
     virtual void accept_visitor(PlaneVisitor &v) =0;
     virtual uint32_t compute_crc32(uint32_t previous_crc32) =0;
     // access pixel by zoomlevel coordinate
-    uint32_t zoom_rowpixelsize(int zoomlevel) const {
+    static uint32_t zoom_rowpixelsize(int zoomlevel) {
     //    return pixelsizes[zoomlevel+1];
         return 1<<((zoomlevel+1)/2);
     }
-    uint32_t zoom_colpixelsize(int zoomlevel) const {
+    static uint32_t zoom_colpixelsize(int zoomlevel) {
     //    return pixelsizes[zoomlevel];
         return 1<<((zoomlevel)/2);
     }
@@ -220,7 +224,7 @@ template <typename pixel_t> class Plane final : public GeneralPlane {
     pixel_t* data;
     const uint32_t width, height;
     int s;
-    mutable uint32_t s_r, s_c;
+    mutable uint32_t s_r = 0, s_c = 0;
 
 public:
     Plane(uint32_t w, uint32_t h, ColorVal color=0, int scale = 0) : data_vec(PAD(SCALED(w)*SCALED(h)), color), width(SCALED(w)), height(SCALED(h)), s(scale) {
@@ -317,11 +321,11 @@ public:
 #endif
     void set(const int z, const uint32_t r, const uint32_t c, const ColorVal x) override {
 //        set(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z),x);
-         data_vec[(r*zoom_rowpixelsize(z)>>s)*width + (c*zoom_colpixelsize(z)>>s)] = x;
+         data[(r*zoom_rowpixelsize(z)>>s)*width + (c*zoom_colpixelsize(z)>>s)] = x;
     }
     ColorVal get(const int z, const uint32_t r, const uint32_t c) const override {
 //        return get(r*zoom_rowpixelsize(z),c*zoom_colpixelsize(z));
-        return data_vec[(r*zoom_rowpixelsize(z)>>s)*width + (c*zoom_colpixelsize(z)>>s)];
+        return data[(r*zoom_rowpixelsize(z)>>s)*width + (c*zoom_colpixelsize(z)>>s)];
     }
     void normalize_scale() override { s = 0; }
 
@@ -332,18 +336,18 @@ public:
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
         // temporarily make the buffer little endian (TODO: avoid this by modifying the crc to take the swapped bytes into account directly)
         if (sizeof(pixel_t) == 2) {
-            for (pixel_t& x : data) x = swap16(x);
+            for (pixel_t& x : data_vec) x = swap16(x);
         } else if (sizeof(pixel_t) == 4) {
-            for (pixel_t& x : data) x = swap(x);
+            for (pixel_t& x : data_vec) x = swap(x);
         }
 #endif
-        uint32_t result = crc32_fast(&data_vec[0], width*height*sizeof(pixel_t), previous_crc32);
+        uint32_t result = crc32_fast(&data[0], width*height*sizeof(pixel_t), previous_crc32);
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
         // make the buffer big endian again
         if (sizeof(pixel_t) == 2) {
-            for (pixel_t& x : data) x = swap16(x);
+            for (pixel_t& x : data_vec) x = swap16(x);
         } else if (sizeof(pixel_t) == 4) {
-            for (pixel_t& x : data) x = swap(x);
+            for (pixel_t& x : data_vec) x = swap(x);
         }
 #endif
         return result;
@@ -353,7 +357,7 @@ public:
 class ConstantPlane final : public GeneralPlane {
     ColorVal color;
 public:
-    ConstantPlane(ColorVal c) : color(c) {}
+    explicit ConstantPlane(ColorVal c) : color(c) {}
     void set(const uint32_t r, const uint32_t c, const ColorVal x) override {
         assert(x == color);
     }
@@ -426,7 +430,13 @@ void copy_row_range(plane_t &plane, const GeneralPlane &other, const uint32_t r,
 struct MetaData {
     char name[5];               // name of the chunk (every chunk is assumed to be unique, 4 ascii letters plus terminating 0)
     size_t length;              // length of the chunk contents
-    std::vector<char> contents;
+    std::vector<unsigned char> contents;
+};
+
+struct metadata_options {
+    bool icc;
+    bool exif;
+    bool xmp;
 };
 
 class Image {
@@ -495,7 +505,7 @@ class Image {
 public:
     bool palette;
     int frame_delay;
-    bool alpha_zero_special;
+    bool alpha_zero_special = true;
     std::vector<uint32_t> col_begin;
     std::vector<uint32_t> col_end;
     int seen_before;
@@ -506,7 +516,7 @@ public:
         init(width, height, min, max, planes);
     }
 
-    Image(int s=0) : scale(s) {
+    explicit Image(int s=0) : scale(s) {
       width = height = 0;
       minval = maxval = 0;
       num = 0;
@@ -516,7 +526,6 @@ public:
       depth = 0;
 #endif
       palette = false;
-      alpha_zero_special = true;
       seen_before = 0;
     }
 
@@ -560,7 +569,9 @@ public:
     }
 
     // downsampling copy constructor
-    Image(const Image& other, int new_w, int new_h) {
+    Image(const Image& other, int new_w, int new_h) :
+      metadata(other.metadata)
+    {
       width = new_w;
       height = new_h;
       minval = other.minval;
@@ -570,11 +581,10 @@ public:
 #ifdef SUPPORT_HDR
       depth = other.depth;
 #endif
-      metadata = other.metadata;
       palette = other.palette;
       frame_delay = other.frame_delay;
-      col_begin = other.col_begin;
-      col_end = other.col_end;
+//      col_begin = other.col_begin;  // not needed and meaningless after downsampling
+//      col_end = other.col_end;
       seen_before = other.seen_before;
       fully_decoded = other.fully_decoded;
       clear();
@@ -608,10 +618,6 @@ public:
       height = h;
       minval = min;
       maxval = max;
-      col_begin.clear();
-      col_begin.resize(height,0);
-      col_end.clear();
-      col_end.resize(height,width);
       num = p;
       seen_before = -1;
 #ifdef SUPPORT_HDR
@@ -629,6 +635,10 @@ public:
 
       clear();
       try {
+      col_begin.clear();
+      col_begin.resize(height,0);
+      col_end.clear();
+      col_end.resize(height,width);
       if (depth <= 8) {
         if (p>0) planes[0] = make_unique<Plane<ColorVal_intern_8>>(width, height, 0, scale); // R,Y
         if (p>1) planes[1] = make_unique<Plane<ColorVal_intern_16>>(width, height, 0, scale); // G,I
@@ -653,7 +663,7 @@ public:
 
     // Copy constructor is private to avoid mistakes.
     // This function can be used if copies are necessary.
-    Image clone()
+    Image clone() const
     {
       return *this;
     }
@@ -702,6 +712,9 @@ public:
     }
     void make_invisible_rgb_black() {
         if (num<4) return;
+        undo_make_constant_plane(0);
+        undo_make_constant_plane(1);
+        undo_make_constant_plane(2);
         for (uint32_t r=0; r<height; r++)
            for (uint32_t c=0; c<width; c++)
               if (operator()(3,r,c) == 0) {
@@ -776,7 +789,7 @@ public:
     }
 
 #ifdef HAS_ENCODER
-    bool load(const char *name);
+    bool load(const char *name, metadata_options &options);
 #endif
     bool save(const char *name) const;
 
@@ -800,10 +813,10 @@ public:
     int getscale() const { return scale; }
 
     // access pixel by zoomlevel coordinate
-    uint32_t zoom_rowpixelsize(int zoomlevel) const {
+    static uint32_t zoom_rowpixelsize(int zoomlevel) {
         return 1<<((zoomlevel+1)/2);
     }
-    uint32_t zoom_colpixelsize(int zoomlevel) const {
+    static uint32_t zoom_colpixelsize(int zoomlevel) {
         return 1<<((zoomlevel)/2);
     }
 
@@ -879,22 +892,40 @@ public:
         width = 0; // this is used to signal the decoder to stop
     }
 
-    bool get_metadata(const char * chunkname, const char ** data, size_t * length) const {
+    bool get_metadata(const char * chunkname, unsigned char ** data = NULL, size_t * length = NULL) const {
         for(size_t i=0; i<metadata.size(); i++) {
             if (!strncmp(metadata[i].name, chunkname, 4)) {
-                *data = metadata[i].contents.data();
-                *length = metadata[i].length;
-                return true;
+              if (data) {
+                *data = NULL;
+                *length = 0;
+//                lodepng_zlib_decompress(data, length, metadata[i].contents.data(), metadata[i].length, &lodepng_default_decompress_settings);
+                lodepng_inflate(data, length, metadata[i].contents.data(), metadata[i].length, &lodepng_default_decompress_settings);
+              }
+              return true;
             }
         }
         return false;  // metadata not found
     }
-    void set_metadata(const char * chunkname, const char * data, size_t length) {
+    static void free_metadata(unsigned char * data) {
+        if(data) {
+#ifdef LODEPNG_COMPILE_ALLOCATORS
+            free(data);
+#else
+            lodepng_free(data);
+#endif // !LODEPNG_COMPILE_ALLOCATORS            
+        }
+    }
+    void set_metadata(const char * chunkname, const unsigned char * data, size_t length) {
         MetaData foo;
         strcpy(foo.name, chunkname);
-        foo.contents.resize(length);
-        memcpy(foo.contents.data(), data, length);
-        foo.length = length;
+        unsigned char * compressed = NULL;
+        size_t compressed_length = 0;
+//        lodepng_zlib_compress(&compressed, &compressed_length, data, length, &lodepng_default_compress_settings);
+        lodepng_deflate(&compressed, &compressed_length, data, length, &lodepng_default_compress_settings);
+        foo.contents.resize(compressed_length);
+        memcpy(foo.contents.data(), compressed, compressed_length);
+        free(compressed);
+        foo.length = compressed_length;
         metadata.push_back(foo);
     }
 

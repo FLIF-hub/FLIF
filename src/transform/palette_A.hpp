@@ -94,6 +94,7 @@ public:
           for (uint32_t r=0; r<image.rows(); r++) {
             for (uint32_t c=0; c<image.cols(); c++) {
                 int P=image(1,r,c);
+                assert(P < (int) Palette_vector.size());
                 image.set(0,r,c, std::get<1>(Palette_vector[P]));
                 image.set(1,r,c, std::get<2>(Palette_vector[P]));
                 image.set(2,r,c, std::get<3>(Palette_vector[P]));

@@ -10,6 +10,7 @@ runtest() {
   local encArgs=$1
   local decArgs=$2
 
+  rm -f ${OUTF} ${OUTP}
   ./flif $encArgs "${IN}" "${OUTF}"
   ./flif -d $decArgs ${OUTF} ${OUTP}
   test "`compare -metric AE ${IN} ${OUTP} null: 2>&1`" = "0"

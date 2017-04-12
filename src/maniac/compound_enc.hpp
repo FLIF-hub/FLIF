@@ -327,6 +327,20 @@ public:
         v_printf(10,"PLANE %i: TREE BEFORE SIMPLIFICATION:\n",plane);
         simplify_subtree(0, divisor, min_size, 0, plane);
     }
+    uint64_t compute_total_size_subtree(int pos) {
+        PropertyDecisionNode &n = inner_node[pos];
+        uint64_t total=0;
+        if (n.property == -1) {
+            total += leaf_node[n.leafID].realSize/5461;
+        } else {
+            total += compute_total_size_subtree(n.childID);
+            total += compute_total_size_subtree(n.childID+1);
+        }
+        return total;
+    }
+    uint64_t compute_total_size() {
+        return compute_total_size_subtree(0);
+    }
 };
 
 

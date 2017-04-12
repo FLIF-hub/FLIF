@@ -1,5 +1,5 @@
 PREFIX := $(DESTDIR)/usr
-CXXFLAGS := $(shell pkg-config --cflags zlib libpng)
+CXXFLAGS := $(shell pkg-config --cflags zlib libpng) -DLODEPNG_NO_COMPILE_PNG -DLODEPNG_NO_COMPILE_DISK
 LDFLAGS := $(shell pkg-config --libs libpng)
 
 OSNAME := $(shell uname -s)
@@ -16,10 +16,10 @@ endif
 # for running interface-test
 export LD_LIBRARY_PATH=$(shell pwd):$LD_LIBRARY_PATH
 
-FILES_H := maniac/*.hpp maniac/*.cpp image/*.hpp transform/*.hpp flif-enc.hpp flif-dec.hpp common.hpp flif_config.h fileio.hpp io.hpp io.cpp config.h compiler-specific.hpp
-FILES_CPP := maniac/chance.cpp maniac/symbol.cpp image/crc32k.cpp image/image.cpp image/image-png.cpp image/image-pnm.cpp image/image-pam.cpp image/image-rggb.cpp image/image-metadata.cpp image/color_range.cpp transform/factory.cpp common.cpp flif-enc.cpp flif-dec.cpp io.cpp
+FILES_H := maniac/*.hpp maniac/*.cpp image/*.hpp transform/*.hpp flif-enc.hpp flif-dec.hpp common.hpp flif_config.h fileio.hpp io.hpp io.cpp config.h compiler-specific.hpp ../extern/lodepng.h
+FILES_CPP := maniac/chance.cpp maniac/symbol.cpp image/crc32k.cpp image/image.cpp image/image-png.cpp image/image-pnm.cpp image/image-pam.cpp image/image-rggb.cpp image/image-metadata.cpp image/color_range.cpp transform/factory.cpp common.cpp flif-enc.cpp flif-dec.cpp io.cpp ../extern/lodepng.cpp
 
-all: flif libflif$(LIBEXT) viewflif
+all: flif libflif$(LIBEXT)
 decoder: libflif_dec$(LIBEXT) dflif
 
 # options to consider: -fvect-cost-model=unlimited -funroll-all-loops
@@ -45,16 +45,16 @@ dflif: $(FILES_H) $(FILES_CPP) flif.cpp
 # Decoder-only library - Apache2 (not built by default)
 libflif_dec$(LIBEXT): $(FILES_H) $(FILES_CPP) library/flif_dec.h library/flif-interface-private_dec.hpp library/flif-interface_dec.cpp
 	echo $(OS)
-	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -DDECODER_ONLY -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface_dec.cpp $(LDFLAGS) -Wl,$(SONAME),libflif_dec$(LIBEXT).0 -o libflif_dec$(LIBEXT).0
+	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -DDECODER_ONLY -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface_dec.cpp $(LDFLAGS) -Wl,$(SONAME),libflif_dec$(LIBEXTV) -o libflif_dec$(LIBEXTV)
 	ln -sf libflif_dec$(LIBEXTV) libflif_dec$(LIBEXT)
 
 # Decoder + encoder library - LGPL
 libflif$(LIBEXT): $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/*.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -Wl,$(SONAME),libflif$(LIBEXT).0 -o libflif$(LIBEXT).0
+	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -Wl,$(SONAME),libflif$(LIBEXTV) -o libflif$(LIBEXTV)
 	ln -sf libflif$(LIBEXTV) libflif$(LIBEXT)
 
 libflif.dbg$(LIBEXT): $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/*.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) -O1 -ggdb3 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -Wl,$(SONAME),libflif$(LIBEXT).0 -o libflif.dbg$(LIBEXT).0
+	$(CXX) -std=gnu++11 $(CXXFLAGS) -O1 -ggdb3 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -Wl,$(SONAME),libflif$(LIBEXTV) -o libflif.dbg$(LIBEXTV)
 	ln -sf libflif.dbg$(LIBEXTV) libflif.dbg$(LIBEXT)
 
 # Example application: simple FLIF viewer - public domain
@@ -62,13 +62,16 @@ viewflif: libflif$(LIBEXT) viewflif.c
 	$(CC) -std=gnu11 -O3 -ggdb3 $(shell sdl2-config --cflags) -Wall -Ilibrary/ viewflif.c -L. -lflif $(shell sdl2-config --libs) -o viewflif
 
 
-install: all
+install: flif libflif$(LIBEXT)
 	install -d $(PREFIX)/bin $(PREFIX)/lib $(PREFIX)/share/man/man1
-	install -s -m 755 flif viewflif $(PREFIX)/bin
+	install -s -m 755 flif $(PREFIX)/bin
 	install -s -m 755 libflif$(LIBEXT) libflif$(LIBEXTV) $(PREFIX)/lib
 	install -m 644 ../doc/flif.1 $(PREFIX)/share/man/man1
 	install -m 755 ../tools/gif2flif $(PREFIX)/bin
 	install -m 755 ../tools/apng2flif $(PREFIX)/bin
+
+install-viewflif:
+	install -s -m 755 viewflif $(PREFIX)/bin
 
 install-dev:
 	install -d $(PREFIX)/include
@@ -86,6 +89,10 @@ uninstall:
 	rm -f $(PREFIX)/bin/viewflif
 	rm -f $(PREFIX)/bin/gif2flif
 	rm -f $(PREFIX)/bin/apng2flif
+	rm -f $(PREFIX)/include/flif.h
+	rm -f $(PREFIX)/include/flif_common.h
+	rm -f $(PREFIX)/include/flif_dec.h
+	rm -f $(PREFIX)/include/flif_enc.h
 	rm -f $(PREFIX)/lib/libflif$(LIBEXT)
 	rm -f $(PREFIX)/lib/libflif_dec$(LIBEXT)
 	rm -f $(PREFIX)/lib/libflif$(LIBEXTV)
@@ -117,6 +124,9 @@ flif.prof: $(FILES_H) $(FILES_CPP) flif.cpp
 
 flif.dbg: $(FILES_H) $(FILES_CPP) flif.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) -Og -ggdb3 -Wall $(FILES_CPP) flif.cpp $(LDFLAGS) -o flif.dbg
+
+flif.dbg0: $(FILES_H) $(FILES_CPP) flif.cpp
+	$(CXX) -std=gnu++11 $(CXXFLAGS) -O0 -ggdb3 -Wall $(FILES_CPP) flif.cpp $(LDFLAGS) -o flif.dbg
 
 flif.asan: $(FILES_H) $(FILES_CPP) flif.cpp
 	$(CXX) -std=gnu++11 $(CXXFLAGS) $(OPTIMIZATIONS) -fsanitize=address,undefined -fno-omit-frame-pointer -g3 -Wall $(FILES_CPP) flif.cpp $(LDFLAGS) -o flif.asan

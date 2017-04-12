@@ -136,6 +136,7 @@ void write_padding(long headerlen, int val)
 	} else {
 		memset(buf, val, missing);
 		fwrite(buf, 1, missing, stdout);
+		free(buf);
 	}
 }
 
@@ -174,7 +175,7 @@ int main(int argc, char **argv)
         int i;
         if((rv=fread(buf, sizeof(uint16_t), width*4, stdin)) != width*4) {
             if(rv != 0)
-				fprintf(stderr, "read only %u\n", rv);
+				fprintf(stderr, "read only %lu\n", (unsigned long) rv);
             continue;
         }
 

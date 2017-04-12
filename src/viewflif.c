@@ -156,7 +156,7 @@ uint32_t progressive_render(int32_t quality, int64_t bytes_read) {
           if (!bgsurf) { printf("Error: Could not create surface\n"); return 1; }
           SDL_Rect sq; sq.w=20; sq.h=20;
           for (sq.y=0; sq.y<h; sq.y+=sq.h) for (sq.x=0; sq.x<w; sq.x+=sq.w)
-              SDL_FillRect(bgsurf,&sq,((sq.y/sq.h + sq.x/sq.w)&1 ? 0xFF606060 : 0xFFA0A0A0));
+              SDL_FillRect(bgsurf,&sq,(((sq.y/sq.h + sq.x/sq.w)&1) ? 0xFF606060 : 0xFFA0A0A0));
           // Alpha-blend decoded frame on top of checkerboard background
           SDL_BlitSurface(tmpsurf,NULL,bgsurf,NULL);
           SDL_FreeSurface(tmpsurf); tmpsurf = bgsurf; bgsurf = NULL;
@@ -188,6 +188,9 @@ static int decodeThread(void * arg) {
     flif_decoder_set_scale(d, 1);                 // this is the default, so can be omitted
     // set the maximum size to twice the screen resolution; if an image is larger, a downsampled preview will be decoded
     flif_decoder_set_resize(d, dm.w*2, dm.h*2);   // the default is to not have a maximum size
+
+    // alternatively, set the decode width to exactly the screen width (the height will be set to respect aspect ratio)
+    // flif_decoder_set_fit(d, dm.w, 0);   // the default is to not have a maximum size
 #ifdef PROGRESSIVE_DECODING
     // set the callback function to render the partial (and final) decoded images
     flif_decoder_set_callback(d, &(progressive_render));  // the default is "no callback"; decode completely until quality/scale/size target is reached

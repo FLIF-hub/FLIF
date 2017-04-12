@@ -169,20 +169,21 @@ public:
         }
         return c;
     }
-/*
+
     void print() const {
-        if (min>max) printf("E ");
-        else if (min==max) printf("S%i ",min);
+        if (min>max) v_printf(10,"E ");
+        else if (min==max) v_printf(10,"S%i ",min);
         else {
                 if (discrete) {
-                        printf("D[");
-                        for (ColorVal c : values) printf("%i%c",c,(c<max?',':']'));
-                        printf(" ");
+                        v_printf(10,"D[");
+                        for (ColorVal c : values) v_printf(10,"%i%c",c,(c<max?',':']'));
+                        v_printf(10," ");
                 } else {
-                        printf("C%i..%i ",min,max);
+                        v_printf(10,"C%i..%i ",min,max);
                 }
         }
     }
+/*
     void printshort() const {
         if (min>max) printf(".");
         else if (min==max) printf("1");
@@ -204,8 +205,9 @@ public:
     std::vector<ColorBucket> bucket1;
     std::vector<std::vector<ColorBucket> > bucket2;
     ColorBucket bucket3;
+    ColorBucket empty_bucket;
     const ColorRanges *ranges;
-    ColorBuckets(const ColorRanges *r) : bucket0(), min0(r->min(0)), min1(r->min(1)),
+    explicit ColorBuckets(const ColorRanges *r) : bucket0(), min0(r->min(0)), min1(r->min(1)),
                                          bucket1((r->max(0) - min0)/CB0a +1),
                                          bucket2((r->max(0) - min0)/CB0b +1, std::vector<ColorBucket>((r->max(1) - min1)/CB1 +1)),
                                          bucket3(),
@@ -213,15 +215,23 @@ public:
     ColorBucket& findBucket(const int p, const prevPlanes &pp) {
         assert(p>=0); assert(p<4);
         if (p==0) return bucket0;
-        if (p==1) return bucket1[(pp[0]-min0)/CB0a];
-        if (p==2) return bucket2[(pp[0]-min0)/CB0b][(pp[1]-min1)/CB1];
+        if (p==1) { assert((pp[0]-min0)/CB0a >= 0 && (pp[0]-min0)/CB0a < (int)bucket1.size());
+                    return bucket1[(pp[0]-min0)/CB0a];}
+        if (p==2) { assert((pp[0]-min0)/CB0b >= 0 && (pp[0]-min0)/CB0b < (int)bucket2.size());
+                    assert((pp[1]-min1)/CB1 >= 0 && (pp[1]-min1)/CB1 < (int) bucket2[(pp[0]-min0)/CB0b].size());
+                    return bucket2[(pp[0]-min0)/CB0b][(pp[1]-min1)/CB1]; }
         else return bucket3;
     }
     const ColorBucket& findBucket(const int p, const prevPlanes &pp) const {
         assert(p>=0); assert(p<4);
         if (p==0) return bucket0;
-        if (p==1) return bucket1[(pp[0]-min0)/CB0a];
-        if (p==2) return bucket2[(pp[0]-min0)/CB0b][(pp[1]-min1)/CB1];
+        if (p==1) { int i = (pp[0]-min0)/CB0a;
+                    if(i >= 0 && i < (int)bucket1.size()) return bucket1[i];
+                    else return empty_bucket;}
+                    
+        if (p==2) { int i=(pp[0]-min0)/CB0b, j = (pp[1]-min1)/CB1;
+                    if(i >= 0 && i < (int)bucket2.size() && j >= 0 && j < (int) bucket2[i].size()) return bucket2[i][j];
+                    else return empty_bucket;}
         else return bucket3;
     }
     void addColor(const std::vector<ColorVal> &pixel) {
@@ -239,7 +249,7 @@ public:
         ranges->snap(p,pp,rmin,rmax,v);
         if (v != pp[p]) return false;   // bucket empty because of original range constraints
 
-        const ColorBucket b = findBucket(p,pp);
+        const ColorBucket &b = findBucket(p,pp);
         //if (b.min > b.max) return false;
         if (b.snapColor_slow(pp[p]) != pp[p]) return false;
         return true;
@@ -259,20 +269,20 @@ public:
         }
         return false;
     }
-/*
+
     void print() {
-        printf("Y buckets:\n");
+        v_printf(10,"Y buckets:\n");
         bucket0.print();
-        printf("\nI buckets:\n");
+        v_printf(10,"\nCo buckets:\n");
         for (auto b : bucket1) b.print();
-        printf("\nQ buckets:\n  ");
-        for (auto bs : bucket2) { for (auto b : bs) b.print(); printf("\n  ");}
+        v_printf(10,"\nCg buckets:\n  ");
+        for (auto bs : bucket2) { for (auto b : bs) b.print(); v_printf(10,"\n  ");}
         if (ranges->numPlanes() > 3) {
-          printf("Alpha buckets:\n");
+          v_printf(10,"Alpha buckets:\n");
           bucket3.print();
         }
     }
-*/
+
 };
 
 class ColorRangesCB final : public ColorRanges {
@@ -354,6 +364,7 @@ protected:
         cb->bucket3.prepare_snapvalues();
         for (auto& b : cb->bucket1) b.prepare_snapvalues();
         for (auto& bv : cb->bucket2) for (auto& b : bv) b.prepare_snapvalues();
+//        cb->print();
 
         really_used = true;
         return new ColorRangesCB(srcRanges, cb);
@@ -368,15 +379,16 @@ protected:
             srcRanges->min(1) == srcRanges->max(1) &&
             srcRanges->min(2) == srcRanges->max(2)) return false; // only alpha plane contains information
 //        if (srcRanges->max(0) > 255) return false; // do not attempt this on high bit depth images (TODO: generalize color bucket quantization!)
-        if (srcRanges->max(0)-srcRanges->min(0) > 4096) return false; // do not attempt this on high bit depth images (TODO: generalize color bucket quantization!)
-        if (srcRanges->max(1)-srcRanges->min(1) > 4096) return false;
+        if (srcRanges->max(0)-srcRanges->min(0) > 1023) return false; // do not attempt this on high bit depth images (TODO: generalize color bucket quantization!)
+        if (srcRanges->max(1)-srcRanges->min(1) > 1023) return false; // max 10 bpc
+        if (srcRanges->max(2)-srcRanges->min(2) > 1023) return false;
         if (srcRanges->min(1) == srcRanges->max(1)) return false; // middle channel not used, buckets are not going to help
 //        if (srcRanges->min(2) == srcRanges->max(2)) return false;
         cb = new ColorBuckets(srcRanges);
         return true;
     }
 
-    void minmax(const ColorRanges *srcRanges, const int p, const prevPlanes &lower, const prevPlanes &upper, ColorVal &smin, ColorVal &smax) const {
+    static void minmax(const ColorRanges *srcRanges, const int p, const prevPlanes &lower, const prevPlanes &upper, ColorVal &smin, ColorVal &smax) {
         ColorVal rmin, rmax;
         smin=10000;
         smax=-10000;
@@ -408,7 +420,6 @@ protected:
         for (int p=0; p<plane; p++) {
                 if (!cb->exists(p,pixelL,pixelU)) return b;
         }
-//        SimpleBitCoder<FLIFBitChanceMeta, RacIn> bcoder(rac);
 
         ColorVal smin,smax;
         minmax(srcRanges,plane,pixelL,pixelU,smin,smax);

@@ -39,7 +39,7 @@ protected:
     const StaticColorRangeList ranges;
 
 public:
-    StaticColorRanges(StaticColorRangeList r) : ranges(r) {}
+    explicit StaticColorRanges(StaticColorRangeList &r) : ranges(r) {}
     int numPlanes() const override { return ranges.size(); }
     ColorVal min(int p) const override { if (p >= numPlanes()) return 0; assert(p<numPlanes()); return ranges[p].first; }
     ColorVal max(int p) const override { if (p >= numPlanes()) return 0; assert(p<numPlanes()); return ranges[p].second; }
@@ -51,7 +51,7 @@ class DupColorRanges : public ColorRanges {
 protected:
     const ColorRanges *ranges;
 public:
-    DupColorRanges(const ColorRanges *rangesIn) : ranges(rangesIn) {}
+    explicit DupColorRanges(const ColorRanges *rangesIn) : ranges(rangesIn) {}
 
     int numPlanes() const override { return ranges->numPlanes(); }
     ColorVal min(int p) const override { return ranges->min(p); }
