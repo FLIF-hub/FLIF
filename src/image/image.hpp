@@ -627,6 +627,57 @@ public:
                  set(p,r,c,other.operator()(p,r*other.height/height,c*other.width/width));
     }
 
+    // copy constructor with stride
+    Image(const Image& other, bool *skipInterpolate, std::vector<int> zoomlevels) : metadata(other.metadata) {
+      width = other.width;
+      height = other.height;
+      minval = other.minval;
+      maxval = other.maxval;
+      num = other.num;
+      scale = other.scale;
+#ifdef SUPPORT_HDR
+      depth = other.depth;
+#endif
+      palette = other.palette;
+      palette_image = other.palette_image;
+      frame_delay = other.frame_delay;
+      col_begin = other.col_begin;
+      col_end = other.col_end;
+      seen_before = other.seen_before;
+      fully_decoded = other.fully_decoded;
+      clear();
+      {
+      int p=num;
+      if (depth <= 8) {
+        if (p>0) planes[0] = make_unique<Plane<ColorVal_intern_8>>(width, height, 0, scale); // R,Y
+        if (p>1) planes[1] = make_unique<Plane<ColorVal_intern_16>>(width, height, 0, scale); // G,I
+        if (p>2) planes[2] = make_unique<Plane<ColorVal_intern_16>>(width, height, 0, scale); // B,Q
+        if (p>3) planes[3] = make_unique<Plane<ColorVal_intern_8>>(width, height, 0, scale); // A
+#ifdef SUPPORT_HDR
+      } else {
+        if (p>0) planes[0] = make_unique<Plane<ColorVal_intern_16u>>(width, height, 0, scale); // R,Y
+        if (p>1) planes[1] = make_unique<Plane<ColorVal_intern_32>>(width, height, 0, scale); // G,I
+        if (p>2) planes[2] = make_unique<Plane<ColorVal_intern_32>>(width, height, 0, scale); // B,Q
+        if (p>3) planes[3] = make_unique<Plane<ColorVal_intern_16u>>(width, height, 0, scale); // A
+#endif
+      }
+      if (p>4) planes[4] = make_unique<Plane<ColorVal_intern_8>>(width, height, 0, scale); // FRA
+      }
+      uint32_t scaledHeight = SCALED(height);
+      uint32_t scaledWidth = SCALED(width);
+      for(int p=0; p<num; p++) {
+        GeneralPlane& planeDest = getPlane(p);
+        const GeneralPlane& planeSrc = other.getPlane(p);
+        const uint32_t zoomlevel = zoomlevels[p] + 1;
+        const uint32_t strideRow = skipInterpolate[p] ? 1 :  1<<((zoomlevel+1)/2);
+        const uint32_t strideCol = skipInterpolate[p] ? 1 :  1<<((zoomlevel)/2);
+          for (uint32_t r=0; r<scaledHeight; r+=strideRow) {
+             for (uint32_t c=0; c<scaledWidth; c+=strideCol) {
+                 planeDest.set(r,c,planeSrc.get(r,c));
+             }
+          }
+      }
+    }
     bool init(uint32_t w, uint32_t h, ColorVal min, ColorVal max, int p) {
       if (! semi_init(w,h,min,max,p) ) return false;
       return real_init(false);

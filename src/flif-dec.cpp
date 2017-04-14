@@ -303,22 +303,28 @@ void flif_decode_FLIF2_inner_interpol(Images &images, const ColorRanges *ranges,
 
       if (z % 2 == 0) {
         // horizontal: scan the odd rows
-          for (uint32_t r = 1; r < images[0].rows(z); r += 2) {
-            for (Image& image : images) {
-               for (uint32_t c = 0; c < image.cols(z); c++) {
-                 image.set(p,z,r,c, predict(image,z,p,r,c,0));
-               }
-            }
+        for (Image& image : images) {
+          GeneralPlane& plane = image.getPlane(p);
+          uint32_t rows = image.rows(z);
+          uint32_t cols = image.cols(z);
+          for (uint32_t r = 1; r < rows; r += 2) {
+             for (uint32_t c = 0; c < cols; c++) {
+               plane.set(z,r,c, predict_plane_horizontal(plane,z,p,r,c,rows,0));
+             }
           }
+        }
       } else {
         // vertical: scan the odd columns
-          for (uint32_t r = 0; r < images[0].rows(z); r++) {
-            for (Image& image : images) {
-               for (uint32_t c = 1; c < image.cols(z); c += 2) {
-                image.set(p,z,r,c, predict(image,z,p,r,c,0));
-               }
+        for (Image& image : images) {
+          GeneralPlane& plane = image.getPlane(p);
+          uint32_t rows = image.rows(z);
+          uint32_t cols = image.cols(z);
+          for (uint32_t r = 0; r < rows; r++) {
+            for (uint32_t c = 1; c < cols; c += 2) {
+              plane.set(z,r,c, predict_plane_vertical(plane,z,p,r,c,rows,0));
             }
           }
+        }
       }
     }
     v_printf_tty(2,"\n");
@@ -722,10 +728,16 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
         int qual = 10000*pixels_done/pixels_todo;
         if (callback && p<4 && (endZL==0 || i+1 == plane_zoomlevels(images[0], beginZL, endZL)) && qual >= progressive_qual_target) {
           auto populatePartialImages = [&] () {
-            for (unsigned int n=0; n < images.size(); n++) {
-              partial_images[n] = images[n].clone(); // make a copy to work with
+            bool skipInterpolate[ranges->numPlanes()];
+            for (int pn = 0; pn < ranges->numPlanes(); pn++) {
+              skipInterpolate[pn] = pn == 4 || ranges->min(pn) >= ranges->max(pn);
             }
+            for (unsigned int n=0; n < images.size(); n++) {
+              partial_images[n] = Image(images[n], skipInterpolate, zoomlevels); // make a skipped copy to work with
+            }
+
             int64_t pixels_really_done = pixels_done;
+
             std::vector<Transform<IO>*> transforms_copy = transforms;
             std::vector<int> zoomlevels_copy = zoomlevels;
             flif_decode_FLIF2_inner_interpol(partial_images, ranges, 0, beginZL, endZL, -1, scale, zoomlevels_copy, transforms_copy);
