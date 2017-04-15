@@ -1,8 +1,4 @@
-param($platform)
-
-if (!$platform) {
-    $platform = "x86"
-}
+param($platform = "x86")
 
 $lpngurl = "https://github.com/glennrp/libpng/archive/libpng-1.6.20-master-signed.zip"
 $lpngzip = "libpng-1.6.20-master-signed.zip"
@@ -44,31 +40,31 @@ if (!$env:VISUALSTUDIOVERSION) {
 Push-Location (split-path -parent $PSCommandPath)
 
 if (-Not (Test-Path $lpngzip)) { 
-	Write-Output download $lpngzip
-	Invoke-Webrequest $lpngurl -OutFile $lpngzip
+    Write-Output download $lpngzip
+    Invoke-Webrequest $lpngurl -OutFile $lpngzip
     
 }
 if (-Not (Test-Path $lpngdir)) {
-	Write-Output unzip $lpngzip
+    Write-Output unzip $lpngzip
     expand-archive $lpngzip -DestinationPath '.'
 }
 
 if (-Not (Test-Path $zlibzip)) {
-	Write-Output download $zlibzip
+    Write-Output download $zlibzip
     Invoke-Webrequest $zliburl -OutFile $zlibzip
 }
 if (-Not (Test-Path $zlibdir)) {
-	Write-Output unzip $zlibzip
-	expand-archive $zlibzip -DestinationPath '.'
+    Write-Output unzip $zlibzip
+    expand-archive $zlibzip -DestinationPath '.'
 }
 
 if (-Not (Test-Path $sdl2zip)) {
-	Write-Output download $sdl2zip
+    Write-Output download $sdl2zip
     Invoke-Webrequest $sdl2url -OutFile $sdl2zip
 }
 if (-Not (Test-Path $sdl2dir)) {
-	Write-Output unzip $sdl2zip
-	expand-archive $sdl2zip -DestinationPath '.'
+    Write-Output unzip $sdl2zip
+    expand-archive $sdl2zip -DestinationPath '.'
 }
 
 Pop-Location
