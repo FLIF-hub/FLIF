@@ -42,7 +42,8 @@ flif.osx
 *.swp
 
 #MSVC
-flif*.exe
+*.exe
 *.obj
 *.pdb
 *.ilk
+build/tmp-test/
