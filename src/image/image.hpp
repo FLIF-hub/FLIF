@@ -668,9 +668,9 @@ public:
       for(int p=0; p<num; p++) {
         GeneralPlane& planeDest = getPlane(p);
         const GeneralPlane& planeSrc = other.getPlane(p);
-        const uint32_t zoomlevel = zoomlevels[p] + 1;
-        const uint32_t strideRow = skipInterpolate[p] ? 1 :  1<<((zoomlevel+1)/2);
-        const uint32_t strideCol = skipInterpolate[p] ? 1 :  1<<((zoomlevel)/2);
+        const uint32_t zoomlevelScaled = zoomlevels[p] + 1-(2*scale);
+        const uint32_t strideRow = skipInterpolate[p] ? 1 :  1<<((zoomlevelScaled+1)/2);
+        const uint32_t strideCol = skipInterpolate[p] ? 1 :  1<<((zoomlevelScaled)/2);
           for (uint32_t r=0; r<scaledHeight; r+=strideRow) {
              for (uint32_t c=0; c<scaledWidth; c+=strideCol) {
                  planeDest.set(r,c,planeSrc.get(r,c));
