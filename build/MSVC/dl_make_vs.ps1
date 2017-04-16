@@ -12,6 +12,8 @@ $sdl2url = "https://www.libsdl.org/release/SDL2-devel-2.0.3-VC.zip"
 $sdl2zip = "SDL2-devel-2.0.3-VC.zip"
 $sdl2dir = "SDL2-2.0.3"
 
+Push-Location (split-path -parent $PSCommandPath)
+
 if (!$env:VISUALSTUDIOVERSION) {
     $vswhereurl = "https://github.com/Microsoft/vswhere/releases/download/1.0.62/vswhere.exe"
     $vswhereexe = "vswhere-1.0.62.exe"
@@ -36,8 +38,6 @@ if (!$env:VISUALSTUDIOVERSION) {
         }
     }
 }
-
-Push-Location (split-path -parent $PSCommandPath)
 
 if (-Not (Test-Path $lpngzip)) { 
     Write-Output download $lpngzip
@@ -67,9 +67,9 @@ if (-Not (Test-Path $sdl2dir)) {
     expand-archive $sdl2zip -DestinationPath '.'
 }
 
-Pop-Location
-
 nmake Rt=MD
 nmake Rt=MD test
+
+Pop-Location
 
 powershell
