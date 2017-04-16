@@ -46,7 +46,7 @@ if (-Not (Test-Path $lpngzip)) {
 }
 if (-Not (Test-Path $lpngdir)) {
     Write-Output unzip $lpngzip
-    expand-archive $lpngzip -DestinationPath '.'
+    Expand-Archive $lpngzip -DestinationPath '.'
 }
 
 if (-Not (Test-Path $zlibzip)) {
@@ -55,7 +55,7 @@ if (-Not (Test-Path $zlibzip)) {
 }
 if (-Not (Test-Path $zlibdir)) {
     Write-Output unzip $zlibzip
-    expand-archive $zlibzip -DestinationPath '.'
+    Expand-Archive $zlibzip -DestinationPath '.'
 }
 
 if (-Not (Test-Path $sdl2zip)) {
@@ -64,7 +64,7 @@ if (-Not (Test-Path $sdl2zip)) {
 }
 if (-Not (Test-Path $sdl2dir)) {
     Write-Output unzip $sdl2zip
-    expand-archive $sdl2zip -DestinationPath '.'
+    Expand-Archive $sdl2zip -DestinationPath '.'
 }
 
 nmake Rt=MD
