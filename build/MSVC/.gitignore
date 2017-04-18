@@ -2,7 +2,8 @@
 
 *.zip
 *.dll
-*.exe
+*.flif
+*.png
 
 !getopt/
 
