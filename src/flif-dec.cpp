@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <string>
 #include <string.h>
+#include <functional>
 
 #include "maniac/rac.hpp"
 #include "maniac/compound.hpp"
