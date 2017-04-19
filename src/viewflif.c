@@ -195,7 +195,8 @@ uint32_t progressive_render(uint32_t quality, int64_t bytes_read, uint8_t decode
       }
 
       // For benchmarking
-      // if (quality == 10000) printf("Total time: %.2lf\n", ((double)now ) / CLOCKS_PER_SEC);
+      // clock_t finalTime = clock();
+      // if (quality == 10000) printf("Total time: %.2lf\n", ((double)finalTime ) / CLOCKS_PER_SEC);
 
       flif_decoder_generate_preview(context);
 
