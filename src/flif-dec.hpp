@@ -11,15 +11,7 @@ struct FLIF_INFO
     size_t num_images;
 };
 
-typedef struct callback_info_struct {
-  uint32_t quality;
-  int64_t  bytes_read;
-
-  // Private context
-  void *populateContext;
-} callback_info_t;
-
-typedef uint32_t (*callback_t)(callback_info_t *info, void *user_data);
+typedef uint32_t (*callback_t)(uint32_t quality, int64_t bytes_read, uint8_t decode_over, void *user_data, void *context);
 
 /*!
 * @param[out] info An info struct to fill. If this is not a null pointer, the decoding will exit after reading the file header.

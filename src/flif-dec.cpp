@@ -208,7 +208,7 @@ bool flif_decode_scanlines_inner(IO &io, Rac &rac, std::vector<Coder> &coders, I
               for (int i=transforms.size()-1; i>=0; i--) if (transforms[i]->undo_redo_during_decode()) transforms[i]->invData(partial_images);
             };
             progressive_qual_shown = qual;
-            progressive_qual_target = issue_callback(callback, user_data, qual, io.ftell(), populatePartialImages);
+            progressive_qual_target = issue_callback(callback, user_data, qual, io.ftell(), false, populatePartialImages);
             if (qual >= progressive_qual_target) return false;
           }
         }
@@ -216,12 +216,8 @@ bool flif_decode_scanlines_inner(IO &io, Rac &rac, std::vector<Coder> &coders, I
     return true;
 }
 
-uint32_t issue_callback(callback_t callback, void *user_data, uint32_t quality, int64_t bytes_read, std::function<void ()> func) {
-  callback_info_t cb_info;
-  cb_info.quality = quality;
-  cb_info.bytes_read = bytes_read;
-  cb_info.populateContext = (void *) &func;
-  return callback(&cb_info, user_data);
+uint32_t issue_callback(callback_t callback, void *user_data, uint32_t quality, int64_t bytes_read, bool decode_over, std::function<void ()> func) {
+  return callback(quality, bytes_read, decode_over ? 1 : 0, user_data, (void *) &func);
 }
 
 template<typename IO, typename Rac, typename Coder>
@@ -756,7 +752,7 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
             }
           };
           progressive_qual_shown = qual;
-          progressive_qual_target = issue_callback(callback, user_data, qual, io.ftell(), populatePartialImages);
+          progressive_qual_target = issue_callback(callback, user_data, qual, io.ftell(), false, populatePartialImages);
           if (qual >= progressive_qual_target) return false;
         }
       } else zoomlevels[p]--;
@@ -1360,7 +1356,7 @@ bool flif_decode(IO& io, Images &images, callback_t callback, void *user_data, i
         auto populatePartialImages = [&] () {
           for (unsigned int n=0; n < images.size(); n++) partial_images[n] = images[n].clone(); // make a copy to work with
         };
-        issue_callback(callback, user_data, 10000*pixels_done/pixels_todo, io.ftell(), populatePartialImages);
+        issue_callback(callback, user_data, 10000*pixels_done/pixels_todo, io.ftell(), true, populatePartialImages);
     }
 
     if (options.metadata) {

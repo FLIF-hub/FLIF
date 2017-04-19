@@ -185,11 +185,8 @@ clock_t last_preview_time = 0;
 //                    resizes the viewer window if needed, and calls draw_image()
 // Input arguments are: quality (0..10000), current position in the .flif file
 // Output is the desired minimal quality before doing the next callback
-uint32_t progressive_render(callback_info_t *info, void *user_data) {
+uint32_t progressive_render(uint32_t quality, int64_t bytes_read, uint8_t decode_over, void *user_data, void *context) {
     if (SDL_LockMutex(mutex) == 0) {
-
-      uint32_t quality = info->quality;
-
       clock_t now = clock();
       double timeElapsed = ((double)(now - last_preview_time)) / CLOCKS_PER_SEC;
       if (quality != 10000 && timeElapsed< preview_interval) {
@@ -197,12 +194,10 @@ uint32_t progressive_render(callback_info_t *info, void *user_data) {
         return quality + 1000;
       }
 
-      int64_t bytes_read = info->bytes_read;
-
       // For benchmarking
       // if (quality == 10000) printf("Total time: %.2lf\n", ((double)now ) / CLOCKS_PER_SEC);
 
-      flif_decoder_generate_preview(info);
+      flif_decoder_generate_preview(context);
 
       bool success = updateTextures(quality, bytes_read);
 
