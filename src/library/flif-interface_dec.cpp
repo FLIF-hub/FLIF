@@ -246,10 +246,10 @@ FLIF_DLLEXPORT FLIF_IMAGE* FLIF_API flif_decoder_get_image(FLIF_DECODER* decoder
     return 0;
 }
 
-FLIF_DLLEXPORT void FLIF_API flif_decoder_generate_preview(callback_info_t *info) {
+FLIF_DLLEXPORT void FLIF_API flif_decoder_generate_preview(void *context) {
     try
     {
-        auto func = (std::function<void ()> *) info->populateContext;
+        auto func = (std::function<void ()> *) context;
         (*func)();
     }
     catch(...) {}
