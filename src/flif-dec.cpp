@@ -144,6 +144,10 @@ struct scanline_plane_decoder: public PlaneVisitor {
 //    void visit(ConstantPlane              &plane) override {flif_decode_scanline_plane(plane,coder,images,ranges,alpha,properties,p,fr,r,grey,minP,alphazero,FRA);}
 };
 
+uint32_t issue_callback(callback_t callback, void *user_data, uint32_t quality, int64_t bytes_read, bool decode_over, std::function<void ()> func) {
+  return callback(quality, bytes_read, decode_over ? 1 : 0, user_data, (void *) &func);
+}
+
 template<typename IO, typename Rac, typename Coder>
 bool flif_decode_scanlines_inner(IO &io, Rac &rac, std::vector<Coder> &coders, Images &images, const ColorRanges *ranges, int quality,
                                  std::vector<Transform<IO>*> &transforms, callback_t callback, void *user_data, Images &partial_images) {
@@ -214,10 +218,6 @@ bool flif_decode_scanlines_inner(IO &io, Rac &rac, std::vector<Coder> &coders, I
         }
     }
     return true;
-}
-
-uint32_t issue_callback(callback_t callback, void *user_data, uint32_t quality, int64_t bytes_read, bool decode_over, std::function<void ()> func) {
-  return callback(quality, bytes_read, decode_over ? 1 : 0, user_data, (void *) &func);
 }
 
 template<typename IO, typename Rac, typename Coder>
