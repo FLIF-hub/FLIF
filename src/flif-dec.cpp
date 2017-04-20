@@ -725,12 +725,12 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
         int qual = 10000*pixels_done/pixels_todo;
         if (callback && p<4 && (endZL==0 || i+1 == plane_zoomlevels(images[0], beginZL, endZL)) && qual >= progressive_qual_target) {
           auto populatePartialImages = [&] () {
-            bool skipInterpolate[ranges->numPlanes()];
+            std::unique_ptr<bool[]> skipInterpolate(new bool[ranges->numPlanes()]);
             for (int pn = 0; pn < ranges->numPlanes(); pn++) {
               skipInterpolate[pn] = pn == 4 || ranges->min(pn) >= ranges->max(pn);
             }
             for (unsigned int n=0; n < images.size(); n++) {
-              partial_images[n] = Image(images[n], skipInterpolate, zoomlevels); // make a skipped copy to work with
+              partial_images[n] = Image(images[n], skipInterpolate.get(), zoomlevels); // make a skipped copy to work with
             }
 
             int64_t pixels_really_done = pixels_done;
