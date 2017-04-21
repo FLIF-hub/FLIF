@@ -41,7 +41,7 @@ if (!$env:VISUALSTUDIOVERSION) {
 
 if (-Not (Test-Path $lpngzip)) { 
     Write-Output download $lpngzip
-    Invoke-Webrequest $lpngurl -OutFile $lpngzip
+    Invoke-WebRequest $lpngurl -OutFile $lpngzip
     
 }
 if (-Not (Test-Path $lpngdir)) {
@@ -51,7 +51,7 @@ if (-Not (Test-Path $lpngdir)) {
 
 if (-Not (Test-Path $zlibzip)) {
     Write-Output download $zlibzip
-    Invoke-Webrequest $zliburl -OutFile $zlibzip
+    Invoke-WebRequest $zliburl -OutFile $zlibzip -UserAgent "NativeHost"
 }
 if (-Not (Test-Path $zlibdir)) {
     Write-Output unzip $zlibzip
@@ -60,7 +60,7 @@ if (-Not (Test-Path $zlibdir)) {
 
 if (-Not (Test-Path $sdl2zip)) {
     Write-Output download $sdl2zip
-    Invoke-Webrequest $sdl2url -OutFile $sdl2zip
+    Invoke-WebRequest $sdl2url -OutFile $sdl2zip
 }
 if (-Not (Test-Path $sdl2dir)) {
     Write-Output unzip $sdl2zip
