@@ -40,30 +40,30 @@ if (!$env:VISUALSTUDIOVERSION) {
 }
 
 if (-Not (Test-Path $lpngzip)) { 
-    Write-Output download $lpngzip
-    Invoke-Webrequest $lpngurl -OutFile $lpngzip
+    Write-Output "download $lpngzip"
+    Invoke-WebRequest $lpngurl -OutFile $lpngzip
     
 }
 if (-Not (Test-Path $lpngdir)) {
-    Write-Output unzip $lpngzip
+    Write-Output "unzip $lpngzip"
     Expand-Archive $lpngzip -DestinationPath '.'
 }
 
 if (-Not (Test-Path $zlibzip)) {
-    Write-Output download $zlibzip
-    Invoke-Webrequest $zliburl -OutFile $zlibzip
+    Write-Output "download $zlibzip"
+    Invoke-WebRequest $zliburl -OutFile $zlibzip -UserAgent "NativeHost"
 }
 if (-Not (Test-Path $zlibdir)) {
-    Write-Output unzip $zlibzip
+    Write-Output "unzip $zlibzip"
     Expand-Archive $zlibzip -DestinationPath '.'
 }
 
 if (-Not (Test-Path $sdl2zip)) {
-    Write-Output download $sdl2zip
-    Invoke-Webrequest $sdl2url -OutFile $sdl2zip
+    Write-Output "download $sdl2zip"
+    Invoke-WebRequest $sdl2url -OutFile $sdl2zip
 }
 if (-Not (Test-Path $sdl2dir)) {
-    Write-Output unzip $sdl2zip
+    Write-Output "unzip $sdl2zip"
     Expand-Archive $sdl2zip -DestinationPath '.'
 }
 
