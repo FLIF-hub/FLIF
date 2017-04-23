@@ -225,7 +225,7 @@ public:
         }
     }
 #endif
-    void invData(Images& images) const override {
+    void invData(Images& images, uint32_t strideCol, uint32_t strideRow) const override {
         const ColorVal max[3] = {ranges->max(0), ranges->max(1), ranges->max(2)};
         for (Image& image : images) {
           image.undo_make_constant_plane(0);
@@ -258,8 +258,8 @@ public:
           // general code, without SIMD
           {
           ColorVal R,G,B,Y,Co,Cg;
-          for (uint32_t r=0; r<image.rows(); r++) {
-            for (uint32_t c=0; c<image.cols(); c++) {
+          for (uint32_t r=0; r<image.rows(); r+=strideRow) {
+            for (uint32_t c=0; c<image.cols(); c+=strideCol) {
                 Y=image(0,r,c);
                 Co=image(1,r,c);
                 Cg=image(2,r,c);

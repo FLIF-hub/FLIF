@@ -84,21 +84,22 @@ public:
         int nb_colors = Palette_vector.size();
         return new ColorRangesPalette(srcRanges, nb_colors);
     }
-    void invData(Images& images) const override {
+    void invData(Images& images, uint32_t strideCol, uint32_t strideRow) const override {
 //        v_printf(5,"invData Palette\n");
         for (Image& image : images) {
           image.undo_make_constant_plane(0);
           image.undo_make_constant_plane(1);
           image.undo_make_constant_plane(2);
-          for (uint32_t r=0; r<image.rows(); r++) {
-            for (uint32_t c=0; c<image.cols(); c++) {
+          for (uint32_t r=0; r<image.rows(); r+=strideRow) {
+            for (uint32_t c=0; c<image.cols(); c+=strideCol) {
                 int P=image(1,r,c);
                 if (P < 0 || P >= (int) Palette_vector.size()) P = 0; // might happen on invisible pixels with predictor -H1
                 assert(P < (int) Palette_vector.size());
                 assert(P >= 0);
-                image.set(0,r,c, std::get<0>(Palette_vector[P]));
-                image.set(1,r,c, std::get<1>(Palette_vector[P]));
-                image.set(2,r,c, std::get<2>(Palette_vector[P]));
+                const Color &value = Palette_vector[P];
+                image.set(0,r,c, std::get<0>(value));
+                image.set(1,r,c, std::get<1>(value));
+                image.set(2,r,c, std::get<2>(value));
             }
           }
           image.palette=false;
