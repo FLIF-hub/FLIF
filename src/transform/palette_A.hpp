@@ -95,8 +95,12 @@ public:
           image.undo_make_constant_plane(1);
           image.undo_make_constant_plane(2);
           image.undo_make_constant_plane(3);
-          for (uint32_t r=0; r<image.rows(); r+=strideRow) {
-            for (uint32_t c=0; c<image.cols(); c+=strideCol) {
+
+          const uint32_t scaledRows = image.scaledRows();
+          const uint32_t scaledCols = image.scaledCols();
+
+          for (uint32_t r=0; r<scaledRows; r+=strideRow) {
+            for (uint32_t c=0; c<scaledCols; c+=strideCol) {
                 int P=image(1,r,c);
                 assert(P < (int) Palette_vector.size());
                 const Color &value = Palette_vector[P];

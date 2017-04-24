@@ -909,6 +909,8 @@ public:
     uint32_t rows() const { return height; }
     uint32_t cols() const { return width; }
     int getscale() const { return scale; }
+    uint32_t scaledRows() const { return SCALED(height); }
+    uint32_t scaledCols() const { return SCALED(width); }
 
     // access pixel by zoomlevel coordinate
     static uint32_t zoom_rowpixelsize(int zoomlevel) {

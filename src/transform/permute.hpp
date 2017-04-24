@@ -137,9 +137,13 @@ public:
     void invData(Images& images, uint32_t strideCol, uint32_t strideRow) const override {
         ColorVal pixel[5];
         for (Image& image : images) {
+
+          const uint32_t scaledRows = image.scaledRows();
+          const uint32_t scaledCols = image.scaledCols();
+
           for (int p=0; p<ranges->numPlanes(); p++) image.undo_make_constant_plane(p);
-          for (uint32_t r=0; r<image.rows(); r+=strideRow) {
-            for (uint32_t c=0; c<image.cols(); c+=strideCol) {
+          for (uint32_t r=0; r<scaledRows; r+=strideRow) {
+            for (uint32_t c=0; c<scaledCols; c+=strideCol) {
                 for (int p=0; p<ranges->numPlanes(); p++) pixel[p] = image(p,r,c);
                 for (int p=0; p<ranges->numPlanes(); p++) image.set(permutation[p],r,c, pixel[p]);
                 image.set(permutation[0],r,c, pixel[0]);

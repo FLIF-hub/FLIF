@@ -70,16 +70,18 @@ public:
 
     void invData(Images& images, uint32_t strideCol, uint32_t strideRow) const override {
         for (Image& image : images) {
+
+         const uint32_t scaledRows = image.scaledRows();
+         const uint32_t scaledCols = image.scaledCols();
+
          for (int p=0; p<image.numPlanes(); p++) {
           auto palette = CPalette_vector[p];
           auto palette_size = palette.size();
 //          const int stretch = (palette_size > 64 ? 0 : 2);
           image.undo_make_constant_plane(p);
           GeneralPlane &plane = image.getPlane(p);
-          uint32_t strideRowAdj = (p < 3) ? strideRow : 1;
-          uint32_t strideColAdj = (p < 3) ? strideCol : 1;
-          for (uint32_t r=0; r<image.rows(); r += strideRowAdj) {
-            for (uint32_t c=0; c<image.cols(); c += strideColAdj) {
+          for (uint32_t r=0; r<scaledRows; r ++) {
+            for (uint32_t c=0; c<scaledCols; c ++) {
                 int P=plane.get(r,c);
 //                image.set(p,r,c, palette[image(p,r,c) >> stretch]);
                 if (P < 0 || P >= (int) palette_size) P = 0; // might happen on invisible pixels with predictor -H1

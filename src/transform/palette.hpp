@@ -90,8 +90,12 @@ public:
           image.undo_make_constant_plane(0);
           image.undo_make_constant_plane(1);
           image.undo_make_constant_plane(2);
-          for (uint32_t r=0; r<image.rows(); r+=strideRow) {
-            for (uint32_t c=0; c<image.cols(); c+=strideCol) {
+
+          const uint32_t scaledRows = image.scaledRows();
+          const uint32_t scaledCols = image.scaledCols();
+
+          for (uint32_t r=0; r<scaledRows; r+=strideRow) {
+            for (uint32_t c=0; c<scaledCols; c+=strideCol) {
                 int P=image(1,r,c);
                 if (P < 0 || P >= (int) Palette_vector.size()) P = 0; // might happen on invisible pixels with predictor -H1
                 assert(P < (int) Palette_vector.size());

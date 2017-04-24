@@ -110,8 +110,12 @@ public:
           image.undo_make_constant_plane(0);
           image.undo_make_constant_plane(1);
           image.undo_make_constant_plane(2);
-          for (uint32_t r=0; r<image.rows(); r+=strideRow) {
-            for (uint32_t c=0; c<image.cols(); c+=strideCol) {
+
+          const uint32_t scaledRows = image.scaledRows();
+          const uint32_t scaledCols = image.scaledCols();
+
+          for (uint32_t r=0; r<scaledRows; r+=strideRow) {
+            for (uint32_t c=0; c<scaledCols; c+=strideCol) {
                 Y=image(0,r,c);
                 C1=image(1,r,c);
                 C2=image(2,r,c);
