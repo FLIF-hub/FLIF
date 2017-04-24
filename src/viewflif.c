@@ -189,7 +189,7 @@ uint32_t progressive_render(uint32_t quality, int64_t bytes_read, uint8_t decode
     if (SDL_LockMutex(mutex) == 0) {
       clock_t now = clock();
       double timeElapsed = ((double)(now - last_preview_time)) / CLOCKS_PER_SEC;
-      if (quality != 10000 && timeElapsed< preview_interval) {
+      if (quality != 10000 && (!decode_over) && timeElapsed< preview_interval) {
         SDL_UnlockMutex(mutex);
         return quality + 1000;
       }
