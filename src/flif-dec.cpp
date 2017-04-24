@@ -233,11 +233,27 @@ bool flif_decode_scanlines_pass(IO& io, Rac &rac, Images &images, const ColorRan
     return flif_decode_scanlines_inner<IO,Rac,Coder>(io, rac, coders, images, ranges, options.quality, transforms, callback, user_data, partial_images);
 }
 
+template<typename IO>
+const ColorRanges * undo_palette(Images &images, const int scale, std::vector<Transform<IO>*> &transforms, std::vector<int> &zoomlevels, const ColorRanges *ranges) {
+    if (images[0].palette && scale == 1) {
+      while(images[0].palette && transforms.size()>0) {
+        transforms.back()->invData(images);
+        transforms.pop_back();
+        ranges = ranges->previous();
+      }
+      zoomlevels[0] = zoomlevels[1];
+      zoomlevels[2] = zoomlevels[1];
+      if (zoomlevels.size() > 3) zoomlevels[3] = zoomlevels[1];
+    }
+
+    return ranges;
+}
+
 // interpolate rest of the image
 // used when decoding lossy
 template<typename IO>
 void flif_decode_FLIF2_inner_interpol(Images &images, const ColorRanges *ranges, const int P,
-                                      const int beginZL, const int endZL, const int32_t R, const int scale, std::vector<int> zoomlevels, std::vector<Transform<IO>*> &transforms) {
+                                      const int endZL, const int32_t R, const int scale, std::vector<int> &zoomlevels, std::vector<Transform<IO>*> &transforms) {
 
     // finish the zoomlevel we were working on
     if (R>=0) {
@@ -279,21 +295,15 @@ void flif_decode_FLIF2_inner_interpol(Images &images, const ColorRanges *ranges,
       }
     }
 
-    // undo palette before doing the rest of interpolation
-    if (images[0].palette && scale == 1) {
-      while(images[0].palette && transforms.size()>0) { transforms.back()->invData(images); transforms.pop_back(); ranges = ranges->previous();}
-      zoomlevels[0] = zoomlevels[1];
-      zoomlevels[2] = zoomlevels[1];
-      if (zoomlevels.size() > 3) zoomlevels[3] = zoomlevels[1];
-    }
+    ranges = undo_palette(images, scale, transforms, zoomlevels, ranges);
 
     // interpolate the next zoomlevels
     for (int p = 0; p < ranges->numPlanes() ; ) {
       int z = zoomlevels[p];
       if (z < endZL) { p++; continue; }
-      else zoomlevels[p]--;
-      if (ranges->min(p) >= ranges->max(p)) continue;
-      if ( p == 4 ) continue; // don't interpolate FRA lookback channel
+      zoomlevels[p]--;
+      if ( p == 4 ) { continue; }; // don't interpolate FRA lookback channel
+      if (ranges->min(p) >= ranges->max(p)) { continue; };
       if ( 1<<(z/2) < scale) continue;
       v_printf_tty(2,"\rINTERPOLATE[%i,%ux%u]                 ",p,images[0].cols(z),images[0].rows(z));
       v_printf_tty(5,"\n");
@@ -592,7 +602,7 @@ bool flif_decode_FLIF2_inner_horizontal(const int p, IO& io, Rac &rac, std::vect
 #ifdef CHECK_FOR_BROKENFILES
             if (io.isEOF()) {
               v_printf(1,"Row %i: Unexpected file end. Interpolation from now on.\n",r);
-              flif_decode_FLIF2_inner_interpol(images, ranges, p, beginZL, endZL, (r>1?r-2:r), scale, zoomlevels, transforms);
+              flif_decode_FLIF2_inner_interpol(images, ranges, p, endZL, (r>1?r-2:r), scale, zoomlevels, transforms);
               return false;
             }
 #endif
@@ -623,7 +633,7 @@ bool flif_decode_FLIF2_inner_vertical(const int p, IO& io, Rac &rac, std::vector
 #ifdef CHECK_FOR_BROKENFILES
             if (io.isEOF()) {
               v_printf(1,"Row %i: Unexpected file end. Interpolation from now on.\n", r);
-              flif_decode_FLIF2_inner_interpol(images, ranges, p, beginZL, endZL, (r>0?r-1:r), scale, zoomlevels, transforms);
+              flif_decode_FLIF2_inner_interpol(images, ranges, p, endZL, (r>0?r-1:r), scale, zoomlevels, transforms);
               return false;
             }
 #endif
@@ -680,7 +690,7 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
       if (z < 0) {e_printf("Corrupt file: invalid plane/zoomlevel\n"); return false;}
       if (100*pixels_done > quality*pixels_todo && endZL==0) {
               v_printf(5,"%lu subpixels done, %lu subpixels todo, quality target %i%% reached (%i%%)\n",(long unsigned)pixels_done,(long unsigned)pixels_todo,(int)quality,(int)(100*pixels_done/pixels_todo));
-              flif_decode_FLIF2_inner_interpol(images, ranges, p, beginZL, endZL, -1, scale, zoomlevels, transforms);
+              flif_decode_FLIF2_inner_interpol(images, ranges, p, endZL, -1, scale, zoomlevels, transforms);
               return false;
       }
       if (ranges->min(p) < ranges->max(p)) {
@@ -695,7 +705,7 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
         }
         if (1<<(z/2) < scale) {
               v_printf(5,"%lu subpixels done (out of %lu subpixels at this scale), scale target 1:%i reached\n",(long unsigned)pixels_done,(long unsigned)pixels_todo,scale);
-              flif_decode_FLIF2_inner_interpol(images, ranges, p, beginZL, endZL, -1, scale, zoomlevels, transforms);
+              flif_decode_FLIF2_inner_interpol(images, ranges, p, endZL, -1, scale, zoomlevels, transforms);
               return false;
         }
         if (endZL == 0) v_printf_tty(2,"\r%i%% done [%i/%i] DEC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
@@ -733,24 +743,37 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
               partial_images[n] = Image(images[n], skipInterpolate.get(), zoomlevels); // make a skipped copy to work with
             }
 
-            int64_t pixels_really_done = pixels_done;
-
             std::vector<Transform<IO>*> transforms_copy = transforms;
             std::vector<int> zoomlevels_copy = zoomlevels;
-            flif_decode_FLIF2_inner_interpol(partial_images, ranges, 0, beginZL, endZL, -1, scale, zoomlevels_copy, transforms_copy);
+
+            const ColorRanges *rangesCopy = undo_palette(partial_images, scale, transforms_copy, zoomlevels_copy, ranges);
+
+            int highestDecodedZL = zoomlevels_copy[0];
+
+            flif_decode_FLIF2_inner_interpol(partial_images, rangesCopy, 0, highestDecodedZL+1, -1, scale, zoomlevels_copy, transforms_copy);
+
+            const uint32_t zoomlevelScaled = highestDecodedZL + 1 - (2*(scale - 1));
+            const uint32_t strideRow = 1<<((zoomlevelScaled+1)/2);
+            const uint32_t strideCol = 1<<((zoomlevelScaled)/2);
+
+            for (int i=transforms_copy.size()-1; i>=0; i--) {
+              if (transforms_copy[i]->undo_redo_during_decode()) {
+                transforms_copy[i]->invData(partial_images, strideCol, strideRow);
+              }
+            }
+
+            int64_t pixels_really_done = pixels_done;
+
+            flif_decode_FLIF2_inner_interpol(partial_images, rangesCopy, 0, endZL, -1, scale, zoomlevels_copy, transforms_copy);
             if (endZL>0) {
-              flif_decode_FLIF2_inner_interpol(partial_images, ranges, 0, endZL-1, 0, -1, scale, zoomlevels_copy, transforms_copy);
+              flif_decode_FLIF2_inner_interpol(partial_images, rangesCopy, 0, 0, -1, scale, zoomlevels_copy, transforms_copy);
             }
             pixels_done = pixels_really_done;
             for (Image& image : partial_images) {
               image.normalize_scale();
             }
-            for (int i=transforms_copy.size()-1; i>=0; i--) {
-              if (transforms_copy[i]->undo_redo_during_decode()) {
-                transforms_copy[i]->invData(partial_images);
-              }
-            }
           };
+
           progressive_qual_shown = qual;
           progressive_qual_target = issue_callback(callback, user_data, qual, io.ftell(), false, populatePartialImages);
           if (qual >= progressive_qual_target) return false;
@@ -832,14 +855,14 @@ bool flif_decode_main(RacIn<IO>& rac, IO& io, Images &images, const ColorRanges 
 //      v_printf(2,"Decoding rough data\n");
       if (!flif_decode_FLIF2_pass<IO, RacIn<IO>, FinalPropertySymbolCoder<FLIFBitChancePass2, RacIn<IO>, bits> >(io, rac, images, ranges, forest, images[0].zooms(), roughZL+1, options, transforms, callback, user_data, partial_images)) {
         std::vector<int> zoomlevels(ranges->numPlanes(),roughZL);
-        flif_decode_FLIF2_inner_interpol(images, ranges, 0, roughZL, 0, -1, scale, zoomlevels, transforms);
+        flif_decode_FLIF2_inner_interpol(images, ranges, 0, 0, -1, scale, zoomlevels, transforms);
         return false;
       }
     }
     if (options.method.encoding == flifEncoding::interlaced && (options.quality <= 0 || pixels_done >= pixels_todo) && pixels_todo > 1) {
       v_printf(3,"Not decoding MANIAC tree (%i pixels done, had %i pixels to do)\n", pixels_done, pixels_todo);
       std::vector<int> zoomlevels(ranges->numPlanes(),roughZL);
-      flif_decode_FLIF2_inner_interpol(images, ranges, 0, roughZL, 0, -1, scale, zoomlevels, transforms);
+      flif_decode_FLIF2_inner_interpol(images, ranges, 0, 0, -1, scale, zoomlevels, transforms);
       return pixels_done >= pixels_todo;
     } else {
       v_printf(3,"Decoded header + rough data. Decoding MANIAC tree.\n");
@@ -847,7 +870,7 @@ bool flif_decode_main(RacIn<IO>& rac, IO& io, Images &images, const ColorRanges 
          if (options.method.encoding == flifEncoding::interlaced) {
             v_printf(1,"File probably truncated in the middle of MANIAC tree representation. Interpolating.\n");
             std::vector<int> zoomlevels(ranges->numPlanes(),roughZL);
-            flif_decode_FLIF2_inner_interpol(images, ranges, 0, roughZL, 0, -1, scale, zoomlevels, transforms);
+            flif_decode_FLIF2_inner_interpol(images, ranges, 0, 0, -1, scale, zoomlevels, transforms);
          }
          return false;
       }

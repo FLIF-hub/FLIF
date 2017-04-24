@@ -103,15 +103,19 @@ public:
         }
     }
 #endif
-    void invData(Images& images) const override {
+    void invData(Images& images, uint32_t strideCol, uint32_t strideRow) const override {
         ColorVal R,G,B,Y,C1,C2;
         const ColorVal max[3] = {ranges->max(0), ranges->max(1), ranges->max(2)};
         for (Image& image : images) {
           image.undo_make_constant_plane(0);
           image.undo_make_constant_plane(1);
           image.undo_make_constant_plane(2);
-          for (uint32_t r=0; r<image.rows(); r++) {
-            for (uint32_t c=0; c<image.cols(); c++) {
+
+          const uint32_t scaledRows = image.scaledRows();
+          const uint32_t scaledCols = image.scaledCols();
+
+          for (uint32_t r=0; r<scaledRows; r+=strideRow) {
+            for (uint32_t c=0; c<scaledCols; c+=strideCol) {
                 Y=image(0,r,c);
                 C1=image(1,r,c);
                 C2=image(2,r,c);

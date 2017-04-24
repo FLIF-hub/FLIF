@@ -225,12 +225,16 @@ public:
         }
     }
 #endif
-    void invData(Images& images) const override {
+    void invData(Images& images, uint32_t strideCol, uint32_t strideRow) const override {
         const ColorVal max[3] = {ranges->max(0), ranges->max(1), ranges->max(2)};
         for (Image& image : images) {
           image.undo_make_constant_plane(0);
           image.undo_make_constant_plane(1);
           image.undo_make_constant_plane(2);
+
+          const uint32_t scaledRows = image.scaledRows();
+          const uint32_t scaledCols = image.scaledCols();
+
 #ifdef USE_SIMD
           // special case for 8-bit RGB decoding
           if (image.max(0) < 256) {
@@ -238,7 +242,7 @@ public:
             Plane<ColorVal_intern_16>& p1 = static_cast<Plane<ColorVal_intern_16>&>(image.getPlane(1));
             Plane<ColorVal_intern_16>& p2 = static_cast<Plane<ColorVal_intern_16>&>(image.getPlane(2));
             EightColorVals R,G,B,Y,Co,Cg;
-            for (uint32_t pos=0; pos < image.rows()*image.cols(); pos += 8) {
+            for (uint32_t pos=0; pos < scaledRows*scaledCols; pos += 8) {
                 Y = p0.get8(pos);
                 Co = p1.get8(pos);
                 Cg = p2.get8(pos);
@@ -258,8 +262,8 @@ public:
           // general code, without SIMD
           {
           ColorVal R,G,B,Y,Co,Cg;
-          for (uint32_t r=0; r<image.rows(); r++) {
-            for (uint32_t c=0; c<image.cols(); c++) {
+          for (uint32_t r=0; r<scaledRows; r+=strideRow) {
+            for (uint32_t c=0; c<scaledCols; c+=strideCol) {
                 Y=image(0,r,c);
                 Co=image(1,r,c);
                 Cg=image(2,r,c);

@@ -89,20 +89,25 @@ public:
         return new ColorRangesPaletteA(srcRanges, Palette_vector.size());
     }
 
-    void invData(Images& images) const override {
+    void invData(Images& images, uint32_t strideCol, uint32_t strideRow) const override {
         for (Image& image : images) {
           image.undo_make_constant_plane(0);
           image.undo_make_constant_plane(1);
           image.undo_make_constant_plane(2);
           image.undo_make_constant_plane(3);
-          for (uint32_t r=0; r<image.rows(); r++) {
-            for (uint32_t c=0; c<image.cols(); c++) {
+
+          const uint32_t scaledRows = image.scaledRows();
+          const uint32_t scaledCols = image.scaledCols();
+
+          for (uint32_t r=0; r<scaledRows; r+=strideRow) {
+            for (uint32_t c=0; c<scaledCols; c+=strideCol) {
                 int P=image(1,r,c);
                 assert(P < (int) Palette_vector.size());
-                image.set(0,r,c, std::get<1>(Palette_vector[P]));
-                image.set(1,r,c, std::get<2>(Palette_vector[P]));
-                image.set(2,r,c, std::get<3>(Palette_vector[P]));
-                image.set(3,r,c, std::get<0>(Palette_vector[P]));
+                const Color &value = Palette_vector[P];
+                image.set(0,r,c, std::get<1>(value));
+                image.set(1,r,c, std::get<2>(value));
+                image.set(2,r,c, std::get<3>(value));
+                image.set(3,r,c, std::get<0>(value));
             }
           }
           image.palette=false;

@@ -68,18 +68,25 @@ public:
         return new ColorRangesPaletteC(srcRanges, nb);
     }
 
-    void invData(Images& images) const override {
+    void invData(Images& images, uint32_t strideCol, uint32_t strideRow) const override {
         for (Image& image : images) {
+
+         const uint32_t scaledRows = image.scaledRows();
+         const uint32_t scaledCols = image.scaledCols();
+
          for (int p=0; p<image.numPlanes(); p++) {
-//          const int stretch = (CPalette_vector[p].size()>64 ? 0 : 2);
+          auto palette = CPalette_vector[p];
+          auto palette_size = palette.size();
+//          const int stretch = (palette_size > 64 ? 0 : 2);
           image.undo_make_constant_plane(p);
-          for (uint32_t r=0; r<image.rows(); r++) {
-            for (uint32_t c=0; c<image.cols(); c++) {
-                int P=image(p,r,c);
-//                image.set(p,r,c, CPalette_vector[p][image(p,r,c) >> stretch]);
-                if (P < 0 || P >= (int) CPalette_vector[p].size()) P = 0; // might happen on invisible pixels with predictor -H1
-                assert(P < (int) CPalette_vector[p].size());
-                image.set(p,r,c, CPalette_vector[p][P]);
+          GeneralPlane &plane = image.getPlane(p);
+          for (uint32_t r=0; r<scaledRows; r ++) {
+            for (uint32_t c=0; c<scaledCols; c ++) {
+                int P=plane.get(r,c);
+//                image.set(p,r,c, palette[image(p,r,c) >> stretch]);
+                if (P < 0 || P >= (int) palette_size) P = 0; // might happen on invisible pixels with predictor -H1
+                assert(P < (int) palette_size);
+                plane.set(r,c, palette[P]);
             }
           }
          }
