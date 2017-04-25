@@ -768,17 +768,18 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
 
             const ColorRanges *rangesCopy = undo_palette(partial_images, scale, transforms_copy, zoomlevels_copy, ranges);
 
-            int highestDecodedZL = zoomlevels_copy[0];
+            if (scale == 1) {
+              int highestDecodedZL = zoomlevels_copy[0];
 
-            flif_decode_FLIF2_inner_interpol(partial_images, rangesCopy, 0, highestDecodedZL+1, -1, scale, zoomlevels_copy, transforms_copy);
+              flif_decode_FLIF2_inner_interpol(partial_images, rangesCopy, 0, highestDecodedZL+1, -1, scale, zoomlevels_copy, transforms_copy);
 
-            const uint32_t zoomlevelScaled = highestDecodedZL - (2*partial_images[0].getscale());
-            const uint32_t strideRow = 1<<((zoomlevelScaled+1)/2);
-            const uint32_t strideCol = 1<<((zoomlevelScaled)/2);
+              const uint32_t strideRow = 1<<((highestDecodedZL+1)/2);
+              const uint32_t strideCol = 1<<((highestDecodedZL)/2);
 
-            for (int i=transforms_copy.size()-1; i>=0; i--) {
-              if (transforms_copy[i]->undo_redo_during_decode()) {
-                transforms_copy[i]->invData(partial_images, strideCol, strideRow);
+              for (int i=transforms_copy.size()-1; i>=0; i--) {
+                if (transforms_copy[i]->undo_redo_during_decode()) {
+                  transforms_copy[i]->invData(partial_images, strideCol, strideRow);
+                }
               }
             }
 
@@ -796,6 +797,13 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
               downsample(partial_images[0].cols(), partial_images[0].rows(), options.resize_width, options.resize_height, partial_images);
             }
 
+            if (scale != 1) {
+              for (int i=transforms_copy.size()-1; i>=0; i--) {
+                if (transforms_copy[i]->undo_redo_during_decode()) {
+                  transforms_copy[i]->invData(partial_images, 1, 1);
+                }
+              }
+            }
 
           };
 
