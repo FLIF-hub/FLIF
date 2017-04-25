@@ -772,7 +772,7 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
 
             flif_decode_FLIF2_inner_interpol(partial_images, rangesCopy, 0, highestDecodedZL+1, -1, scale, zoomlevels_copy, transforms_copy);
 
-            const uint32_t zoomlevelScaled = highestDecodedZL + 1 - (2*(scale - 1));
+            const uint32_t zoomlevelScaled = highestDecodedZL - (2*partial_images[0].getscale());
             const uint32_t strideRow = 1<<((zoomlevelScaled+1)/2);
             const uint32_t strideCol = 1<<((zoomlevelScaled)/2);
 
