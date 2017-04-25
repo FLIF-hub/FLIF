@@ -148,13 +148,31 @@ uint32_t issue_callback(callback_t callback, void *user_data, uint32_t quality, 
   return callback(quality, bytes_read, decode_over ? 1 : 0, user_data, (void *) &func);
 }
 
+void downsample(const int width, const int height, int target_w, int target_h, Images &images) {
+  // don't upscale
+  if (target_w > width) target_w = width;
+  if (target_h > height) target_h = height;
+
+  if (target_w <= 0) target_w = target_h*width/height;
+  if (target_h <= 0) target_h = target_w*height/width;
+
+  if (target_w != (int)images[0].cols() || target_h != (int)images[0].rows()) {
+    v_printf(3,"Downscaling to %ix%i\n",target_w,target_h);
+    for (unsigned int n=0; n < images.size(); n++) {
+      images[n] = Image(images[n],target_w,target_h);
+    }
+  }
+}
+
+
+
 template<typename IO, typename Rac, typename Coder>
-bool flif_decode_scanlines_inner(IO &io, Rac &rac, std::vector<Coder> &coders, Images &images, const ColorRanges *ranges, int quality,
+bool flif_decode_scanlines_inner(IO &io, Rac &rac, std::vector<Coder> &coders, Images &images, const ColorRanges *ranges, flif_options &options,
                                  std::vector<Transform<IO>*> &transforms, callback_t callback, void *user_data, Images &partial_images) {
     const int nump = images[0].numPlanes();
     const bool alphazero = images[0].alpha_zero_special;
     const bool FRA = (nump == 5);
-    if (callback || quality<100) {
+    if (callback || options.quality<100) {
          // initialize planes to grey
          for (int p=0; p<nump; p++) {
            if (ranges->min(p) < ranges->max(p))
@@ -175,8 +193,8 @@ bool flif_decode_scanlines_inner(IO &io, Rac &rac, std::vector<Coder> &coders, I
         if (p>=nump) continue;
         i++;
         Properties properties((nump>3?NB_PROPERTIES_scanlinesA[p]:NB_PROPERTIES_scanlines[p]));
-        if ((100*pixels_done > quality*pixels_todo)) {
-          v_printf(5,"%lu subpixels done, %lu subpixels todo, quality target %i%% reached (%i%%)\n",(long unsigned)pixels_done,(long unsigned)pixels_todo,(int)quality,(int)(100*pixels_done/pixels_todo));
+        if ((100*pixels_done > options.quality*pixels_todo)) {
+          v_printf(5,"%lu subpixels done, %lu subpixels todo, quality target %i%% reached (%i%%)\n",(long unsigned)pixels_done,(long unsigned)pixels_todo,(int)options.quality,(int)(100*pixels_done/pixels_todo));
           return false;
         }
         if (ranges->min(p) < ranges->max(p)) {
@@ -210,6 +228,9 @@ bool flif_decode_scanlines_inner(IO &io, Rac &rac, std::vector<Coder> &coders, I
             auto populatePartialImages = [&] () {
               for (unsigned int n=0; n < images.size(); n++) partial_images[n] = images[n].clone(); // make a copy to work with
               for (int i=transforms.size()-1; i>=0; i--) if (transforms[i]->undo_redo_during_decode()) transforms[i]->invData(partial_images);
+              if (options.fit) {
+                downsample(partial_images[0].cols(), partial_images[0].rows(), options.resize_width, options.resize_height, partial_images);
+              }
             };
             progressive_qual_shown = qual;
             progressive_qual_target = issue_callback(callback, user_data, qual, io.ftell(), false, populatePartialImages);
@@ -230,7 +251,7 @@ bool flif_decode_scanlines_pass(IO& io, Rac &rac, Images &images, const ColorRan
         initPropRanges_scanlines(propRanges, *ranges, p);
         coders.emplace_back(rac, propRanges, forest[p], 0, options.cutoff, options.alpha);
     }
-    return flif_decode_scanlines_inner<IO,Rac,Coder>(io, rac, coders, images, ranges, options.quality, transforms, callback, user_data, partial_images);
+    return flif_decode_scanlines_inner<IO,Rac,Coder>(io, rac, coders, images, ranges, options, transforms, callback, user_data, partial_images);
 }
 
 template<typename IO>
@@ -651,7 +672,6 @@ bool flif_decode_FLIF2_inner_vertical(const int p, IO& io, Rac &rac, std::vector
           return true;
 }
 
-
 template<typename IO, typename Rac, typename Coder, typename ranges_t>
 bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Images &images, const ranges_t *ranges,
                              const int beginZL, const int endZL, flif_options &options, std::vector<Transform<IO>*> &transforms,
@@ -772,6 +792,11 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
             for (Image& image : partial_images) {
               image.normalize_scale();
             }
+            if (options.fit) {
+              downsample(partial_images[0].cols(), partial_images[0].rows(), options.resize_width, options.resize_height, partial_images);
+            }
+
+
           };
 
           progressive_qual_shown = qual;
@@ -929,7 +954,6 @@ int read_chunk(IO& io, MetaData& metadata) {
     }
     return 0; // read next chunk
 }
-
 
 template <typename IO>
 bool flif_decode(IO& io, Images &images, callback_t callback, void *user_data, int first_callback_quality, Images &partial_images, flif_options &options, metadata_options &md, FLIF_INFO* info) {
@@ -1111,9 +1135,6 @@ bool flif_decode(IO& io, Images &images, callback_t callback, void *user_data, i
         if (rw <= 0 && rh <= 0) { e_printf("Invalid target dimensions.\n"); return false;}
         // use larger decode dimensions to make sure we have good chroma
         rw = rw*2-1; rh = rh*2-1;
-        // don't upscale
-        if (target_w > width) target_w = width;
-        if (target_h > height) target_h = height;
     }
     if (rw || rh) {
       if (scale > 1) e_printf("Don't use -s and (-r or -f) at the same time! Ignoring -s...\n");
@@ -1365,12 +1386,7 @@ bool flif_decode(IO& io, Images &images, callback_t callback, void *user_data, i
 
     // downscale to target_w, target_h
     if (fit) {
-        if (target_w <= 0) target_w = target_h*width/height;
-        if (target_h <= 0) target_h = target_w*height/width;
-        if (target_w != (int)images[0].cols() || target_h != (int)images[0].rows()) {
-          v_printf(3,"Downscaling to %ix%i\n",target_w,target_h);
-          for (unsigned int n=0; n < images.size(); n++) images[n] = Image(images[n],target_w,target_h);
-        }
+      downsample(width, height, target_w, target_h, images);
     }
 
     // ensure that the callback gets called even if the image is completely constant
@@ -1387,7 +1403,6 @@ bool flif_decode(IO& io, Images &images, callback_t callback, void *user_data, i
     }
     return true;
 }
-
 
 template bool flif_decode(FileIO& io, Images &images, callback_t callback, void *user_data, int, Images &partial_images, flif_options &, metadata_options &, FLIF_INFO* info);
 template bool flif_decode(BlobReader& io, Images &images, callback_t callback, void *user_data, int, Images &partial_images, flif_options &, metadata_options &, FLIF_INFO* info);
