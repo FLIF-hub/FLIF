@@ -146,8 +146,8 @@ bool file_is_flif(const char * filename){
 
 void show_banner() {
     v_printf(3,"  ____ _(_)____\n");
-    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.3 [4 Jan 2017]\n");
-    v_printf(3,"  (__ | |_| __)    ");v_printf(3,"Copyright (C) 2016 Jon Sneyers and Pieter Wuille\n");
+    v_printf(3," (___ | | | ___)   ");v_printf(2,"FLIF (Free Lossless Image Format) 0.3 [28 April 2017]\n");
+    v_printf(3,"  (__ | |_| __)    ");v_printf(3,"Copyright (C) 2017 Jon Sneyers and Pieter Wuille\n");
     v_printf(3,"    (_|___|_)      ");
 #ifdef HAS_ENCODER
     v_printf(3,"License LGPLv3+: GNU LGPL version 3 or later\n");
