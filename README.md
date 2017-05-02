@@ -46,6 +46,11 @@ On Fedora:
   * for the encoder/decoder: `sudo dnf install libpng-devel`
   * for the viewer: `sudo dnf install SDL-devel`
 
+On Ubuntu:
+
+  * for the encoder/decoder: `sudo apt-get install libpng-dev make pkg-config`
+  * for the viewer: `sudo apt-get install libsdl2-dev`
+
 #### Compile
 
   * Navigate to the FLIF/src directory and run `make` to compile everything, or
