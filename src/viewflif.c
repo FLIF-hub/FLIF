@@ -245,8 +245,9 @@ static int decodeThread(void * arg) {
 #endif
     if (!flif_decoder_decode_file(d, argv[1])) {
         printf("Error: decoding failed\n");
-        quit = 1;
         flif_destroy_decoder(d);
+        d = NULL;
+        quit = 1;
         return 1;
     }
 #ifndef PROGRESSIVE_DECODING
