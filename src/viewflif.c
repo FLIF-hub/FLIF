@@ -35,7 +35,7 @@ void HackToReferencePrintEtc()
 typedef struct RGBA { uint8_t r,g,b,a; } RGBA;
 #pragma pack(pop)
 
-FLIF_DECODER* d = NULL;
+FLIF_DECODER* volatile d = NULL;
 SDL_Window* window = NULL;
 SDL_DisplayMode dm;
 SDL_DisplayMode ddm;
