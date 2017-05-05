@@ -303,7 +303,7 @@ int main(int argc, char **argv) {
 #ifdef PROGRESSIVE_DECODING
     printf("Decoding progressively...\n");
     SDL_Thread *decode_thread = SDL_CreateThread(decodeThread,"Decode_FLIF",argv);
-    if (!decode_thread) {
+    if (NULL == decode_thread) {
         printf("Error: failed to create decode thread\n");
         return 1;
     }
