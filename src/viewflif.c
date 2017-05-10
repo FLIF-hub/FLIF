@@ -35,7 +35,7 @@ void HackToReferencePrintEtc()
 typedef struct RGBA { uint8_t r,g,b,a; } RGBA;
 #pragma pack(pop)
 
-FLIF_DECODER* d = NULL;
+FLIF_DECODER* volatile d = NULL;
 SDL_Window* window = NULL;
 SDL_DisplayMode dm;
 SDL_DisplayMode ddm;
@@ -245,8 +245,9 @@ static int decodeThread(void * arg) {
 #endif
     if (!flif_decoder_decode_file(d, argv[1])) {
         printf("Error: decoding failed\n");
-        quit = 1;
         flif_destroy_decoder(d);
+        d = NULL;
+        quit = 1;
         return 1;
     }
 #ifndef PROGRESSIVE_DECODING
@@ -302,7 +303,7 @@ int main(int argc, char **argv) {
 #ifdef PROGRESSIVE_DECODING
     printf("Decoding progressively...\n");
     SDL_Thread *decode_thread = SDL_CreateThread(decodeThread,"Decode_FLIF",argv);
-    if (!decode_thread) {
+    if (NULL == decode_thread) {
         printf("Error: failed to create decode thread\n");
         return 1;
     }
