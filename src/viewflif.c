@@ -119,7 +119,7 @@ bool updateTextures(uint32_t quality, int64_t bytes_read) {
     // set the window title and size
     if (!window) { printf("Error: Could not create window\n"); return false; }
     char title[100];
-    sprintf(title,"FLIF image decoded at %ix%i [read %lli bytes, quality=%.2f%%]",w,h,(long long int) bytes_read, 0.01*quality);
+    sprintf(title,"FLIF image decoded at %ux%u [read %lli bytes, quality=%.2f%%]",w,h,(long long int) bytes_read, 0.01*quality);
     SDL_SetWindowTitle(window,title);
     if (!window_size_set) {
       int ww = (w > dm.w ? dm.w : w);
