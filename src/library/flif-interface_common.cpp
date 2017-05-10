@@ -99,6 +99,31 @@ void FLIF_IMAGE::write_row_GRAY8(uint32_t row, const void * buffer, size_t buffe
 	}
 }
 
+void FLIF_IMAGE::write_row_GRAY16(uint32_t row, const void * buffer, size_t buffer_size_bytes)
+{
+	if (buffer_size_bytes < image.cols() * sizeof(uint16_t))
+		return;
+
+	const uint16_t* buffer_gray = reinterpret_cast<const uint16_t*>(buffer);
+
+	if (image.numPlanes() >= 1) {
+		for (size_t c = 0; c < (size_t)image.cols(); c++) {
+			image.set(0, row, c, buffer_gray[c]);
+		}
+	}
+	if (image.numPlanes() >= 3) {
+		for (size_t c = 0; c < (size_t)image.cols(); c++) {
+			image.set(1, row, c, buffer_gray[c]);
+			image.set(2, row, c, buffer_gray[c]);
+		}
+	}
+	if (image.numPlanes() >= 4) {
+		for (size_t c = 0; c < (size_t)image.cols(); c++) {
+			image.set(3, row, c, 0xFF); // fully opaque
+		}
+	}
+}
+
 void FLIF_IMAGE::write_row_PALETTE8(uint32_t row, const void * buffer, size_t buffer_size_bytes)
 {
 	if (buffer_size_bytes < image.cols() * sizeof(uint8_t))
@@ -183,6 +208,18 @@ void FLIF_IMAGE::read_row_GRAY8(uint32_t row, void* buffer, size_t buffer_size_b
 
     for (size_t c = 0; c < (size_t) image.cols(); c++) {
             buffer_gray[c] = ((image(0, row, c) >> rshift) * mult) & 0xFF;
+    }
+}
+
+void FLIF_IMAGE::read_row_GRAY16(uint32_t row, void* buffer, size_t buffer_size_bytes) {
+    if(buffer_size_bytes < image.cols()) return;
+
+    uint16_t* buffer_gray = reinterpret_cast<uint16_t*>(buffer);
+    int rshift = 0;
+    int mult = 1;
+ 
+    for (size_t c = 0; c < (size_t) image.cols(); c++) {
+            buffer_gray[c] = ((image(0, row, c) >> rshift) * mult);
     }
 }
 
@@ -305,6 +342,17 @@ FLIF_DLLEXPORT FLIF_IMAGE* FLIF_API flif_create_image_GRAY(uint32_t width, uint3
     return 0;
 }
 
+FLIF_DLLEXPORT FLIF_IMAGE* FLIF_API flif_create_image_GRAY16(uint32_t width, uint32_t height) {
+    try
+    {
+        std::unique_ptr<FLIF_IMAGE> image(new FLIF_IMAGE());
+        image->image.init(width, height, 0, 65535, 1);
+        return image.release();
+    }
+    catch(...) {}
+    return 0;
+}
+
 FLIF_DLLEXPORT FLIF_IMAGE* FLIF_API flif_create_image_PALETTE(uint32_t width, uint32_t height) {
     try
     {
@@ -385,6 +433,25 @@ FLIF_DLLIMPORT FLIF_IMAGE* FLIF_API flif_import_image_GRAY(uint32_t width, uint3
 		const uint8_t* buffer = static_cast<const uint8_t*>(gray);
 		for (uint32_t row = 0; row < height; ++row) {
 			image->write_row_GRAY8(row, buffer, width*number_components);
+			buffer += gray_stride;
+		}
+		return image.release();
+	}
+	catch (...) {}
+	return 0;
+}
+
+FLIF_DLLIMPORT FLIF_IMAGE* FLIF_API flif_import_image_GRAY16(uint32_t width, uint32_t height, const void* gray, uint32_t gray_stride) {
+	try
+	{
+		const int number_components = 1;
+		if (width == 0 || height == 0 || gray_stride < width*number_components)
+			return 0;
+		std::unique_ptr<FLIF_IMAGE> image(new FLIF_IMAGE());
+		image->image.init(width, height, 0, 65535, number_components);
+		const uint16_t* buffer = static_cast<const uint16_t*>(gray);
+		for (uint32_t row = 0; row < height; ++row) {
+			image->write_row_GRAY16(row, buffer, (width * number_components * sizeof(uint16_t)));
 			buffer += gray_stride;
 		}
 		return image.release();
@@ -577,6 +644,14 @@ FLIF_DLLEXPORT void FLIF_API flif_image_write_row_GRAY8(FLIF_IMAGE* image, uint3
     catch(...) {}
 }
 
+FLIF_DLLEXPORT void FLIF_API flif_image_write_row_GRAY16(FLIF_IMAGE* image, uint32_t row, const void* buffer, size_t buffer_size_bytes) {
+    try
+    {
+        image->write_row_GRAY16(row, buffer, buffer_size_bytes);
+    }
+    catch(...) {}
+}
+
 FLIF_DLLEXPORT void FLIF_API flif_image_read_row_GRAY8(FLIF_IMAGE* image, uint32_t row, void* buffer, size_t buffer_size_bytes) {
     try
     {
@@ -584,6 +659,15 @@ FLIF_DLLEXPORT void FLIF_API flif_image_read_row_GRAY8(FLIF_IMAGE* image, uint32
     }
     catch(...) {}
 }
+
+FLIF_DLLEXPORT void FLIF_API flif_image_read_row_GRAY16(FLIF_IMAGE* image, uint32_t row, void* buffer, size_t buffer_size_bytes) {
+    try
+    {
+        image->read_row_GRAY16(row, buffer, buffer_size_bytes);
+    }
+    catch(...) {}
+}
+
 FLIF_DLLEXPORT void FLIF_API flif_image_write_row_PALETTE8(FLIF_IMAGE* image, uint32_t row, const void* buffer, size_t buffer_size_bytes) {
     try
     {
