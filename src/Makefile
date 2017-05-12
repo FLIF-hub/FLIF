@@ -1,5 +1,6 @@
 PREFIX := $(DESTDIR)/usr/local
 CXXFLAGS := $(shell pkg-config --cflags zlib libpng) -DLODEPNG_NO_COMPILE_PNG -DLODEPNG_NO_COMPILE_DISK
+CFLAGS := $(shell pkg-config --cflags zlib libpng) -DLODEPNG_NO_COMPILE_PNG -DLODEPNG_NO_COMPILE_DISK
 LDFLAGS := $(shell pkg-config --libs libpng)
 
 OSNAME := $(shell uname -s)
@@ -61,14 +62,18 @@ libflif.dbg$(LIBEXT): $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/
 viewflif: libflif$(LIBEXT) viewflif.c
 	$(CC) -std=gnu11 -O3 -ggdb3 $(shell sdl2-config --cflags) -Wall -Ilibrary/ viewflif.c -L. -lflif $(shell sdl2-config --libs) -o viewflif
 
+# gdk-pixbuf loader, enabling FLIF-viewing in pixbuf applications like Eye of Gnome
+# The loader is LGPLed so there's no reason to use libflif_dec here
+# -Werror=implicit-function-declaration is useful here to check for preprocessor dependency errors
+libpixbufloader-flif$(LIBEXT): libflif$(LIBEXT) flif-pixbuf-loader.c
+	$(CC) -shared $(CFLAGS) -Ilibrary/ -fPIC -Wall -Werror=implicit-function-declaration $(shell pkg-config --cflags gdk-pixbuf-2.0) -o libpixbufloader-flif$(LIBEXT) flif-pixbuf-loader.c $(LDFLAGS) $(shell pkg-config --libs gdk-pixbuf-2.0) -L. -lflif
 
-install: flif libflif$(LIBEXT)
-	install -d $(PREFIX)/bin $(PREFIX)/lib $(PREFIX)/share/man/man1
+pixbufloader: libpixbufloader-flif$(LIBEXT)
+
+install: flif libflif$(LIBEXT) install-libflif$(LIBEXT)
+	install -d $(PREFIX)/bin $(PREFIX)/share/man/man1
 	install -m 755 flif $(PREFIX)/bin
 	strip -x $(PREFIX)/bin/flif
-	install -m 755 libflif$(LIBEXT) libflif$(LIBEXTV) $(PREFIX)/lib
-	strip -x $(PREFIX)/lib/libflif$(LIBEXT) \
-	  $(PREFIX)/lib/libflif$(LIBEXTV)
 	install -m 644 ../doc/flif.1 $(PREFIX)/share/man/man1
 	install -m 755 ../tools/gif2flif $(PREFIX)/bin
 	install -m 755 ../tools/apng2flif $(PREFIX)/bin
@@ -76,6 +81,21 @@ install: flif libflif$(LIBEXT)
 install-viewflif:
 	install -m 755 viewflif $(PREFIX)/bin
 	strip -x $(PREFIX)/bin/viewflif
+
+install-libflif$(LIBEXT): libflif$(LIBEXT)
+	install -d $(PREFIX)/lib
+	install -m 755 libflif$(LIBEXT) libflif$(LIBEXTV) $(PREFIX)/lib
+	strip -x $(PREFIX)/lib/libflif$(LIBEXT) \
+	  $(PREFIX)/lib/libflif$(LIBEXTV)
+
+# There is no prefix here because gdk-pixbuf will not search /usr/local for loadrs
+# while it sucks, it's the truth
+install-libpixbufloader-flif$(LIBEXT): libpixbufloader-flif$(LIBEXT) install-libflif$(LIBEXT)
+	install -c -d /usr/lib/gdk-pixbuf-2.0/2.10.0/loaders
+	install -c -m 755 -s libpixbufloader-flif$(LIBEXT) /usr/lib/gdk-pixbuf-2.0/2.10.0/loaders/
+	gdk-pixbuf-query-loaders --update-cache
+
+install-pixbufloader: install-libpixbufloader-flif$(LIBEXT)
 
 install-dev:
 	install -d $(PREFIX)/include
@@ -105,9 +125,10 @@ uninstall:
 	rm -f $(PREFIX)/lib/libflif$(LIBEXTV)
 	rm -f $(PREFIX)/lib/libflif_dec$(LIBEXTV)
 	rm -f $(PREFIX)/share/man/man1/flif.1
+	rm -f /usr/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-flif$(LIBEXT)
 
 clean:
-	rm -f flif dflif libflif*$(LIBEXT)* viewflif flif.asan flif.dbg flif.prof flif.stats test-interface
+	rm -f flif dflif lib*flif*$(LIBEXT)* viewflif flif.asan flif.dbg flif.prof flif.stats test-interface
 
 
 # The targets below are only meant for developers
