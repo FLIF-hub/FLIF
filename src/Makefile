@@ -27,7 +27,7 @@ decoder: libflif_dec$(LIBEXT) dflif
 OPTIMIZATIONS := -DNDEBUG -O2 -ftree-vectorize
 # there are often problems with clang and lto also it doesn't seem to know -fwhole-program
 ifeq ($(CXX), g++)
-	OPTIMIZATIONS := $(OPTIMIZATIONS) -flto -fwhole-program
+	OPTIMIZATIONS := $(OPTIMIZATIONS) -flto
 endif
 
 LIB_OPTIMIZATIONS := -DNDEBUG -O2
@@ -36,12 +36,12 @@ ifeq ($(CXX), g++)
 endif
 
 # Command-line FLIF encoding/decoding tool - LGPLv3
-flif: $(FILES_H) $(FILES_CPP) flif.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) $(OPTIMIZATIONS) -g0 -Wall $(FILES_CPP) flif.cpp $(LDFLAGS) -o flif
+flif: $(FILES_H) libflif$(LIBEXT) flif.cpp
+	$(CXX) -std=gnu++11 $(CXXFLAGS) $(OPTIMIZATIONS) -g0 -Wall flif.cpp $(LDFLAGS) -L. -lflif -o flif
 
 # Command-line FLIF decoding tool - Apache2 (not built by default)
-dflif: $(FILES_H) $(FILES_CPP) flif.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) $(OPTIMIZATIONS) -DDECODER_ONLY -g0 -Wall $(FILES_CPP) flif.cpp $(LDFLAGS) -o dflif
+dflif: $(FILES_H) libflif_dec$(LIBEXT) flif.cpp
+	$(CXX) -std=gnu++11 $(CXXFLAGS) $(OPTIMIZATIONS) -DDECODER_ONLY -g0 -Wall flif.cpp $(LDFLAGS) -L. -lflif_dec -o dflif
 
 # Decoder-only library - Apache2 (not built by default)
 libflif_dec$(LIBEXT): $(FILES_H) $(FILES_CPP) library/flif_dec.h library/flif-interface-private_dec.hpp library/flif-interface_dec.cpp
