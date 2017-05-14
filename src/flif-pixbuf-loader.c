@@ -37,7 +37,7 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #undef  GDK_PIXBUF_ENABLE_BACKEND
 
-#if defined __USE_XOPEN2K8 || __GLIBC_USE (LIB_EXT2)
+#if (_XOPEN_SOURCE >= 700 || _POSIX_C_SOURCE >= 200809L)
     #define HAVE_OPEN_MEMSTREAM
 #endif
 
