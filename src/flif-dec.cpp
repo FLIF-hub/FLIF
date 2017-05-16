@@ -728,7 +728,7 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
               flif_decode_FLIF2_inner_interpol(images, ranges, p, endZL, -1, scale, zoomlevels, transforms);
               return false;
         }
-        if (endZL == 0) v_printf_tty(2,"\r%i%% done [%i/%i] DEC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
+        v_printf_tty((endZL==0?2:10),"\r%i%% done [%i/%i] DEC[%i,%ux%u]  ",(int)(100*pixels_done/pixels_todo),i,plane_zoomlevels(images[0], beginZL, endZL)-1,p,images[0].cols(z),images[0].rows(z));
         for (Image& image : images) { image.getPlane(p).prepare_zoomlevel(z); }
         if (p>0) for (Image& image : images) { image.getPlane(0).prepare_zoomlevel(z); }
         if (p<3 && nump>3) for (Image& image : images) { image.getPlane(3).prepare_zoomlevel(z); }
@@ -1073,7 +1073,7 @@ bool flif_decode(IO& io, Images &images, callback_t callback, void *user_data, i
 //    }
 
 //    image.init(width, height, 0, 0, 0);
-    v_printf(3,"Decoding %ux%u image, channels:",width,height);
+    v_printf(3,"Decoding %ix%i image, channels:",width,height);
     int maxmax=0;
     for (int p = 0; p < numPlanes; p++) {
 //        int min = 0;
@@ -1253,12 +1253,12 @@ bool flif_decode(IO& io, Images &images, callback_t callback, void *user_data, i
 
     int realnumplanes = 0;
     for (int i=0; i<ranges->numPlanes(); i++) if (ranges->min(i)<ranges->max(i)) realnumplanes++;
-    pixels_todo = (int64_t)width*height*realnumplanes/scale/scale;
+    pixels_todo = (long unsigned)width*height*realnumplanes/scale/scale;
     pixels_done = 0;
     if (pixels_todo == 0) pixels_todo = pixels_done = 1;
     progressive_qual_target = first_callback_quality;
     progressive_qual_shown = -1;
-    v_printf(9,"%lu subpixels done, %lu subpixels todo, quality target %i%%\n",(long unsigned)pixels_done,(long unsigned)pixels_todo,(int)quality);
+    v_printf(9,"%lu subpixels done (%i channels), %lu subpixels todo, quality target %i%%\n",(long unsigned)pixels_done,realnumplanes,(long unsigned)pixels_todo,(int)quality);
 
     for (int p = 0; p < ranges->numPlanes(); p++) {
       v_printf(10,"Plane %i: %i..%i\n",p,ranges->min(p),ranges->max(p));
