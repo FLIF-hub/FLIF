@@ -19,6 +19,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+#include <stdio.h>
+
 #include "flif_common.h"
 
 #ifdef __cplusplus
@@ -37,6 +39,13 @@ extern "C" {
     FLIF_DLLIMPORT int32_t FLIF_API flif_decoder_decode_file(FLIF_DECODER* decoder, const char* filename);
     // decode a FLIF blob in memory: buffer should point to the blob and buffer_size_bytes should be its size
     FLIF_DLLIMPORT int32_t FLIF_API flif_decoder_decode_memory(FLIF_DECODER* decoder, const void* buffer, size_t buffer_size_bytes);
+
+    /*
+    * Decode a given FLIF from a file pointer
+    * The filename here is used for error messages.
+    * It would be helpful to pass an actual filename here, but a non-NULL dummy one can be used instead.
+    */
+    FLIF_DLLIMPORT int32_t FLIF_API flif_decoder_decode_filepointer(FLIF_DECODER* decoder, FILE *filepointer, const char *filename);
 
     // returns the number of frames (1 if it is not an animation)
     FLIF_DLLIMPORT size_t FLIF_API flif_decoder_num_images(FLIF_DECODER* decoder);

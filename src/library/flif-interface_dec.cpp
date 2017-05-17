@@ -16,6 +16,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+#include <stdio.h>
+
 #include "flif-interface-private_dec.hpp"
 #include "flif-interface_common.cpp"
 
@@ -31,12 +33,17 @@ FLIF_DECODER::FLIF_DECODER()
 
 
 int32_t FLIF_DECODER::decode_file(const char* filename) {
-    internal_images.clear();
-    images.clear();
-
     FILE *file = fopen(filename,"rb");
     if(!file)
         return 0;
+
+    return decode_filepointer(file, filename);
+}
+
+int32_t FLIF_DECODER::decode_filepointer(FILE *file, const char *filename) {
+    internal_images.clear();
+    images.clear();
+
     FileIO fio(file, filename);
 
     working = true;
@@ -202,6 +209,20 @@ FLIF_DLLEXPORT int32_t FLIF_API flif_decoder_decode_file(FLIF_DECODER* decoder, 
     try
     {
         return decoder->decode_file(filename);
+    }
+    catch(...) {}
+    return 0;
+}
+
+/*!
+ * The filename here is used for error messages.
+ * It would be helpful to pass an actual filename here, but a non-NULL dummy one can be used instead.
+ * \return non-zero if the function succeeded
+ */
+FLIF_DLLEXPORT int32_t FLIF_API flif_decoder_decode_filepointer(FLIF_DECODER* decoder, FILE* filepointer, const char *filename) {
+    try
+    {
+        return decoder->decode_filepointer(filepointer, filename);
     }
     catch(...) {}
     return 0;
