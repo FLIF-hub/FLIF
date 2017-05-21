@@ -104,4 +104,4 @@ These will be available on the Release page
 * **[qt-flif-plugin](https://github.com/spillerrec/qt-flif-plugin)** – Enables Qt4 and Qt5 applications to load images in the FLIF image format.
 * **[FLIFSharp](https://github.com/purenewman/FLIFSharp)** – C# FLIF Library Bindings.
 * **[go-flif](https://github.com/chrisfelesoid/go-flif)** – Go FLIF Library Bindings.
-* **[Phew](http://sveinbjorn.org/phew)** - Image viewer for macOS with QuickLook plugin
+* **[Phew](https://sveinbjorn.org/phew)** - Image viewer for macOS with QuickLook plugin
