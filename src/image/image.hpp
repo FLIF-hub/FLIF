@@ -479,6 +479,7 @@ class Image {
       palette = other.palette;
       if (other.palette_image) palette_image = new Image(*other.palette_image);
       else palette_image = NULL;
+      alpha_zero_special = other.alpha_zero_special;
       frame_delay = other.frame_delay;
       col_begin = other.col_begin;
       col_end = other.col_end;
@@ -596,6 +597,7 @@ public:
 #endif
       palette = other.palette;
       palette_image = other.palette_image;
+      alpha_zero_special = other.alpha_zero_special;
       frame_delay = other.frame_delay;
 //      col_begin = other.col_begin;  // not needed and meaningless after downsampling
 //      col_end = other.col_end;
@@ -640,6 +642,7 @@ public:
 #endif
       palette = other.palette;
       palette_image = other.palette_image;
+      alpha_zero_special = other.alpha_zero_special;
       frame_delay = other.frame_delay;
       col_begin = other.col_begin;
       col_end = other.col_end;
