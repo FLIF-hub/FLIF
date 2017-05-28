@@ -31,6 +31,8 @@ OBJ2 = $Oimage.obj $Oimage-pam.obj $Oimage-png.obj $Oimage-pnm.obj $Oimage-rggb.
 LIBOBJS  = $(OBJ1)
 FLIFOBJS = $(OBJ1) $(OBJ2)
 
+all: flif.exe libflif_dec.dll viewflif.exe test-interface.exe
+
 flif.exe: $(OBJDIR) $(LibDir)\zlib.lib $(LibDir)\libpng.lib $(FLIFOBJS)
 	cl $(CFLAGS) /I$(Incdir) /Igetopt $(SrcDir)\flif.cpp getopt\getopt.c /DSTATIC_GETOPT /Fd$O /Fo$O -c
 	link /out:$(LibDir)\$@ $Oflif.obj $Ogetopt.obj $(FLIFOBJS) $(LibDir)\zlib.lib $(LibDir)\libpng.lib $(LDFLAGS)
@@ -104,8 +106,6 @@ $(LibDir)\libpng.lib: $(LibDir)\zlib.lib
 	cl $(CFLAGS) /Fd$O /Fo$O -c $<
 {$(ExtDir)\}.cpp{$(O)}.obj:
 	cl $(CFLAGS) /Fd$O /Fo$O -c $<
-
-all: flif.exe libflif_dec.dll viewflif.exe test-interface.exe
 
 clean:
 	-del flif.exe
