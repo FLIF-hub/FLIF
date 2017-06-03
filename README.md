@@ -59,6 +59,12 @@ On Ubuntu:
     * `make libflif_dec.so` to build the Apache licensed decode-only shared library
     * `make viewflif` to build the example viewer (it depends on the decode library)
 
+Note that you need to put the `.so` files in a discoverable place in order to run the tools.
+You can do any of:
+  * Continue with the global install (see next seection)
+  * Specify the location on each infocation, i.e.:  
+    `LD_LIBRARY_PATH=./ ./viewflif output.flif`
+
 #### Install
 
 * `sudo make install` if you want to install it globally
@@ -79,7 +85,6 @@ On Ubuntu:
 * Install [homebrew](http://brew.sh)
 * Install the dependencies: `brew install pkg-config libpng sdl2`
 * Run `make` in the FLIF/src directory
-
 
 * * *
 
