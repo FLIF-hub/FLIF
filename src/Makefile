@@ -19,6 +19,7 @@ export LD_LIBRARY_PATH=$(shell pwd):/usr/local/lib:$LD_LIBRARY_PATH
 
 FILES_H := maniac/*.hpp maniac/*.cpp image/*.hpp transform/*.hpp flif-enc.hpp flif-dec.hpp common.hpp flif_config.h fileio.hpp io.hpp io.cpp config.h compiler-specific.hpp ../extern/lodepng.h
 FILES_CPP := maniac/chance.cpp maniac/symbol.cpp image/crc32k.cpp image/image.cpp image/image-png.cpp image/image-pnm.cpp image/image-pam.cpp image/image-rggb.cpp image/image-metadata.cpp image/color_range.cpp transform/factory.cpp common.cpp flif-enc.cpp flif-dec.cpp io.cpp ../extern/lodepng.cpp
+FILES_O := maniac/chance.o maniac/symbol.o image/crc32k.o image/image.o image/image-png.o image/image-pnm.o image/image-pam.o image/image-rggb.o image/image-metadata.o image/color_range.o transform/factory.o common.o flif-enc.o flif-dec.o io.o ../extern/lodepng.o
 
 all: flif libflif$(LIBEXT)
 decoder: libflif_dec$(LIBEXT) dflif
@@ -35,9 +36,13 @@ ifeq ($(CXX), g++)
 	LIB_OPTIMIZATIONS := $(LIB_OPTIMIZATIONS) -flto
 endif
 
+# This is how .cpp files are compiled to .o files
+.cpp.o:
+	$(CXX) -c -std=gnu++11 $(CXXFLAGS) $(OPTIMIZATIONS) -g0 -Wall -fPIC -o $*.o $*.cpp
+
 # Command-line FLIF encoding/decoding tool - LGPLv3
-flif: $(FILES_H) libflif$(LIBEXT) flif.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) $(OPTIMIZATIONS) -g0 -Wall flif.cpp $(LDFLAGS) -L. -lflif -o flif
+flif: $(FILES_O) flif.o
+	$(CXX) -std=gnu++11 $(LIB_OPTIMIZATIONS) -g0 -Wall -fPIC -o flif flif.o $(FILES_O) $(LDFLAGS)
 
 # Command-line FLIF decoding tool - Apache2 (not built by default)
 dflif: $(FILES_H) libflif_dec$(LIBEXT) flif.cpp
@@ -50,8 +55,8 @@ libflif_dec$(LIBEXT): $(FILES_H) $(FILES_CPP) library/flif_dec.h library/flif-in
 	ln -sf libflif_dec$(LIBEXTV) libflif_dec$(LIBEXT)
 
 # Decoder + encoder library - LGPL
-libflif$(LIBEXT): $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/*.cpp
-	$(CXX) -std=gnu++11 $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -g0 -Wall -shared -fPIC $(FILES_CPP) library/flif-interface.cpp $(LDFLAGS) -Wl,$(SONAME),libflif$(LIBEXTV) -o libflif$(LIBEXTV)
+libflif$(LIBEXT): $(FILES_O) library/flif-interface.o
+	$(CXX) -shared -std=gnu++11 $(LIB_OPTIMIZATIONS) -g0 -Wall -fPIC -o libflif$(LIBEXTV) $(FILES_O) library/flif-interface.o -Wl,$(SONAME),libflif$(LIBEXTV) $(LDFLAGS)
 	ln -sf libflif$(LIBEXTV) libflif$(LIBEXT)
 
 libflif.dbg$(LIBEXT): $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/*.cpp
@@ -128,7 +133,7 @@ uninstall:
 	rm -f /usr/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-flif$(LIBEXT)
 
 clean:
-	rm -f flif dflif lib*flif*$(LIBEXT)* viewflif flif.asan flif.dbg flif.prof flif.stats test-interface
+	rm -f flif dflif lib*flif*$(LIBEXT)* viewflif flif.asan flif.dbg flif.prof flif.stats test-interface $(FILES_O) library/flif-interface.o
 
 
 # The targets below are only meant for developers
