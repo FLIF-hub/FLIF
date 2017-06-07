@@ -105,3 +105,4 @@ These will be available on the Release page
 * **[FLIFSharp](https://github.com/purenewman/FLIFSharp)** – C# FLIF Library Bindings.
 * **[go-flif](https://github.com/chrisfelesoid/go-flif)** – Go FLIF Library Bindings.
 * **[Phew](https://sveinbjorn.org/phew)** - Image viewer for macOS with QuickLook plugin
+* **[flif-wasm](https://github.com/saschanaz/flif-wasm)** - Node.js-ported FLIF command-line tool.
