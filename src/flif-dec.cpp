@@ -233,7 +233,7 @@ bool flif_decode_scanlines_inner(IO &io, Rac &rac, std::vector<Coder> &coders, I
               }
             };
             progressive_qual_shown = qual;
-            progressive_qual_target = issue_callback(callback, user_data, qual, io.ftell(), false, populatePartialImages);
+            progressive_qual_target = issue_callback(callback, user_data, qual, io.ftell(), qual == 10000, populatePartialImages);
             if (qual >= progressive_qual_target) return false;
           }
         }
@@ -808,7 +808,7 @@ bool flif_decode_FLIF2_inner(IO& io, Rac &rac, std::vector<Coder> &coders, Image
           };
 
           progressive_qual_shown = qual;
-          progressive_qual_target = issue_callback(callback, user_data, qual, io.ftell(), false, populatePartialImages);
+          progressive_qual_target = issue_callback(callback, user_data, qual, io.ftell(), qual == 10000, populatePartialImages);
           if (qual >= progressive_qual_target) return false;
         }
       } else zoomlevels[p]--;
