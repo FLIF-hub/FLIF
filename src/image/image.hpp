@@ -560,7 +560,7 @@ public:
       depth = other.depth;
       other.depth = 0;
 #endif
-      metadata = other.metadata;
+      metadata = std::move(other.metadata);
 
       other.width = other.height = 0;
       other.minval = other.maxval = 0;
