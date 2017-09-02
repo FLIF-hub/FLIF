@@ -349,7 +349,7 @@ void flif_decode_FLIF2_inner_interpol(Images &images, const ColorRanges *ranges,
           uint32_t cols = image.cols(z);
           for (uint32_t r = 0; r < rows; r++) {
             for (uint32_t c = 1; c < cols; c += 2) {
-              plane.set(z,r,c, predict_plane_vertical(plane,z,p,r,c,rows,0));
+              plane.set(z,r,c, predict_plane_vertical(plane,z,p,r,c,cols,0));
             }
           }
         }
