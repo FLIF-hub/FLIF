@@ -599,8 +599,11 @@ public:
       palette_image = other.palette_image;
       alpha_zero_special = other.alpha_zero_special;
       frame_delay = other.frame_delay;
-//      col_begin = other.col_begin;  // not needed and meaningless after downsampling
-//      col_end = other.col_end;
+      // assume downsample is always able to allocate enough space
+      col_begin.clear();
+      col_begin.resize(height,0);
+      col_end.clear();
+      col_end.resize(height,width);
       seen_before = other.seen_before;
       fully_decoded = other.fully_decoded;
       clear();
