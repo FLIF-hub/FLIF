@@ -927,9 +927,11 @@ public:
     }
 
     size_t rows(int zoomlevel) const {
+        if (rows() <= 0) return 0;
         return 1+(rows()-1)/zoom_rowpixelsize(zoomlevel);
     }
     size_t cols(int zoomlevel) const {
+        if (cols() <= 0) return 0;
         return 1+(cols()-1)/zoom_colpixelsize(zoomlevel);
     }
     int zooms() const {
