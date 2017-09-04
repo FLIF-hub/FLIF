@@ -1036,6 +1036,10 @@ bool flif_decode(IO& io, Images &images, callback_t callback, void *user_data, i
     if (width < 1 || height < 1) {e_printf("Invalid FLIF header\n"); return false;}
 
     if (numFrames > 1) numFrames = read_big_endian_varint(io)+2;
+    if (numFrames < 0) {
+        e_printf("Unsensical number of frames < 0.\n");
+        return false;
+    }
 #ifndef SUPPORT_ANIMATION
     if (numFrames > 1) {
         e_printf("This FLIF cannot decode animations. Please compile with SUPPORT_ANIMATION.\n");
