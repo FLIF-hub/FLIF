@@ -211,7 +211,7 @@ struct PlaneVisitor {
     virtual ~PlaneVisitor() {}
 };
 
-#define SCALED(x) (((x-1)>>scale)+1)
+#define SCALED(x) ((x)==0?0:((((x)-1)>>scale)+1))
 #ifdef USE_SIMD
 // pad to a multiple of 8, leaving room for alignment
 #define PAD(x) ((x) + 16)
