@@ -106,3 +106,4 @@ These will be available on the Release page
 * **[go-flif](https://github.com/chrisfelesoid/go-flif)** – Go FLIF Library Bindings.
 * **[Phew](https://sveinbjorn.org/phew)** - Image viewer for macOS with QuickLook plugin
 * **[flif-wasm](https://github.com/saschanaz/flif-wasm)** - Node.js-ported FLIF command-line tool.
+* **[node-flif](https://github.com/FLIF-hub/node-flif)** - A Node.JS wrapper that allows you to use JavaScript to interact with the CLI.
