@@ -742,6 +742,10 @@ int main(int argc, char **argv)
         e_printf("Too many arguments.\n");
         return 1;
     }
+    if (mode == 2 && options.keep_palette) {
+        e_printf("Transcode (-t) does not work with -k as it requires either to be PNG.\n");
+        return 1;
+    }
 
 #ifdef HAS_ENCODER
     if (options.chroma_subsampling)

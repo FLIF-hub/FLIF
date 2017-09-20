@@ -174,7 +174,11 @@ public:
           }
         }
         uint64_t max_nb_colors = 1;
-        for (int p=0; p<4; p++) max_nb_colors *= 1+srcRanges->max(p)-srcRanges->min(p);
+        for (int p=0; p<4; p++) {
+	    max_nb_colors *= 1+srcRanges->max(p)-srcRanges->min(p);
+            // Need to guard integer overflow: 65536^3
+            if (Palette_vector.size() < max_nb_colors) return true;
+        }
         if (Palette_vector.size() == max_nb_colors) return false; // don't make a trivial palette
 //        printf("Palette size: %lu\n",Palette.size());
         return true;

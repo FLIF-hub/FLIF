@@ -211,7 +211,7 @@ struct PlaneVisitor {
     virtual ~PlaneVisitor() {}
 };
 
-#define SCALED(x) (((x-1)>>scale)+1)
+#define SCALED(x) ((x)==0?0:((((x)-1)>>scale)+1))
 #ifdef USE_SIMD
 // pad to a multiple of 8, leaving room for alignment
 #define PAD(x) ((x) + 16)
@@ -560,7 +560,7 @@ public:
       depth = other.depth;
       other.depth = 0;
 #endif
-      metadata = other.metadata;
+      metadata = std::move(other.metadata);
 
       other.width = other.height = 0;
       other.minval = other.maxval = 0;
@@ -599,8 +599,11 @@ public:
       palette_image = other.palette_image;
       alpha_zero_special = other.alpha_zero_special;
       frame_delay = other.frame_delay;
-//      col_begin = other.col_begin;  // not needed and meaningless after downsampling
-//      col_end = other.col_end;
+      // assume downsample is always able to allocate enough space
+      col_begin.clear();
+      col_begin.resize(height,0);
+      col_end.clear();
+      col_end.resize(height,width);
       seen_before = other.seen_before;
       fully_decoded = other.fully_decoded;
       clear();
@@ -924,9 +927,11 @@ public:
     }
 
     size_t rows(int zoomlevel) const {
+        if (rows() <= 0) return 0;
         return 1+(rows()-1)/zoom_rowpixelsize(zoomlevel);
     }
     size_t cols(int zoomlevel) const {
+        if (cols() <= 0) return 0;
         return 1+(cols()-1)/zoom_colpixelsize(zoomlevel);
     }
     int zooms() const {
