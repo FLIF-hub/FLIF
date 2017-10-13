@@ -281,14 +281,15 @@ void fill_vtable (GdkPixbufModule *module) {
 }
 
 void fill_info (GdkPixbufFormat *info) {
+
     static GdkPixbufModulePattern signature[] = {
-            { "FLIF" }
+        { "FLIF", "    ", 100 },
+        { NULL, NULL, 0 }
     };
 
     static gchar *mime_types[] = {
             "image/flif",
             "image/x-flif",
-            "application/octet-stream", /* FIXME hack around systems missing mime type */
             NULL
     };
 

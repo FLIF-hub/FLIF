@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="image/flif">
+        <comment xml:lang="en">FLIF image</comment>
+        <magic priority="100">
+        	<match type="string" value="FLIF" offset="0"/>
+        </magic>
+        <glob pattern="*.flif"/>
+        <glob pattern="*.FLIF"/>
+  </mime-type>
+</mime-info>
