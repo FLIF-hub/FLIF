@@ -65,10 +65,6 @@ typedef struct {
 
 } FLIFContext;
 
-static void destroy_data (guchar *pixels, gpointer data) {
-        g_free (pixels);
-}
-
 /* Shared library entry point */
 static GdkPixbuf *gdk_pixbuf__flif_image_load (FILE *f, GError **error) {
 
@@ -89,6 +85,7 @@ static GdkPixbuf *gdk_pixbuf__flif_image_load (FILE *f, GError **error) {
                 GDK_PIXBUF_ERROR,
                 GDK_PIXBUF_ERROR_FAILED,
                 "Failed to read file");
+            g_free(data);
             return NULL;
     }
    
@@ -121,30 +118,28 @@ static GdkPixbuf *gdk_pixbuf__flif_image_load (FILE *f, GError **error) {
     gint32 w = flif_image_get_width(image);
     gint32 h = flif_image_get_height(image);
 
-    // TODO implment 16-bits-per-pixel FLIF files
-    guchar *buffer = (guchar *) g_malloc(4 * w * h * sizeof(guchar));
-
-    guchar *rowpointer = buffer;
-    for (uint32_t row = 0; row < h; row++) {
-        flif_image_read_row_RGBA8(image, row, rowpointer, w * 4);
-        rowpointer += w * 4;
-    }
-
-    flif_destroy_decoder(decoder);
-
-    GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data ((const guchar *)buffer, GDK_COLORSPACE_RGB, TRUE, 8, /* TODO 16 */
-                                       w, h, w * 4, destroy_data, NULL);
+    GdkPixbuf *pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, w, h);
 
     if (!pixbuf) {
             g_set_error (error,
                 GDK_PIXBUF_ERROR,
                 GDK_PIXBUF_ERROR_FAILED,
                 "Failed to decode image");
+            flif_destroy_decoder(decoder);
             g_free (data);
-            g_free (buffer);
             return NULL;
     }
 
+    // There may be padding at the end of the row for alignment purposes. Not necessarily w * 4
+    gint32 rowstride = gdk_pixbuf_get_rowstride(pixbuf);
+    guchar *pixels = gdk_pixbuf_get_pixels(pixbuf);
+    guchar *rowpointer = pixels;
+    for (uint32_t row = 0; row < h; row++) {
+        flif_image_read_row_RGBA8(image, row, rowpointer, w * 4);
+        rowpointer += rowstride;
+    }
+
+    flif_destroy_decoder(decoder);
     g_free(data);
 
     return pixbuf;
@@ -153,7 +148,7 @@ static GdkPixbuf *gdk_pixbuf__flif_image_load (FILE *f, GError **error) {
 
 static gpointer gdk_pixbuf__flif_image_begin_load (GdkPixbufModuleSizeFunc size_func, GdkPixbufModulePreparedFunc prepare_func,
                                    GdkPixbufModuleUpdatedFunc update_func, gpointer user_data, GError **error) {
-    FLIFContext *context = g_new0 (FLIFContext, 1);
+    FLIFContext *context = g_new(FLIFContext, 1);
     context->size_func = size_func;
     context->prepare_func = prepare_func;
     context->update_func  = update_func;
@@ -211,6 +206,7 @@ static gboolean gdk_pixbuf__flif_image_stop_load (gpointer user_context, GError 
     free(context->increment_buffer_ptr);
 #endif
 
+    g_object_unref(context->pixbuf);
     g_free(context);
 
     return TRUE;
