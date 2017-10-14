@@ -13,15 +13,14 @@ env:
 addons:
   apt:
     packages:
-    - build-essential
-    - libpng16-dev
-    - imagemagick
     - libsdl2-dev
-    - libimage-exiftool-perl
 
 before_install:
+  - sudo apt-get install build-essential imagemagick libimage-exiftool-perl
   # workaround clang not system wide, fail on sudo make install for adms
   - export CC=`which $CC`
+
+install: sudo ./tools/build-libpng.sh
 
 script:
   - if [[ "$BUILDTYPE" == "GNUMAKE" ]]; then cd src && make && make test ;  fi
