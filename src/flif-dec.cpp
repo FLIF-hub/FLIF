@@ -1357,8 +1357,7 @@ bool flif_decode(IO& io, Images &images, callback_t callback, void *user_data, i
           transform_ptrs.back()->invData(palette);
           transform_ptrs.pop_back();
         }
-        Image *p_image = new Image(palette[0].clone());
-        for (Image& i : images) i.palette_image = p_image;
+        for (Image& i : images) i.palette_image = make_unique<Image>(palette[0].clone());
       }
     }
     transforms.clear();
