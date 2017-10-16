@@ -1,7 +1,7 @@
 PREFIX := $(DESTDIR)/usr/local
-CXXFLAGS := $(shell pkg-config --cflags zlib libpng) -DLODEPNG_NO_COMPILE_PNG -DLODEPNG_NO_COMPILE_DISK
-CFLAGS := $(shell pkg-config --cflags zlib libpng) -DLODEPNG_NO_COMPILE_PNG -DLODEPNG_NO_COMPILE_DISK
-LDFLAGS := $(shell pkg-config --libs libpng)
+CXXFLAGS := $(CXXFLAGS) $(shell pkg-config --cflags zlib libpng) -DLODEPNG_NO_COMPILE_PNG -DLODEPNG_NO_COMPILE_DISK
+CFLAGS := $(CFLAGS) $(shell pkg-config --cflags zlib libpng) -DLODEPNG_NO_COMPILE_PNG -DLODEPNG_NO_COMPILE_DISK
+LDFLAGS := $(LDFLAGS) $(shell pkg-config --libs libpng)
 
 OSNAME := $(shell uname -s)
 SONAME = -soname
@@ -99,6 +99,7 @@ install-libpixbufloader-flif$(LIBEXT): libpixbufloader-flif$(LIBEXT) install-lib
 	install -c -d /usr/lib/gdk-pixbuf-2.0/2.10.0/loaders
 	install -c -m 755 -s libpixbufloader-flif$(LIBEXT) /usr/lib/gdk-pixbuf-2.0/2.10.0/loaders/
 	gdk-pixbuf-query-loaders --update-cache
+	xdg-mime install --novendor flif-mime.xml
 
 install-pixbufloader: install-libpixbufloader-flif$(LIBEXT)
 
