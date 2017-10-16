@@ -10,9 +10,13 @@ dist: trusty
 env:
   - BUILDTYPE=GNUMAKE
 
+addons:
+  apt:
+    packages:
+    - libsdl2-dev
 
 before_install:
-  - sudo apt-get install build-essential imagemagick libsdl2-dev libimage-exiftool-perl
+  - sudo apt-get install build-essential imagemagick libimage-exiftool-perl
   # workaround clang not system wide, fail on sudo make install for adms
   - export CC=`which $CC`
 
