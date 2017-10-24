@@ -700,7 +700,7 @@ public:
 #endif
       frame_delay=0;
       palette=false;
-      palette_image.reset(nullptr);
+      palette_image.reset();
       alpha_zero_special=true;
       assert(min == 0);
       assert(max < (1<<depth));
@@ -771,7 +771,7 @@ public:
 
     void clear() {
         for (int p=0; p<5; p++) planes[p].reset(nullptr);
-        palette_image.reset(nullptr);
+        palette_image.reset();
     }
     void reset() {
         clear();
