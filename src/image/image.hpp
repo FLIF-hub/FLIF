@@ -475,8 +475,8 @@ class Image {
       metadata = other.metadata;
       clear();
       palette = other.palette;
-      if (other.palette_image) palette_image = make_unique<Image>(other.palette_image->clone());
-      else palette_image.reset(nullptr);
+      // TODO: do we share the palette or clone it?
+      palette_image = other.palette_image;
       alpha_zero_special = other.alpha_zero_special;
       frame_delay = other.frame_delay;
       col_begin = other.col_begin;
@@ -512,7 +512,7 @@ class Image {
 
 public:
     bool palette;
-    std::unique_ptr<Image> palette_image;
+    std::shared_ptr<Image> palette_image;
     int frame_delay;
     bool alpha_zero_special = true;
     std::vector<uint32_t> col_begin;
@@ -592,8 +592,8 @@ public:
       depth = other.depth;
 #endif
       palette = other.palette;
-      if (other.palette_image) palette_image = make_unique<Image>(other.palette_image->clone());
-      else palette_image.reset(nullptr);
+      // TODO: do we share the palette or clone it?
+      palette_image = other.palette_image;
       alpha_zero_special = other.alpha_zero_special;
       frame_delay = other.frame_delay;
       // assume downsample is always able to allocate enough space
@@ -641,8 +641,8 @@ public:
       depth = other.depth;
 #endif
       palette = other.palette;
-      if (other.palette_image) palette_image = make_unique<Image>(other.palette_image->clone());
-      else palette_image.reset(nullptr);
+      // TODO: do we share the palette or clone it?
+      palette_image = other.palette_image;
       alpha_zero_special = other.alpha_zero_special;
       frame_delay = other.frame_delay;
       col_begin = other.col_begin;

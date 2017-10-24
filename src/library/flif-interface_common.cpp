@@ -563,7 +563,7 @@ FLIF_DLLEXPORT void FLIF_API flif_image_set_palette(FLIF_IMAGE* image, const voi
     {
         int nb = palette_size;
         image->image.palette = true;
-        image->image.palette_image = make_unique<Image>(nb,1,0,255,4);
+        image->image.palette_image = std::make_shared<Image>(nb,1,0,255,4);
         const FLIF_RGBA* buffer_rgba = reinterpret_cast<const FLIF_RGBA*>(buffer);
         for (int i=0; i<nb; i++) {
             image->image.palette_image->set(0,0,i,buffer_rgba[i].r);
