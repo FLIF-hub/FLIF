@@ -98,7 +98,7 @@ These will be available on the Release page
 * **[Ivy, the Taggable Image Viewer](https://github.com/lehitoskin/ivy)** – An image viewer that supports FLIF via [riff](https://github.com/lehitoskin/riff)
 * **[flifcrush](https://github.com/FLIF-hub/flifcrush)** - A brute-force FLIF optimizer.
 * **[libflif.js](https://github.com/saschanaz/libflif.js/)** – A javascript FLIF encoder and decoder. ([Demo](https://saschanaz.github.io/libflif.js/))
-* **[flif-rs](https://github.com/panicbit/flif-rs)** – A work-in-progress implementation of FLIF in Rust.
+* **[flif.rs](https://github.com/dgriffen/flif.rs)** – A work-in-progress implementation of FLIF in Rust.
 * **[FLIF Windows Codec](https://github.com/peirick/FlifWICCodec)** – A plugin that allows you to decode and encode FLIF files in Windows aplications using the Windows Imaging Component (WIC) API. That allows e.g., to see the files in Windows PhotoViewer and Windows Explorer.
 * **[FLIF Windows Plugin](https://github.com/fherzog2/flif_windows_plugin)** – This plugin enables decoding of FLIF images in applications which use the Windows Imaging Component API. In this way, FLIF images can be viewed in Windows Explorer like other common image formats.
 * **[qt-flif-plugin](https://github.com/spillerrec/qt-flif-plugin)** – Enables Qt4 and Qt5 applications to load images in the FLIF image format.
