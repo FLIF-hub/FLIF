@@ -107,3 +107,4 @@ These will be available on the Release page
 * **[Phew](https://sveinbjorn.org/phew)** - Image viewer for macOS with QuickLook plugin
 * **[flif-wasm](https://github.com/saschanaz/flif-wasm)** - Node.js-ported FLIF command-line tool.
 * **[node-flif](https://github.com/FLIF-hub/node-flif)** - A Node.JS wrapper that allows you to use JavaScript to interact with the CLI.
+* **[SimplEx FLIF](https://github.com/Atrus09/SimplEx-FLIF)** - A simple and extensive GUI intermediary for the native executables.
