@@ -50,10 +50,6 @@
 #define strcasecmp _stricmp
 #endif
 
-
-
-
-
 // planes:
 // 0    Y channel (luminance)
 // 1    I (chroma)
@@ -124,13 +120,13 @@ void show_help(int mode) {
     }
 }
 
-
 bool file_exists(const char * filename){
         FILE * file = fopen(filename, "rb");
         if (!file) return false;
         fclose(file);
         return true;
 }
+
 bool file_is_flif(const char * filename){
         FILE * file = fopen(filename, "rb");
         if (!file) return false;
@@ -141,8 +137,6 @@ bool file_is_flif(const char * filename){
         fclose(file);
         return result;
 }
-
-
 
 void show_banner() {
     v_printf(3,"  ____ _(_)____\n");
@@ -183,6 +177,7 @@ bool check_compatible_extension (char *ext) {
         return true;
     }
 }
+
 bool check_metadata_extension (char *ext) {
     if (!(ext && (
                    !strcasecmp(ext,".icc")
@@ -194,7 +189,6 @@ bool check_metadata_extension (char *ext) {
         return true;
     }
 }
-
 
 #ifdef HAS_ENCODER
 
@@ -268,6 +262,7 @@ bool encode_load_input_images(int argc, char **argv, Images &images, flif_option
     e_printf("Error: no actual input images to be encoded!\n");
     return false;
 }
+
 bool encode_flif(int argc, char **argv, Images &images, flif_options &options) {
     bool flat=true;
     unsigned int framenb=0;
@@ -359,6 +354,7 @@ bool handle_encode(int argc, char **argv, Images &images, flif_options &options)
     argc = 1;
     return encode_flif(argc, argv, images, options);
 }
+
 #endif
 
 bool decode_flif(char **argv, Images &images, flif_options &options) {
@@ -457,8 +453,8 @@ int handle_decode(int argc, char **argv, Images &images, flif_options &options) 
     v_printf(2,"\n");
     return 0;
 }
-int main(int argc, char **argv)
-{
+
+int main(int argc, char **argv) {
     Images images;
     flif_options options = FLIF_DEFAULT_OPTIONS;
 #ifdef HAS_ENCODER
@@ -767,4 +763,3 @@ int main(int argc, char **argv)
 #endif
     return 0;
 }
-
