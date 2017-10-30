@@ -129,7 +129,7 @@ int image_load_png(const char *filename, Image &image, metadata_options &options
       png_get_PLTE(png_ptr,info_ptr, &palette,&nb_colors);
       png_bytep trans;
       png_get_tRNS(png_ptr,info_ptr, &trans,&nb_alpha, NULL);
-      image.palette_image = new Image(nb_colors,1,0,255,4);
+      image.palette_image = std::make_shared<Image>(nb_colors,1,0,255,4);
       for (int i=0; i<nb_colors; i++) {
         image.palette_image->set(0,0,i,palette[i].red);
         image.palette_image->set(1,0,i,palette[i].green);

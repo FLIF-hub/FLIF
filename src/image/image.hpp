@@ -444,8 +444,6 @@ struct metadata_options {
     bool xmp;
 };
 
-class Image;
-
 class Image {
     std::unique_ptr<GeneralPlane> planes[5]; // Red/Y, Green/Co, Blue/Cg, Alpha, Frame-Lookback(animation only)
     size_t width, height;
@@ -477,8 +475,8 @@ class Image {
       metadata = other.metadata;
       clear();
       palette = other.palette;
-      if (other.palette_image) palette_image = new Image(*other.palette_image);
-      else palette_image = NULL;
+      // TODO: do we share the palette or clone it?
+      palette_image = other.palette_image;
       alpha_zero_special = other.alpha_zero_special;
       frame_delay = other.frame_delay;
       col_begin = other.col_begin;
@@ -514,7 +512,7 @@ class Image {
 
 public:
     bool palette;
-    Image * palette_image = NULL;
+    std::shared_ptr<Image> palette_image;
     int frame_delay;
     bool alpha_zero_special = true;
     std::vector<uint32_t> col_begin;
@@ -537,7 +535,6 @@ public:
       depth = 0;
 #endif
       palette = false;
-      palette_image = NULL;
       seen_before = 0;
     }
 
@@ -569,8 +566,7 @@ public:
       other.fully_decoded = false;
 
       palette = other.palette;
-      palette_image = other.palette_image;
-      other.palette_image = NULL;
+      palette_image = std::move(other.palette_image);
       alpha_zero_special = other.alpha_zero_special;
       col_begin = std::move(other.col_begin);
       col_end = std::move(other.col_end);
@@ -596,6 +592,7 @@ public:
       depth = other.depth;
 #endif
       palette = other.palette;
+      // TODO: do we share the palette or clone it?
       palette_image = other.palette_image;
       alpha_zero_special = other.alpha_zero_special;
       frame_delay = other.frame_delay;
@@ -644,6 +641,7 @@ public:
       depth = other.depth;
 #endif
       palette = other.palette;
+      // TODO: do we share the palette or clone it?
       palette_image = other.palette_image;
       alpha_zero_special = other.alpha_zero_special;
       frame_delay = other.frame_delay;
@@ -702,7 +700,7 @@ public:
 #endif
       frame_delay=0;
       palette=false;
-      palette_image = NULL;
+      palette_image.reset();
       alpha_zero_special=true;
       assert(min == 0);
       assert(max < (1<<depth));
@@ -773,11 +771,7 @@ public:
 
     void clear() {
         for (int p=0; p<5; p++) planes[p].reset(nullptr);
-        if (palette_image) {
-//            printf("Deleting palette image\n");
-            delete palette_image;
-        }
-        palette_image = NULL;
+        palette_image.reset();
     }
     void reset() {
         clear();
