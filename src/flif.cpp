@@ -50,6 +50,11 @@
 #define strcasecmp _stricmp
 #endif
 
+#ifdef _WIN32
+#include <fcntl.h>
+#include <io.h>
+#endif
+
 // planes:
 // 0    Y channel (luminance)
 // 1    I (chroma)
@@ -457,6 +462,11 @@ int handle_decode(int argc, char **argv, Images &images, flif_options &options) 
 int main(int argc, char **argv) {
     Images images;
     flif_options options = FLIF_DEFAULT_OPTIONS;
+#ifdef _WIN32
+    _setmode(_fileno(stdin), _O_BINARY);
+    _setmode(_fileno(stdout), _O_BINARY);
+    _setmode(_fileno(stderr), _O_BINARY);
+#endif
 #ifdef HAS_ENCODER
     int mode = -1; // 0 = encode, 1 = decode, 2 = transcode
 #else

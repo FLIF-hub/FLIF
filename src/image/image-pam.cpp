@@ -2,11 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#ifdef _WIN32
-#include <io.h>
-#else
-#include <unistd.h>
-#endif
 
 #include "image.hpp"
 #include "image-pam.hpp"
@@ -108,7 +103,7 @@ bool image_save_pam(const char *filename, const Image& image)
 {
     if (image.numPlanes() < 4) return image_save_pnm(filename, image);
     FILE *fp = NULL;
-    if (!strcmp(filename,"-")) fp = fdopen(dup(fileno(stdout)), "wb"); // make sure it is in binary mode (needed in Windows)
+    if (!strcmp(filename,"-")) fp = stdout;
     else fp = fopen(filename,"wb");
     if (!fp) {
         return false;
