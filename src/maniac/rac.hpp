@@ -61,7 +61,7 @@ private:
     rac_t low;
 private:
     rac_t read_catch_eof() {
-        rac_t c = io.getc();
+        rac_t c = io.get_c();
         // no reason to branch here to catch end-of-stream, just return garbage (0xFF I guess) if a premature EOS happens
         //if(c == io.EOS) return 0;
         return c;

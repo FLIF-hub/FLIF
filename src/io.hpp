@@ -29,7 +29,7 @@ int get_verbosity();
 template<class IO>
 bool ioget_int_8bit (IO& io, int* result)
 {
-    int c = io.getc();
+    int c = io.get_c();
     if (c == io.EOS) {
         e_printf ("Unexpected EOS");
         return false;

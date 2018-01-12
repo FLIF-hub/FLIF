@@ -925,7 +925,7 @@ size_t read_big_endian_varint(IO& io) {
     size_t result = 0;
     int bytes_read = 0;
     while (bytes_read++ < 10) {
-      int number = io.getc();
+      int number = io.get_c();
       if (number < 0) break;
       if (number < 128) return result+number;
       number -= 128;
@@ -938,7 +938,7 @@ size_t read_big_endian_varint(IO& io) {
 
 template <typename IO>
 int read_chunk(IO& io, MetaData& metadata) {
-    metadata.name[0] = io.getc();
+    metadata.name[0] = io.get_c();
 //    printf("chunk: %s\n", metadata.name);
     if (metadata.name[0] < 32) {
       if (metadata.name[0] > 0) {
@@ -958,7 +958,7 @@ int read_chunk(IO& io, MetaData& metadata) {
 //    printf("chunk length: %lu\n", metadata.length);
     metadata.contents.resize(metadata.length);
     for(size_t i = 0; i < metadata.length; i++) {
-        metadata.contents[i] = io.getc();
+        metadata.contents[i] = io.get_c();
     }
     return 0; // read next chunk
 }
