@@ -27,6 +27,7 @@ struct FLIF_ENCODER
 
     void add_image(FLIF_IMAGE* image);
     void add_image_move(FLIF_IMAGE* image);
+    void set_alpha_zero_flags();
     int32_t encode_file(const char* filename);
     int32_t encode_memory(void** buffer, size_t* buffer_size_bytes);
 

@@ -56,7 +56,9 @@ extern "C" {
     FLIF_DLLIMPORT void FLIF_API flif_encoder_set_divisor(FLIF_ENCODER* encoder, int32_t divisor);             // default: 30 (-D)
     FLIF_DLLIMPORT void FLIF_API flif_encoder_set_min_size(FLIF_ENCODER* encoder, int32_t min_size);           // default: 50 (-M)
     FLIF_DLLIMPORT void FLIF_API flif_encoder_set_split_threshold(FLIF_ENCODER* encoder, int32_t threshold);   // default: 64 (-T)
-    FLIF_DLLIMPORT void FLIF_API flif_encoder_set_alpha_zero_lossless(FLIF_ENCODER* encoder);                  // 0 = default, 1 = -K
+    // The default is to not store RGB values of fully transparent pixels. If you want to avoid that, you have to change it with this function!
+    FLIF_DLLIMPORT void FLIF_API flif_encoder_set_alpha_zero_lossless(FLIF_ENCODER* encoder, int32_t lossless);  // 0 = default, 1 = -K
+    FLIF_DLLIMPORT void FLIF_API flif_encoder_set_alpha_zero_lossless(FLIF_ENCODER* encoder) { flif_encoder_set_alpha_zero_lossless(encoder,1) };
     FLIF_DLLIMPORT void FLIF_API flif_encoder_set_chance_cutoff(FLIF_ENCODER* encoder, int32_t cutoff); // default: 2  (-X)
     FLIF_DLLIMPORT void FLIF_API flif_encoder_set_chance_alpha(FLIF_ENCODER* encoder, int32_t alpha);   // default: 19 (-Z)
     FLIF_DLLIMPORT void FLIF_API flif_encoder_set_crc_check(FLIF_ENCODER* encoder, uint32_t crc_check); // 0 = no CRC, 1 = add CRC
