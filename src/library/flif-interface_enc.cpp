@@ -172,7 +172,7 @@ FLIF_DLLEXPORT void FLIF_API flif_encoder_set_min_size(FLIF_ENCODER* encoder, in
 FLIF_DLLEXPORT void FLIF_API flif_encoder_set_split_threshold(FLIF_ENCODER* encoder, int32_t split_threshold) {
     encoder->options.split_threshold = split_threshold;
 }
-FLIF_DLLEXPORT void FLIF_API flif_encoder_set_alpha_zero_lossless(FLIF_ENCODER* encoder, int32_t lossless) {
+FLIF_DLLEXPORT void FLIF_API flif_encoder_set_alpha_zero(FLIF_ENCODER* encoder, int32_t lossless) {
     try {
         encoder->options.alpha_zero_special = (lossless == 0);
         // change the flag for any images that have already been added
