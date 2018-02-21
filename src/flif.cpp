@@ -449,6 +449,7 @@ int handle_decode(int argc, char **argv, Images &images, flif_options &options) 
             } else {
               if (!image.save(argv[1])) return 2;
             }
+            v_printf(1,"%ims ",image.frame_delay);
             counter++;
             v_printf(2,"    (%i/%i)         \r",counter,(int)images.size()); v_printf(4,"\n");
         }
