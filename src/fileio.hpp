@@ -111,7 +111,7 @@ public:
         else
             return buf;
     }
-    int fputc(int c) {
+    int fputc(int UNUSED(c)) {
       // cannot write on const memory
       return EOS;
     }

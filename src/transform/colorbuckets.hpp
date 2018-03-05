@@ -542,7 +542,7 @@ protected:
         }
     }
 
-    bool process(const ColorRanges *srcRanges, const Images &images) override {
+    bool process(const ColorRanges *UNUSED(srcRanges), const Images &images) override {
             std::vector<ColorVal> pixel(images[0].numPlanes());
             // fill buckets
             for (const Image& image : images)

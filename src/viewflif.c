@@ -10,9 +10,25 @@
 #include <flif_dec.h>
 #include <stdlib.h>
 #include <stdio.h>
+#if defined(__GNUC__)
+#include <inttypes.h>
+#endif
 #include <SDL.h>
 #include <time.h>
 #include <stdbool.h>
+
+/**************************/
+/* FIX COMPILER WARNINGS  */
+/**************************/
+
+#ifdef UNUSED
+#elif defined(__GNUC__) 
+# define UNUSED(x) UNUSED_ ## x __attribute__((unused)) 
+#elif defined(__LCLINT__) 
+# define UNUSED(x) /*@unused@*/ x 
+#else 
+# define UNUSED(x) x 
+#endif
 
 // SDL2 for Visual Studio C++ 2015
 
@@ -121,7 +137,12 @@ int do_event(SDL_Event e) {
 
 // returns true on success
 bool updateTextures(uint32_t quality, int64_t bytes_read) {
+// Note I would've liked to use inttypes.h PRIi64 but the compiler wouldn't solve it.
+    #if defined(__GNUC__)
+    printf("%I64i bytes read, rendering at quality=%.2f%%\n", bytes_read, 0.01*quality);
+    #else
     printf("%lli bytes read, rendering at quality=%.2f%%\n",(long long int) bytes_read, 0.01*quality);
+    #endif
 
     FLIF_IMAGE* image = flif_decoder_get_image(d, 0);
     if (!image) { printf("Error: No decoded image found\n"); return false; }
@@ -131,20 +152,24 @@ bool updateTextures(uint32_t quality, int64_t bytes_read) {
     // set the window title and size
     if (!window) { printf("Error: Could not create window\n"); return false; }
     char title[100];
+    #if defined(__GNUC__)
+    sprintf(title,"FLIF image decoded at %ux%u [read %I64i bytes, quality=%.2f%%]",w,h,(long long int) bytes_read, 0.01*quality);
+    #else
     sprintf(title,"FLIF image decoded at %ux%u [read %lli bytes, quality=%.2f%%]",w,h,(long long int) bytes_read, 0.01*quality);
+    #endif
     SDL_SetWindowTitle(window,title);
     if (!window_size_set && RESIZE_TO_IMAGE_EVENTTYPE != (Uint32)-1) {
-      int image_size_w = (w > dm.w ? dm.w : w);
-      int image_size_h = (h > dm.h ? dm.h : h);
+      uint32_t image_size_w = (w > (uint32_t)dm.w ? (uint32_t)dm.w : w);
+      uint32_t image_size_h = (h > (uint32_t)dm.h ? (uint32_t)dm.h : h);
       if (image_size_w > w * image_size_h / h) image_size_w = image_size_h * w / h;
       else if (image_size_w < w * image_size_h / h) image_size_h = image_size_w * h / w;
-      if (w > dm.w*8/10 && h > dm.h*8/10) { image_size_w = image_size_w*8/10; image_size_h = image_size_h*8/10; }
+      if (w > (uint32_t)dm.w*8/10 && h > (uint32_t)dm.h*8/10) { image_size_w = image_size_w*8/10; image_size_h = image_size_h*8/10; }
 
       // On Windows, a window cannot be resized from a non-GUI thread.
       // Therefore delegate the resize to the event loop.
       SDL_Event resize_to_image_event;
       resize_to_image_event.type = RESIZE_TO_IMAGE_EVENTTYPE;
-      resize_to_image_event.user.code = (w > dm.w*8/10 && h > dm.h*8/10); // do_maximize flag
+      resize_to_image_event.user.code = (w > (uint32_t)dm.w*8/10 && h > (uint32_t)dm.h*8/10); // do_maximize flag
 
       SDL_PushEvent(&resize_to_image_event);
       window_size_set = 1;
@@ -155,7 +180,7 @@ bool updateTextures(uint32_t quality, int64_t bytes_read) {
     if (!frame_delay) frame_delay = (int*) calloc(flif_decoder_num_images(d), sizeof(int));
 
     // produce one SDL_Texture per frame
-    for (int f = 0; f < flif_decoder_num_images(d); f++) {
+    for (int f = 0; (uint32_t)f < flif_decoder_num_images(d); f++) {
         if (quit) {
           return 0;
         }
@@ -175,7 +200,7 @@ bool updateTextures(uint32_t quality, int64_t bytes_read) {
           if (!bgsurf) bgsurf = SDL_CreateRGBSurface(0,w,h,32,0x000000FF,0x0000FF00,0x00FF0000,0xFF000000);
           if (!bgsurf) { printf("Error: Could not create surface\n"); return false; }
           SDL_Rect sq; sq.w=20; sq.h=20;
-          for (sq.y=0; sq.y<h; sq.y+=sq.h) for (sq.x=0; sq.x<w; sq.x+=sq.w)
+          for (sq.y=0; (uint32_t)sq.y<h; sq.y+=sq.h) for (sq.x=0; (uint32_t)sq.x<w; sq.x+=sq.w)
               SDL_FillRect(bgsurf,&sq,(((sq.y/sq.h + sq.x/sq.w)&1) ? 0xFF606060 : 0xFFA0A0A0));
           // Alpha-blend decoded frame on top of checkerboard background
           SDL_BlitSurface(tmpsurf,NULL,bgsurf,NULL);
@@ -202,7 +227,7 @@ clock_t last_preview_time = 0;
 //                    resizes the viewer window if needed, and calls draw_image()
 // Input arguments are: quality (0..10000), current position in the .flif file
 // Output is the desired minimal quality before doing the next callback
-uint32_t progressive_render(uint32_t quality, int64_t bytes_read, uint8_t decode_over, void *user_data, void *context) {
+uint32_t progressive_render(uint32_t quality, int64_t bytes_read, uint8_t decode_over, void *UNUSED(user_data), void *context) {
     if (SDL_LockMutex(mutex) == 0) {
       clock_t now = clock();
       double timeElapsed = ((double)(now - last_preview_time)) / CLOCKS_PER_SEC;

@@ -23,7 +23,7 @@ limitations under the License.
 #include "../image/image.hpp"
 #include "../fileio.hpp"
 
-#ifdef _MSC_VER
+#if defined (_MSC_VER) || defined(__MINGW32__)
  #ifdef FLIF_BUILD_DLL
   #define FLIF_DLLEXPORT __declspec(dllexport)
  #else

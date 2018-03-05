@@ -362,34 +362,34 @@ class ConstantPlane final : public GeneralPlane {
     ColorVal color;
 public:
     explicit ConstantPlane(ColorVal c) : color(c) {}
-    void set(const size_t r, const size_t c, const ColorVal x) override {
+    void set(const size_t UNUSED(r), const size_t UNUSED(c), const ColorVal x) override {
         assert(x == color);
     }
-    ColorVal get(const size_t r, const size_t c) const override {
+    ColorVal get(const size_t UNUSED(r), const size_t UNUSED(c)) const override {
         return color;
     }
 
-    void prepare_zoomlevel(const int z) const override {}
-    ColorVal get_fast(size_t r, size_t c) const override { return color; }
-    void set_fast(size_t r, size_t c, ColorVal x) override { assert(x == color); }
+    void prepare_zoomlevel(const int UNUSED(z)) const override {}
+    ColorVal get_fast(size_t UNUSED(r), size_t UNUSED(c)) const override { return color; }
+    void set_fast(size_t UNUSED(r), size_t UNUSED(c), ColorVal x) override { assert(x == color); }
 
 #ifdef USE_SIMD
-    FourColorVals get4(const size_t pos) const ATTRIBUTE_HOT {
+    FourColorVals get4(const size_t UNUSED(pos)) const ATTRIBUTE_HOT {
         FourColorVals x {color,color,color,color};
         return x;
     }
-    void VCALL set4(const size_t pos, const FourColorVals x) override {
+    void VCALL set4(const size_t UNUSED(pos), const FourColorVals x) override {
         assert(x[0] == color);
         assert(x[1] == color);
         assert(x[2] == color);
         assert(x[3] == color);
     }
-    EightColorVals get8(const size_t pos) const ATTRIBUTE_HOT {
+    EightColorVals get8(const size_t UNUSED(pos)) const ATTRIBUTE_HOT {
         int16_t c = color;
         EightColorVals x {c,c,c,c,c,c,c,c};
         return x;
     }
-    void VCALL set8(const size_t pos, const EightColorVals x) override {
+    void VCALL set8(const size_t UNUSED(pos), const EightColorVals x) override {
         assert(x[0] == color);
         assert(x[1] == color);
         assert(x[2] == color);
@@ -402,15 +402,15 @@ public:
 #endif
     bool is_constant() const override { return true; }
 
-    void set(const int z, const size_t r, const size_t c, const ColorVal x) override {
+    void set(const int UNUSED(z), const size_t UNUSED(r), const size_t UNUSED(c), const ColorVal x) override {
         assert(x == color);
     }
-    ColorVal get(const int z, const size_t r, const size_t c) const override {
+    ColorVal get(const int UNUSED(z), const size_t UNUSED(r), const size_t UNUSED(c)) const override {
         return color;
     }
 
 
-    void accept_visitor(PlaneVisitor &v) override {
+    void accept_visitor(PlaneVisitor &UNUSED(v)) override {
 //        v.visit(*this);
         assert(false); // there should never be a need to visit a constant plane
     }
@@ -861,9 +861,11 @@ public:
         switch(num) {
             case 1:
               make_constant_plane(1,0);
+              // fall through
             case 2:
               make_constant_plane(2,0);
               num=3;
+              // fall through
             default:
               assert(num>=3);
         }
@@ -874,6 +876,7 @@ public:
             case 3:
               make_constant_plane(3,1);
               num=4;
+              // fall through
             default:
               assert(num>=4);
         }

@@ -22,7 +22,7 @@ limitations under the License.
 #include <stdint.h>
 #include <stddef.h>
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__MINGW32__)
 #define FLIF_API __cdecl
  #ifdef FLIF_BUILD_DLL
   #define FLIF_DLLIMPORT __declspec(dllexport)

@@ -34,9 +34,9 @@ public:
     bool isStatic() const override { return true; }
     int numPlanes() const override { return ranges->numPlanes(); }
 
-    ColorVal min(int p) const override { return 0; }
+    ColorVal min(int UNUSED(p)) const override { return 0; }
     ColorVal max(int p) const override { return nb_colors[p]; }
-    void minmax(const int p, const prevPlanes &pp, ColorVal &minv, ColorVal &maxv) const override {
+    void minmax(const int p, const prevPlanes &UNUSED(pp), ColorVal &minv, ColorVal &maxv) const override {
          minv=0; maxv=nb_colors[p];
     }
 
@@ -55,7 +55,7 @@ public:
         return true;
     }
 
-    const ColorRanges *meta(Images& images, const ColorRanges *srcRanges) override {
+    const ColorRanges *meta(Images& UNUSED(images), const ColorRanges *srcRanges) override {
         int nb[4] = {};
         v_printf(4,"[");
         for (int i=0; i<srcRanges->numPlanes(); i++) {
@@ -68,7 +68,7 @@ public:
         return new ColorRangesPaletteC(srcRanges, nb);
     }
 
-    void invData(Images& images, uint32_t strideCol, uint32_t strideRow) const override {
+    void invData(Images& images, uint32_t UNUSED(strideCol), uint32_t UNUSED(strideRow)) const override {
         for (Image& image : images) {
 
          const uint32_t scaledRows = image.scaledRows();
