@@ -5,12 +5,19 @@
  License: Creative Commons CC0 1.0 Universal (Public Domain)
  https://creativecommons.org/publicdomain/zero/1.0/legalcode
 */
-
-
+#if defined(__GNUC__)
+#if defined(__MINGW32__)
+/* Use Gnu-style printf and scanf - see: https://sourceforge.net/p/mingw-w64/wiki2/gnu%20printf/ */
+#define __USE_MINGW_ANSI_STDIO 1
+#endif
+/* allow use of inttypes macros in C++. */
+#define __STDC_FORMAT_MACROS
+#endif
 #include <flif_dec.h>
 #include <stdlib.h>
 #include <stdio.h>
 #if defined(__GNUC__)
+/* Use inttypes.h format macros for greater portability */
 #include <inttypes.h>
 #endif
 #include <SDL.h>
@@ -139,7 +146,7 @@ int do_event(SDL_Event e) {
 bool updateTextures(uint32_t quality, int64_t bytes_read) {
 // Note I would've liked to use inttypes.h PRIi64 but the compiler wouldn't solve it.
     #if defined(__GNUC__)
-    printf("%I64i bytes read, rendering at quality=%.2f%%\n", bytes_read, 0.01*quality);
+    printf("%" PRId64 " bytes read, rendering at quality=%.2f%%\n", bytes_read, 0.01*quality);
     #else
     printf("%lli bytes read, rendering at quality=%.2f%%\n",(long long int) bytes_read, 0.01*quality);
     #endif
@@ -153,7 +160,7 @@ bool updateTextures(uint32_t quality, int64_t bytes_read) {
     if (!window) { printf("Error: Could not create window\n"); return false; }
     char title[100];
     #if defined(__GNUC__)
-    sprintf(title,"FLIF image decoded at %ux%u [read %I64i bytes, quality=%.2f%%]",w,h,(long long int) bytes_read, 0.01*quality);
+    sprintf(title,"FLIF image decoded at %ux%u [read %" PRId64 " bytes, quality=%.2f%%]",w,h,(long long int) bytes_read, 0.01*quality);
     #else
     sprintf(title,"FLIF image decoded at %ux%u [read %lli bytes, quality=%.2f%%]",w,h,(long long int) bytes_read, 0.01*quality);
     #endif
