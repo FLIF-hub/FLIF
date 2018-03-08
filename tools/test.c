@@ -1,3 +1,11 @@
+#if defined(__MINGW32__)
+/* Use Gnu-style printf and scanf - see: https://sourceforge.net/p/mingw-w64/wiki2/gnu%20printf/ */
+#define __USE_MINGW_ANSI_STDIO 1
+#endif
+#if !defined(_MSC_VER)
+/* Use inttypes.h format macros for greater portability */
+#include <inttypes.h>
+#endif
 #include <flif.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -8,6 +16,38 @@ typedef struct RGBA
     uint8_t r,g,b,a;
 } RGBA;
 #pragma pack(pop)
+
+/* based partly on:
+https://stackoverflow.com/questions/1546789/clean-code-to-printf-size-t-in-c-or-nearest-equivalent-of-c99s-z-in-c
+*/
+  /*
+  For Windows, we use the 64-bit api variants of function calls
+  to accomodate larger files instead of using the standard C
+  versions so the result will be same size for both 32-bit and
+  64-bit versions of Windows.  The size_t grows from 32-bits in
+  Windows to 64-bits.
+
+  Making this WORSE is that older versions of the Microsoft C
+  run-time-library do NOT use the standard GNU identifiers so I had
+  to barrow constants from:
+   https://code.google.com/archive/p/msinttypes/
+  */
+#if defined(_MSC_VER)
+  #define F_I_FILE_SIZE           "%lu"
+  #if defined(_WIN64)
+    #define F_BLOB_SIZE_T         "%I64u"
+  #else
+    #define F_BLOB_SIZE_T         "PRIu32"
+  #endif
+#elif defined(__GNUC__)
+  #if defined(__MINGW32__)
+    #define F_I_FILE_SIZE          PRId64
+    #define F_BLOB_SIZE_T          PRIuPTR
+  #else
+    #define F_I_FILE_SIZE          PRIiPTR
+    #define F_BLOB_SIZE_T          PRIuPTR
+  #endif
+#endif
 
 void fill_dummy_image(FLIF_IMAGE* image)
 {
@@ -110,12 +150,19 @@ int compare_file_and_blob(const void* blob, size_t blob_size, const char* filena
         const uint8_t* blob_ptr = (const uint8_t*)blob;
 
         fseek(f, 0, SEEK_END);
+#ifdef _WIN32
+        int64_t file_size = _ftelli64(f);
+        fseek(f, 0, SEEK_SET);
+
+        if(file_size != (int64_t)blob_size)
+#else
         long int file_size = ftell(f);
         fseek(f, 0, SEEK_SET);
 
-        if(file_size != blob_size)
+        if(file_size != (long int)blob_size)
+#endif
         {
-            printf("Error: flif file size: %ld <---> flif blob size: %zu\n", file_size, blob_size);
+            printf("Error: flif file size: %"F_I_FILE_SIZE" <---> flif blob size: %"F_BLOB_SIZE_T"\n", file_size, blob_size);
             result = 1;
         }
         else
@@ -126,14 +173,14 @@ int compare_file_and_blob(const void* blob, size_t blob_size, const char* filena
                 int c = fgetc(f);
                 if(c == EOF)
                 {
-                    printf("IO error: premature EOF at %zu\n", i);
+                    printf("IO error: premature EOF at %" F_BLOB_SIZE_T "\n", i);
                     result = 1;
                     break;
                 }
 
                 if(c != *(blob_ptr + i))
                 {
-                    printf("Error: file and blob do not match at %zu\n", i);
+                    printf("Error: file and blob do not match at %" F_BLOB_SIZE_T "\n", i);
                     result = 1;
                     break;
                 }
@@ -273,13 +320,13 @@ int main(int argc, char** argv)
             int depth = flif_info_get_depth(info);
             int n = flif_info_num_images(info);
 
-            if(w != WIDTH ||
-               h != HEIGHT ||
+            if((size_t) w != WIDTH ||
+               (size_t) h != HEIGHT ||
                channels != 4 ||
                depth != 8 ||
                n != 1)
             {
-                printf("Error: info should be %zux%zu, %d channels, %d bit, %d images.\n"
+                printf("Error: info should be %"F_BLOB_SIZE_T"%"F_BLOB_SIZE_T", %d channels, %d bit, %d images.\n"
                        "       Instead it is %dx%d, %d channels, %d bit, %d images.\n",
                        WIDTH, HEIGHT, 4, 8, 1,
                        w, h, channels, depth, n);

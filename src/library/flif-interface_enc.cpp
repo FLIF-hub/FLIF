@@ -181,6 +181,11 @@ FLIF_DLLEXPORT void FLIF_API flif_encoder_set_alpha_zero(FLIF_ENCODER* encoder, 
     catch(...) {}
 }
 
+FLIF_DLLIMPORT void FLIF_API flif_encoder_set_alpha_zero_lossless(FLIF_ENCODER* encoder) {
+    flif_encoder_set_alpha_zero(encoder,1); 
+}
+ 
+
 FLIF_DLLEXPORT void FLIF_API flif_encoder_set_crc_check(FLIF_ENCODER* encoder, uint32_t crc_check) {
     encoder->options.crc_check = crc_check;
 }

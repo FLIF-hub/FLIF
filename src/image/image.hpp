@@ -184,7 +184,7 @@ public:
     virtual void set(const int z, const size_t r, const size_t c, const ColorVal x) =0;
     virtual ColorVal get(const int z, const size_t r, const size_t c) const =0;
     virtual void normalize_scale() {}
-    virtual void accept_visitor(PlaneVisitor &v) =0;
+    virtual void accept_visitor(FLIF_UNUSED(PlaneVisitor &v)) =0;
     virtual uint32_t compute_crc32(uint32_t previous_crc32) =0;
     // access pixel by zoomlevel coordinate
     static size_t zoom_rowpixelsize(int zoomlevel) {
@@ -333,7 +333,7 @@ public:
 
     int bytes_per_pixel() const override { return sizeof(pixel_t); }
 
-    void accept_visitor(PlaneVisitor &v) override {
+    void accept_visitor(FLIF_UNUSED(PlaneVisitor &v)) override {
         v.visit(*this);
     }
     uint32_t compute_crc32(uint32_t previous_crc32) override {
@@ -362,34 +362,34 @@ class ConstantPlane final : public GeneralPlane {
     ColorVal color;
 public:
     explicit ConstantPlane(ColorVal c) : color(c) {}
-    void set(const size_t UNUSED(r), const size_t UNUSED(c), const ColorVal x) override {
+    void set(FLIF_UNUSED(const size_t r), FLIF_UNUSED(const size_t c), FLIF_UNUSED(const ColorVal x)) override {
         assert(x == color);
     }
-    ColorVal get(const size_t UNUSED(r), const size_t UNUSED(c)) const override {
+    ColorVal get(FLIF_UNUSED(const size_t r), FLIF_UNUSED(const size_t c)) const override {
         return color;
     }
 
-    void prepare_zoomlevel(const int UNUSED(z)) const override {}
-    ColorVal get_fast(size_t UNUSED(r), size_t UNUSED(c)) const override { return color; }
-    void set_fast(size_t UNUSED(r), size_t UNUSED(c), ColorVal x) override { assert(x == color); }
+    void prepare_zoomlevel(FLIF_UNUSED(const int z)) const override {}
+    ColorVal get_fast(FLIF_UNUSED(size_t r), FLIF_UNUSED(size_t c)) const override { return color; }
+    void set_fast(FLIF_UNUSED(size_t r), FLIF_UNUSED(size_t c), FLIF_UNUSED(ColorVal x)) override { assert(x == color); }
 
 #ifdef USE_SIMD
-    FourColorVals get4(const size_t UNUSED(pos)) const ATTRIBUTE_HOT {
+    FourColorVals get4(FLIF_UNUSED(const size_t pos)) const ATTRIBUTE_HOT {
         FourColorVals x {color,color,color,color};
         return x;
     }
-    void VCALL set4(const size_t UNUSED(pos), const FourColorVals x) override {
+    void VCALL set4(FLIF_UNUSED(const size_t pos), const FourColorVals x) override {
         assert(x[0] == color);
         assert(x[1] == color);
         assert(x[2] == color);
         assert(x[3] == color);
     }
-    EightColorVals get8(const size_t UNUSED(pos)) const ATTRIBUTE_HOT {
+    EightColorVals get8(FLIF_UNUSED(const size_t pos)) const ATTRIBUTE_HOT {
         int16_t c = color;
         EightColorVals x {c,c,c,c,c,c,c,c};
         return x;
     }
-    void VCALL set8(const size_t UNUSED(pos), const EightColorVals x) override {
+    void VCALL set8(FLIF_UNUSED(const size_t pos), const EightColorVals x) override {
         assert(x[0] == color);
         assert(x[1] == color);
         assert(x[2] == color);
@@ -402,15 +402,15 @@ public:
 #endif
     bool is_constant() const override { return true; }
 
-    void set(const int UNUSED(z), const size_t UNUSED(r), const size_t UNUSED(c), const ColorVal x) override {
+    void set(FLIF_UNUSED(const int z), FLIF_UNUSED(const size_t r), FLIF_UNUSED(const size_t c), FLIF_UNUSED(const ColorVal x)) override {
         assert(x == color);
     }
-    ColorVal get(const int UNUSED(z), const size_t UNUSED(r), const size_t UNUSED(c)) const override {
+    ColorVal get(FLIF_UNUSED(const int z), FLIF_UNUSED(const size_t r), FLIF_UNUSED(const size_t c)) const override {
         return color;
     }
 
 
-    void accept_visitor(PlaneVisitor &UNUSED(v)) override {
+    void accept_visitor(FLIF_UNUSED(PlaneVisitor &v)) override {
 //        v.visit(*this);
         assert(false); // there should never be a need to visit a constant plane
     }

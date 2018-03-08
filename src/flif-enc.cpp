@@ -50,7 +50,7 @@ template<typename RAC> void static write_name(RAC& rac, std::string desc) {
 // alphazero = false: image either has no alpha plane, or A=0 has no special meaning
 // FRA = true: image has FRA plane (animation with lookback)
 template<typename IO, typename Rac, typename Coder>
-void flif_encode_scanlines_inner(IO& io, Rac& UNUSED(rac), std::vector<Coder> &coders, const Images &images, const ColorRanges *ranges) {
+void flif_encode_scanlines_inner(IO& io, FLIF_UNUSED(Rac& rac), std::vector<Coder> &coders, const Images &images, const ColorRanges *ranges) {
     const std::vector<ColorVal> greys = computeGreys(ranges);
     ColorVal min,max;
     long fs = io.ftell();
@@ -666,7 +666,7 @@ void flif_make_lossy_interlaced(Images &images, const ColorRanges * ranges, int 
     }
 }
 
-template<typename IO, typename BitChance, typename Rac> void flif_encode_tree(IO& UNUSED(io), Rac &rac, const ColorRanges *ranges, const std::vector<Tree> &forest, const flifEncoding encoding)
+template<typename IO, typename BitChance, typename Rac> void flif_encode_tree(FLIF_UNUSED(IO& io), Rac &rac, const ColorRanges *ranges, const std::vector<Tree> &forest, const flifEncoding encoding)
 {
     for (int p = 0; p < ranges->numPlanes(); p++) {
         Ranges propRanges;

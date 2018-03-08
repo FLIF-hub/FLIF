@@ -5,18 +5,14 @@
  License: Creative Commons CC0 1.0 Universal (Public Domain)
  https://creativecommons.org/publicdomain/zero/1.0/legalcode
 */
-#if defined(__GNUC__)
 #if defined(__MINGW32__)
 /* Use Gnu-style printf and scanf - see: https://sourceforge.net/p/mingw-w64/wiki2/gnu%20printf/ */
 #define __USE_MINGW_ANSI_STDIO 1
 #endif
-/* allow use of inttypes macros in C++. */
-#define __STDC_FORMAT_MACROS
-#endif
 #include <flif_dec.h>
 #include <stdlib.h>
 #include <stdio.h>
-#if defined(__GNUC__)
+#if !defined(_MSC_VER)
 /* Use inttypes.h format macros for greater portability */
 #include <inttypes.h>
 #endif
@@ -28,13 +24,13 @@
 /* FIX COMPILER WARNINGS  */
 /**************************/
 
-#ifdef UNUSED
-#elif defined(__GNUC__) 
-# define UNUSED(x) UNUSED_ ## x __attribute__((unused)) 
+#ifdef FLIF_UNUSED
+#elif defined(__GNUC__) || defined(__clang__)
+# define FLIF_UNUSED(x) x __attribute__((unused)) 
 #elif defined(__LCLINT__) 
-# define UNUSED(x) /*@unused@*/ x 
+# define FLIF_UNUSED(x) /*@unused@*/ x 
 #else 
-# define UNUSED(x) x 
+# define FLIF_UNUSED(x) x 
 #endif
 
 // SDL2 for Visual Studio C++ 2015
@@ -144,11 +140,18 @@ int do_event(SDL_Event e) {
 
 // returns true on success
 bool updateTextures(uint32_t quality, int64_t bytes_read) {
-// Note I would've liked to use inttypes.h PRIi64 but the compiler wouldn't solve it.
-    #if defined(__GNUC__)
-    printf("%" PRId64 " bytes read, rendering at quality=%.2f%%\n", bytes_read, 0.01*quality);
-    #else
+/* Old versions Microsoft C did not use the standard print specifiers. See:
+   https://msdn.microsoft.com/en-us/library/tcxf1dw6(v=vs.90).aspx
+
+   In fact, mingw-w64 had to provide their own implementation just to work
+   the issue with the incompatibility with old versions of msvcrt.dll.  See:
+
+   https://sourceforge.net/p/mingw-w64/wiki2/gnu%20printf/
+*/
+    #if defined(_MSC_VER)
     printf("%lli bytes read, rendering at quality=%.2f%%\n",(long long int) bytes_read, 0.01*quality);
+    #else
+    printf("%" PRId64 " bytes read, rendering at quality=%.2f%%\n", bytes_read, 0.01*quality);
     #endif
 
     FLIF_IMAGE* image = flif_decoder_get_image(d, 0);
@@ -159,10 +162,10 @@ bool updateTextures(uint32_t quality, int64_t bytes_read) {
     // set the window title and size
     if (!window) { printf("Error: Could not create window\n"); return false; }
     char title[100];
-    #if defined(__GNUC__)
-    sprintf(title,"FLIF image decoded at %ux%u [read %" PRId64 " bytes, quality=%.2f%%]",w,h,(long long int) bytes_read, 0.01*quality);
-    #else
+    #if defined(_MSC_VER)
     sprintf(title,"FLIF image decoded at %ux%u [read %lli bytes, quality=%.2f%%]",w,h,(long long int) bytes_read, 0.01*quality);
+    #else
+    sprintf(title,"FLIF image decoded at %ux%u [read %" PRId64 " bytes, quality=%.2f%%]",w,h,(long long int) bytes_read, 0.01*quality);
     #endif
     SDL_SetWindowTitle(window,title);
     if (!window_size_set && RESIZE_TO_IMAGE_EVENTTYPE != (Uint32)-1) {
@@ -234,7 +237,7 @@ clock_t last_preview_time = 0;
 //                    resizes the viewer window if needed, and calls draw_image()
 // Input arguments are: quality (0..10000), current position in the .flif file
 // Output is the desired minimal quality before doing the next callback
-uint32_t progressive_render(uint32_t quality, int64_t bytes_read, uint8_t decode_over, void *UNUSED(user_data), void *context) {
+uint32_t progressive_render(uint32_t quality, int64_t bytes_read, uint8_t decode_over, FLIF_UNUSED(void *user_data), void *context) {
     if (SDL_LockMutex(mutex) == 0) {
       clock_t now = clock();
       double timeElapsed = ((double)(now - last_preview_time)) / CLOCKS_PER_SEC;

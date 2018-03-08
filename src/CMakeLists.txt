@@ -92,16 +92,39 @@ endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra")
     if(WIN32)
 #This is neeeded to prevent warnings such as:
 #mingw The ABI for passing parameters with 16-byte alignment has changed in GCC 4.6
 #if you compile for i686.
 #but the downside is that the compiled binaries might not work with some old CPU's.
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx")
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mavx")
     endif(WIN32)
     set(CMAKE_CXX_FLAGS_DEBUG "-ggdb3")
+    set(CMAKE_C_FLAGS_DEBUG "-ggdb3")
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ftree-vectorize")
-endif()
+    set(CMAKE_C_FLAGS_RELEASE "-O3 -ftree-vectorize")
+else()
+# Clang specific things
+# from: https://stackoverflow.com/questions/10046114/in-cmake-how-can-i-test-if-the-compiler-is-clang
+    if (CMAKE_CXX_COMPILER_ID MATCHES "[cC][lL][aA][nN][gG]") #Case insensitive match
+       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra")
+       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra")
+       if(WIN32)
+#This is neeeded to prevent warnings such as:
+#mingw The ABI for passing parameters with 16-byte alignment has changed in GCC 4.6
+#if you compile for i686.
+#but the downside is that the compiled binaries might not work with some old CPU's.
+          set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx")
+          set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mavx")
+      endif(WIN32)
+      set(CMAKE_CXX_FLAGS_DEBUG "-ggdb3")
+      set(CMAKE_C_FLAGS_DEBUG "-ggdb3")
+      set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ftree-vectorize")
+      set(CMAKE_C_FLAGS_RELEASE "-O3 -ftree-vectorize")
+    endif(CMAKE_CXX_COMPILER_ID MATCHES "[cC][lL][aA][nN][gG]") #Case insensitive match
+endif(CMAKE_COMPILER_IS_GNUCXX)
 
 if(USE_ASAN)
     message(STATUS "Using ASAN")
@@ -139,7 +162,6 @@ endif()
 if(BUILD_SHARED_LIBS)
     add_library(flif_lib SHARED ${COMMON_SOURCES} ${FLIF_ENC_FILES})
     add_library(flif_lib_dec SHARED ${COMMON_SOURCES} ${FLIF_DEC_FILES} ${FLIF_DEC_HEADERS})
-#${FLIF_SRC_DIR}/library/flif-interface_dec.cpp)
 
     target_link_libraries(flif_lib ${PNG_LIBRARY} ${STATIC_LINKED_LIBS})
     target_link_libraries(flif_lib_dec ${PNG_LIBRARY} ${STATIC_LINKED_LIBS})
@@ -289,7 +311,6 @@ if(${SDL2_FOUND} AND ${BUILD_SHARED_LIBS})
     else(WIN32)
       add_executable(viewflif ${FLIF_SRC_DIR}/viewflif.c)
     endif(WIN32)
-    set_source_files_properties(${FLIF_SRC_DIR}/viewflif.c PROPERTIES LANGUAGE CXX)
     if ("${PKG_SDL2_STATIC_LIBRARIES}" STREQUAL "")
       target_link_libraries(viewflif flif_lib_dec ${SDL2_LIBRARY} ${SDL2MAIN_LIBRARY})
     else("${PKG_SDL2_STATIC_LIBRARIES}" STREQUAL "")
