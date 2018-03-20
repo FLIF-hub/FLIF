@@ -95,7 +95,7 @@ public:
 
 class RacDummy {
 public:
-    static void inline write_12bit_chance(uint16_t b12, bool) { }
+    static void inline write_12bit_chance(FLIF_UNUSED(uint16_t b12), bool) { }
     static void inline write_bit(bool) { }
     static void inline flush() { }
 };

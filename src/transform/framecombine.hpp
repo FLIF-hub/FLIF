@@ -154,7 +154,7 @@ protected:
 #endif
 
     void configure(const int setting) override { user_max_lookback=nb_frames=setting; }
-    void invData(Images &images, uint32_t strideCol, uint32_t strideRow) const override {
+    void invData(Images &images, FLIF_UNUSED(uint32_t strideCol), FLIF_UNUSED(uint32_t strideRow)) const override {
         // most work has to be done on the fly in the decoder, this is just some cleaning up
         for (Image& image : images) image.drop_frame_lookbacks();
         if (was_flat) for (Image& image : images) image.drop_alpha();

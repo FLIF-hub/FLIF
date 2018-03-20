@@ -268,7 +268,7 @@ bool encode_load_input_images(int argc, char **argv, Images &images, flif_option
     return false;
 }
 
-bool encode_flif(int argc, char **argv, Images &images, flif_options &options) {
+bool encode_flif(FLIF_UNUSED(int argc), char **argv, Images &images, flif_options &options) {
     bool flat=true;
     unsigned int framenb=0;
     for (Image& i : images) { i.frame_delay = options.frame_delay[framenb]; if (framenb+1 < options.frame_delay.size()) framenb++; }

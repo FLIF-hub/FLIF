@@ -134,7 +134,7 @@ static GdkPixbuf *gdk_pixbuf__flif_image_load (FILE *f, GError **error) {
     gint32 rowstride = gdk_pixbuf_get_rowstride(pixbuf);
     guchar *pixels = gdk_pixbuf_get_pixels(pixbuf);
     guchar *rowpointer = pixels;
-    for (uint32_t row = 0; row < h; row++) {
+    for (uint32_t row = 0; row < (uint32_t)h; row++) {
         flif_image_read_row_RGBA8(image, row, rowpointer, w * 4);
         rowpointer += rowstride;
     }
@@ -263,7 +263,7 @@ static gboolean gdk_pixbuf__flif_image_load_increment (gpointer user_context, co
             gint scaled_h = context->h;
 
             (* context->size_func) (&scaled_w, &scaled_h, context->user_data);
-            if (scaled_w != context->w || scaled_h != context->h) {
+            if ((guint)scaled_w != context->w || (guint)scaled_h != context->h) {
                 context->w = scaled_w;
                 context->h = scaled_h;
             }

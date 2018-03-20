@@ -195,7 +195,7 @@ public:
     }
 
 #ifdef HAS_ENCODER
-    bool process(const ColorRanges *srcRanges, const Images &images) override {
+    bool process(FLIF_UNUSED(const ColorRanges *srcRanges), const Images &images) override {
         if (images[0].palette) return false; // skip YCoCg if the image is already a palette image
         return true;
     }

@@ -49,6 +49,6 @@ public:
     void virtual data(Images&) const {}
 #endif
     const ColorRanges virtual *meta(Images&, const ColorRanges *srcRanges) { return new DupColorRanges(srcRanges); }
-    void virtual invData(Images&, uint32_t strideCol=1, uint32_t strideRow=1) const {}
+    void virtual invData(Images&, FLIF_UNUSED(uint32_t strideCol)=1, FLIF_UNUSED(uint32_t strideRow)=1) const {}
     bool virtual is_palette_transform() const { return false; }
 };

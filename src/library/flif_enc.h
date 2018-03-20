@@ -58,7 +58,8 @@ extern "C" {
     FLIF_DLLIMPORT void FLIF_API flif_encoder_set_split_threshold(FLIF_ENCODER* encoder, int32_t threshold);   // default: 64 (-T)
     // The default is to not store RGB values of fully transparent pixels. If you want to avoid that, you have to change it with this function!
     FLIF_DLLIMPORT void FLIF_API flif_encoder_set_alpha_zero(FLIF_ENCODER* encoder, int32_t lossless);  // 0 = default (RGB undefined when A=0), 1 = keep RGB at A=0 (-K)
-    FLIF_DLLIMPORT void FLIF_API flif_encoder_set_alpha_zero_lossless(FLIF_ENCODER* encoder) { flif_encoder_set_alpha_zero(encoder,1); };
+    //error: dllimport cannot be applied to non-inline function definition
+    FLIF_DLLIMPORT void FLIF_API flif_encoder_set_alpha_zero_lossless(FLIF_ENCODER* encoder);
     FLIF_DLLIMPORT void FLIF_API flif_encoder_set_chance_cutoff(FLIF_ENCODER* encoder, int32_t cutoff); // default: 2  (-X)
     FLIF_DLLIMPORT void FLIF_API flif_encoder_set_chance_alpha(FLIF_ENCODER* encoder, int32_t alpha);   // default: 19 (-Z)
     FLIF_DLLIMPORT void FLIF_API flif_encoder_set_crc_check(FLIF_ENCODER* encoder, uint32_t crc_check); // 0 = no CRC, 1 = add CRC

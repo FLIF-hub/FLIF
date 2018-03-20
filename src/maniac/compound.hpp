@@ -165,7 +165,7 @@ private:
     }
 
 public:
-    FinalPropertySymbolCoder(RAC& racIn, Ranges &rangeIn, Tree &treeIn, int ignored_split_threshold = 0, int cut = 4, int alpha = 0xFFFFFFFF / 20) :
+    FinalPropertySymbolCoder(RAC& racIn, Ranges &rangeIn, Tree &treeIn, int FLIF_UNUSED(ignored_split_threshold) = 0, int cut = 4, int alpha = 0xFFFFFFFF / 20) :
         coder(racIn, cut, alpha),
 //        range(rangeIn),
         nb_properties(rangeIn.size()),
@@ -192,7 +192,7 @@ public:
 #ifdef HAS_ENCODER
     void write_int(const Properties &properties, int min, int max, int val);
     void write_int(const Properties &properties, int nbits, int val);
-    static void simplify(int divisor=CONTEXT_TREE_COUNT_DIV, int min_size=CONTEXT_TREE_MIN_SUBTREE_SIZE, int plane=0) {}
+    static void simplify(FLIF_UNUSED(int divisor)=CONTEXT_TREE_COUNT_DIV, FLIF_UNUSED(int min_size)=CONTEXT_TREE_MIN_SUBTREE_SIZE, FLIF_UNUSED(int plane)=0) {}
     static uint64_t compute_total_size() {return 0;}
 #endif
 
