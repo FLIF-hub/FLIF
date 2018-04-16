@@ -15,7 +15,7 @@ ifeq ($(OSNAME),Darwin)
 endif
 
 # for running interface-test
-export LD_LIBRARY_PATH=$(shell pwd):/usr/local/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH := $(shell pwd):/usr/local/lib:$(LD_LIBRARY_PATH)
 
 FILES_H := maniac/*.hpp maniac/*.cpp image/*.hpp transform/*.hpp flif-enc.hpp flif-dec.hpp common.hpp flif_config.h fileio.hpp io.hpp io.cpp config.h compiler-specific.hpp ../extern/lodepng.h
 FILES_CPP := maniac/chance.cpp maniac/symbol.cpp image/crc32k.cpp image/image.cpp image/image-png.cpp image/image-pnm.cpp image/image-pam.cpp image/image-rggb.cpp image/image-metadata.cpp image/color_range.cpp transform/factory.cpp common.cpp flif-enc.cpp flif-dec.cpp io.cpp ../extern/lodepng.cpp
@@ -38,11 +38,11 @@ endif
 
 # This is how .cpp files are compiled to .o files
 .cpp.o:
-	$(CXX) -c -std=gnu++11 $(CXXFLAGS) $(OPTIMIZATIONS) -g0 -Wall -fPIC -o $*.o $*.cpp
+	$(CXX) -c -std=gnu++11 $(CPPFLAGS) $(CXXFLAGS) $(OPTIMIZATIONS) -Wall -fPIC -o $*.o $*.cpp
 
 # Command-line FLIF encoding/decoding tool - LGPLv3
 flif: $(FILES_O) flif.o
-	$(CXX) -std=gnu++11 $(LIB_OPTIMIZATIONS) -g0 -Wall -fPIC -o flif flif.o $(FILES_O) $(LDFLAGS)
+	$(CXX) -std=gnu++11 $(CXXFLAGS) $(CPPFLAGS) $(LIB_OPTIMIZATIONS) -Wall -fPIC -o flif flif.o $(FILES_O) $(LDFLAGS)
 
 # Command-line FLIF decoding tool - Apache2 (not built by default)
 dflif: $(FILES_H) libflif_dec$(LIBEXT) flif.cpp
@@ -56,7 +56,7 @@ libflif_dec$(LIBEXT): $(FILES_H) $(FILES_CPP) library/flif_dec.h library/flif-in
 
 # Decoder + encoder library - LGPL
 libflif$(LIBEXT): $(FILES_O) library/flif-interface.o
-	$(CXX) -shared -std=gnu++11 $(LIB_OPTIMIZATIONS) -g0 -Wall -fPIC -o libflif$(LIBEXTV) $(FILES_O) library/flif-interface.o -Wl,$(SONAME),libflif$(LIBEXTV) $(LDFLAGS)
+	$(CXX) -shared -std=gnu++11 $(CPPFLAGS) $(CXXFLAGS) $(LIB_OPTIMIZATIONS) -Wall -fPIC -o libflif$(LIBEXTV) $(FILES_O) library/flif-interface.o -Wl,$(SONAME),libflif$(LIBEXTV) $(LDFLAGS)
 	ln -sf libflif$(LIBEXTV) libflif$(LIBEXT)
 
 libflif.dbg$(LIBEXT): $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/*.cpp
@@ -65,7 +65,7 @@ libflif.dbg$(LIBEXT): $(FILES_H) $(FILES_CPP) library/*.h library/*.hpp library/
 
 # Example application: simple FLIF viewer - public domain
 viewflif: libflif$(LIBEXT) viewflif.c
-	$(CC) -std=gnu11 -O3 -ggdb3 $(shell sdl2-config --cflags) -Wall -Ilibrary/ viewflif.c -L. -lflif $(shell sdl2-config --libs) -o viewflif
+	$(CC) -std=gnu11 $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -O3 $(shell sdl2-config --cflags) -Wall -Ilibrary/ viewflif.c -L. -lflif $(shell sdl2-config --libs) -o viewflif
 
 # gdk-pixbuf loader, enabling FLIF-viewing in pixbuf applications like Eye of Gnome
 # The loader is LGPLed so there's no reason to use libflif_dec here
