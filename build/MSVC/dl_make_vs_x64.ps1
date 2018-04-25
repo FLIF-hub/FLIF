@@ -1,1 +1,0 @@
-./dl_make_vs.ps1 amd64
