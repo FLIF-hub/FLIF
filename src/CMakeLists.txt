@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(flif)
-
+ 
 include(GNUInstallDirs)
 include(FindPkgConfig)
 find_package(PNG REQUIRED)
