@@ -17,6 +17,18 @@ Options:
   -h, --help         Show this screen.
 """
 
+def find_objects(n, dirpaths):
+    objects = []
+    for dirpath in dirpaths:
+        for root, dirnames, filenames in os.walk(dirpath):
+            for filename in fnmatch.filter(filenames, "*.cpp"):
+                if "flif-interface" in filename:
+                    continue
+                src = os.path.join(root, filename)
+                obj = os.path.join("obj", os.path.splitext(src)[0] + ".o")
+                n.build(obj, "cxx", src)
+                objects.append(obj)
+    return objects
 
 def write_ninja(n, args):
     ########################
@@ -49,16 +61,7 @@ def write_ninja(n, args):
     ###################
     # Build commands. #
     ###################
-    objects = []
-    for root, dirnames, filenames in os.walk("src"):
-        for filename in fnmatch.filter(filenames, "*.cpp"):
-            if "flif-interface" in filename:
-                continue
-            src = os.path.join(root, filename)
-            obj = os.path.join("obj", os.path.splitext(src)[0] + ".o")
-            n.build(obj, "cxx", src)
-            objects.append(obj)
-
+    objects = find_objects(n, ["extern", "src"])
     n.build("src/flif" + exe_ext, "cxxlink", objects)
     n.default("src/flif" + exe_ext)
 
