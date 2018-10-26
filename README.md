@@ -102,7 +102,6 @@ These will be available on the Release page
 * **[FLIF Windows Codec](https://github.com/peirick/FlifWICCodec)** – A plugin that allows you to decode and encode FLIF files in Windows aplications using the Windows Imaging Component (WIC) API. That allows e.g., to see the files in Windows PhotoViewer and Windows Explorer.
 * **[FLIF Windows Plugin](https://github.com/fherzog2/flif_windows_plugin)** – This plugin enables decoding of FLIF images in applications which use the Windows Imaging Component API. In this way, FLIF images can be viewed in Windows Explorer like other common image formats.
 * **[qt-flif-plugin](https://github.com/spillerrec/qt-flif-plugin)** – Enables Qt4 and Qt5 applications to load images in the FLIF image format.
-* **[FLIFSharp](https://github.com/purenewman/FLIFSharp)** – C# FLIF Library Bindings.
 * **[go-flif](https://github.com/chrisfelesoid/go-flif)** – Go FLIF Library Bindings.
 * **[Phew](https://sveinbjorn.org/phew)** - Image viewer for macOS with QuickLook plugin
 * **[flif-wasm](https://github.com/saschanaz/flif-wasm)** - Node.js-ported FLIF command-line tool.
