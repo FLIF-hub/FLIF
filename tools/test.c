@@ -33,9 +33,9 @@ https://stackoverflow.com/questions/1546789/clean-code-to-printf-size-t-in-c-or-
    https://code.google.com/archive/p/msinttypes/
   */
 #if defined(_MSC_VER)
-  #define F_I_FILE_SIZE           "%lu"
+  #define F_I_FILE_SIZE           "lu"
   #if defined(_WIN64)
-    #define F_BLOB_SIZE_T         "%I64u"
+    #define F_BLOB_SIZE_T         "I64u"
   #else
     #define F_BLOB_SIZE_T         "PRIu32"
   #endif
