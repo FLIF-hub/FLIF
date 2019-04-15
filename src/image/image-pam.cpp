@@ -68,6 +68,7 @@ bool image_load_pam_fp(FILE *fp, Image& image) {
 #ifndef SUPPORT_HDR
     if (maxval > 0xff) {
         e_printf("PAM file has more than 8 bit per channel, this FLIF cannot handle that.\n");
+        fclose(fp);
         return false;
     }
 #endif
@@ -78,8 +79,16 @@ bool image_load_pam_fp(FILE *fp, Image& image) {
         for (unsigned int y=0; y<height; y++) {
           for (unsigned int x=0; x<width; x++) {
             for (unsigned int c=0; c<nbplanes; c++) {
-                ColorVal pixel= (fgetc(fp) << 8);
-                pixel += fgetc(fp);
+                int msb = fgetc(fp);
+                int lsb = fgetc(fp);
+                if (msb == EOF || lsb == EOF) {
+                    e_printf("PAM file has insufficient data.\n");
+                    fclose(fp);
+                    return false;
+                }
+                ColorVal pixel = (msb << 8) + lsb;
+                if (pixel > maxval)
+                    pixel = maxval;
                 image.set(c,y,x, pixel);
             }
           }
@@ -88,7 +97,15 @@ bool image_load_pam_fp(FILE *fp, Image& image) {
         for (unsigned int y=0; y<height; y++) {
           for (unsigned int x=0; x<width; x++) {
             for (unsigned int c=0; c<nbplanes; c++) {
-                image.set(c,y,x, fgetc(fp));
+                int pixel = fgetc(fp);
+                if (pixel == EOF) {
+                    e_printf("PAM file has insufficient data.\n");
+                    fclose(fp);
+                    return false;
+                }
+                if (pixel > maxval)
+                    pixel = maxval;
+                image.set(c,y,x, pixel);
             }
           }
         }
