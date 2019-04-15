@@ -690,10 +690,17 @@ public:
       width = w;
       height = h;
       minval = min;
+      if (max & (max + 1)) {
+        max |= max >> 1;
+        max |= max >> 2;
+        max |= max >> 4;
+        max |= max >> 8;
+      }
       maxval = max;
       num = p;
       seen_before = -1;
 #ifdef SUPPORT_HDR
+      assert(max<65536);
       if (max < 256) depth=8; else depth=16;
 #else
       assert(max<256);
