@@ -78,6 +78,7 @@ private:
     const uint8_t* data;
     size_t data_array_size;
     size_t seek_pos;
+    bool readEOS;
 public:
     const int EOS = -1;
 
@@ -85,18 +86,25 @@ public:
     : data(_data)
     , data_array_size(_data_array_size)
     , seek_pos(0)
+    , readEOS(false)
     {
     }
 
     bool isEOF() const {
-        return seek_pos >= data_array_size;
+        if(readEOS) {
+            return true;
+        } else {
+            return false;
+        }
     }
     long ftell() const {
         return seek_pos;
     }
     int get_c() {
-        if(seek_pos >= data_array_size)
+        if(seek_pos >= data_array_size) {
+            readEOS = true;
             return EOS;
+        }
         return data[seek_pos++];
     }
     char * gets(char *buf, int n) {
@@ -106,16 +114,19 @@ public:
             buf[i++] = data[seek_pos++];
         buf[n-1] = '\0';
 
-        if(i < max_write)
+        if(i < max_write) {
+            readEOS = true;
             return 0;
-        else
+        } else {
             return buf;
+        }
     }
     int fputc(int FLIF_UNUSED(c)) {
       // cannot write on const memory
       return EOS;
     }
     void fseek(long offset, int where) {
+        readEOS = false;
         switch(where) {
         case SEEK_SET:
             seek_pos = offset;
@@ -146,8 +157,10 @@ private:
     // keeps track how many bytes were written
     size_t bytes_used;
     size_t seek_pos;
+    bool readEOS;
 
     void grow(size_t necessary_size) {
+        readEOS = false;
         if(necessary_size < data_array_size)
             return;
 
@@ -177,6 +190,7 @@ public:
     , data_array_size(0)
     , bytes_used(0)
     , seek_pos(0)
+    , readEOS(false)
     {
     }
 
@@ -200,14 +214,20 @@ public:
         // nothing to do
     }
     bool isEOF() const {
-        return seek_pos >= bytes_used;
+        if(readEOS) {
+            return true;
+        } else {
+            return false;
+        }
     }
-    int ftell() const {
+    long ftell() const {
         return seek_pos;
     }
     int get_c() {
-        if(seek_pos >= bytes_used)
+        if(seek_pos >= bytes_used) {
+            readEOS = true;
             return EOS;
+        }
         return data[seek_pos++];
     }
     char * gets(char *buf, int n) {
@@ -217,10 +237,12 @@ public:
             buf[i++] = data[seek_pos++];
         buf[n-1] = '\0';
 
-        if(i < max_write)
+        if(i < max_write) {
+            readEOS = true;
             return 0;
-        else
+        } else {
             return buf;
+        }
     }
     int fputs(const char *s) {
         size_t i = 0;
@@ -243,6 +265,7 @@ public:
         return c;
     }
     void fseek(long offset, int where) {
+        readEOS = false;
         switch(where) {
         case SEEK_SET:
             seek_pos = offset;
