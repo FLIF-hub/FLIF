@@ -165,7 +165,7 @@ bool updateTextures(uint32_t quality, int64_t bytes_read) {
     #if defined(_MSC_VER)
     sprintf(title,"FLIF image decoded at %ux%u [read %lli bytes, quality=%.2f%%]",w,h,(long long int) bytes_read, 0.01*quality);
     #else
-    sprintf(title,"FLIF image decoded at %ux%u [read %" PRId64 " bytes, quality=%.2f%%]",w,h,(long long int) bytes_read, 0.01*quality);
+    sprintf(title,"FLIF image decoded at %ux%u [read %" PRId64 " bytes, quality=%.2f%%]",w,h, bytes_read, 0.01*quality);
     #endif
     SDL_SetWindowTitle(window,title);
     if (!window_size_set && RESIZE_TO_IMAGE_EVENTTYPE != (Uint32)-1) {
