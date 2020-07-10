@@ -1,3 +1,10 @@
+
+---
+**FLIF development has stopped since FLIF is superceded by FUIF and then again by JPEG XL (https://jpeg.org/jpegxl/index.html), which is based on a combination of Pik and FUIF.
+A royalty-free and open source reference implementation of JPEG XL is available on [GitLab](https://gitlab.com/wg1/jpeg-xl).**
+
+---
+
 # FLIF: Free Lossless Image Format
 
 [![Build Status](https://travis-ci.org/FLIF-hub/FLIF.svg?branch=master)](https://travis-ci.org/FLIF-hub/FLIF)
