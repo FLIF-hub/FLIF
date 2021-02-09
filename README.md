@@ -1,6 +1,6 @@
 
 ---
-**FLIF development has stopped since FLIF is superceded by FUIF and then again by [JPEG XL](https://jpeg.org/jpegxl), which is based on a combination of [Pik](https://github.com/google/pik) and [FUIF](https://github.com/cloudinary/fuif).
+**FLIF development has stopped since FLIF is superseded by FUIF and then again by [JPEG XL](https://jpeg.org/jpegxl), which is based on a combination of [Pik](https://github.com/google/pik) and [FUIF](https://github.com/cloudinary/fuif).
 A royalty-free and open source reference implementation of JPEG XL is available on [GitLab](https://gitlab.com/wg1/jpeg-xl). For more information, see [Jon's JXL info page](https://sneyers.info/jxl) or visit the [JPEG XL Discord server](https://discord.gg/DqkQgDRTFu)**
 
 ---
