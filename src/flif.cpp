@@ -154,6 +154,8 @@ void show_banner() {
     v_printf(3,"License Apache 2.0 (compiled with decoder only)\n");
 #endif
     v_printf(3,"\n");
+    v_printf(1,"ATTENTION: FLIF has been obsoleted by JPEG XL, see jpegxl.info for details.\n");
+    v_printf(3,"\n");
     v_printf(4,"This is free software: you are free to change and redistribute it.\n");
     v_printf(4,"There is NO WARRANTY, to the extent permitted by law.\n");
 #ifndef HAS_ENCODER
