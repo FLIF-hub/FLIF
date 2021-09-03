@@ -115,3 +115,4 @@ These will be available on the Release page
 * **[node-flif](https://github.com/FLIF-hub/node-flif)** - A Node.JS wrapper that allows you to use JavaScript to interact with the CLI.
 * **[SimplEx FLIF](https://github.com/Atrus09/SimplEx-FLIF)** - A simple and extensive GUI intermediary for the native executables.
 * **[WinFLIF](https://github.com/Zaczero/WinFLIF)** - Small Windows desktop app for converting to/from FLIF/PNG stills.
+* **[imageio-FLIF](https://codeberg.org/monilophyta/imageio-flif)** - An [Imageio](https://imageio.github.io) (Python) plugin for reading and writing FLIF images and animations
