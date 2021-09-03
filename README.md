@@ -10,6 +10,7 @@ A royalty-free and open source reference implementation of JPEG XL is available 
 [![Build Status](https://travis-ci.org/FLIF-hub/FLIF.svg?branch=master)](https://travis-ci.org/FLIF-hub/FLIF)
 [![Join the chat at https://gitter.im/jonsneyers/FLIF](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/jonsneyers/FLIF?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Donate via Gratipay](https://img.shields.io/gratipay/flif.svg)](https://gratipay.com/flif/)
+[![flif](https://snapcraft.io//flif/badge.svg)](https://snapcraft.io/flif)
 
 FLIF is a lossless image format based on MANIAC compression. MANIAC (Meta-Adaptive Near-zero Integer Arithmetic Coding)
 is a variant of CABAC (context-adaptive binary arithmetic coding), where the contexts are nodes of decision trees
@@ -95,6 +96,10 @@ On Ubuntu:
 These will be available on the Release page
 
 * https://github.com/FLIF-hub/FLIF/releases
+
+Or, you can get the Snap package:
+
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/flif)
 
 * * *
 
