@@ -26,13 +26,13 @@ const std::vector<std::string> transforms = {"Channel_Compact", "YCoCg", "?? YCb
                                              "?? Other ??" };
 // Plenty of room for future extensions: transform "Other" can be used to encode identifiers of arbitrary many other transforms
 
-// Some global variables used to show progress and to know when to stop a partial/progressive decode
-// (TODO: avoid global variables)
-int64_t pixels_todo = 0;
-int64_t pixels_done = 0;
-int progressive_qual_target = 0;
-int progressive_qual_shown = -1;
-
+Progress::Progress()
+{
+    pixels_todo = 0;
+    pixels_done = 0;
+    progressive_qual_target = 0;
+    progressive_qual_shown = -1;
+}
 
 // The order in which the planes are encoded.
 // Lookback (animations-only, value refers to a previous frame) has to be first, because all other planes are not encoded if lookback != 0

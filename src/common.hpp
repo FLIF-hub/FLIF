@@ -33,11 +33,17 @@ limitations under the License.
 #include "io.hpp"
 
 
-extern int64_t pixels_todo;
-extern int64_t pixels_done;
-extern int progressive_qual_target;
-extern int progressive_qual_shown;
-
+// Variables used to show progress and to know when to stop a partial/progressive decode
+struct Progress
+{
+    Progress();
+    int64_t pixels_todo;
+    int64_t pixels_done;
+    int progressive_qual_target;
+    int progressive_qual_shown;
+    int quality() const { return (int)(10000 * pixels_done / pixels_todo); }
+    bool reached_target() const { return quality() >= progressive_qual_target; }
+};
 
 #define MAX_TRANSFORM 13
 #define MAX_PREDICTOR 2
