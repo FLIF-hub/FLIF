@@ -115,6 +115,8 @@ Or, you can get the Snap package:
 * **[qt-flif-plugin](https://github.com/spillerrec/qt-flif-plugin)** – Enables Qt4 and Qt5 applications to load images in the FLIF image format.
 * **[go-flif](https://github.com/chrisfelesoid/go-flif)** – Go FLIF Library Bindings.
 * **[Phew](https://sveinbjorn.org/phew)** - Image viewer for macOS with QuickLook plugin
+* **[SDWebImageFLIFCoder](https://github.com/SDWebImage/SDWebImage)** - A popular image loading framework [SDWebImage](https://github.com/SDWebImage/SDWebImage)'s coder plugin, supports iOS/macOS/tvOS/watchOS all Apple platforms.
+* **[libflif-Xcode](https://github.com/SDWebImage/libflif-Xcode)** - Xcode project to build libflif on iOS/macOS/tvOS/watchOS all Apple platforms.
 * **[flif-wasm](https://github.com/saschanaz/flif-wasm)** - Node.js-ported FLIF command-line tool.
 * **[node-flif](https://github.com/FLIF-hub/node-flif)** - A Node.JS wrapper that allows you to use JavaScript to interact with the CLI.
 * **[SimplEx FLIF](https://github.com/Atrus09/SimplEx-FLIF)** - A simple and extensive GUI intermediary for the native executables.
