@@ -1,11 +1,11 @@
-#!/bin/bash
+#!/bin/sh
 
 # compare $1 (base name without .png extension, could be multiple frames) one by one to the rest of the arguments
-function check {
+check () {
         one=$1*.png
         for c in $one
         do
-                    if [[ $(compare -metric mepp $c $2 null: 2>&1) == "0 (0, 0)" ]]
+                    if [ "$(compare -metric mepp $c $2 null: 2>&1)" = "0 (0, 0)" ]
                     then
                       #echo "OK-compare (identical decoded images)"
                       shift
@@ -21,9 +21,9 @@ function check {
 
 set -ex
 
-FLIF=$1
-IN=$2
-OUTF=$3
+FLIF=./flif
+IN=$1
+OUTF=$2
 
 runtest() {
   local encArgs=$1
