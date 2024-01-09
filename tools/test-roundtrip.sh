@@ -2,10 +2,10 @@
 
 set -ex
 
-FLIF=$1
-IN=$2
-OUTF=$3
-OUTP=$4
+FLIF=./flif
+IN=$1
+OUTF=$2
+OUTP=$3
 
 runtest() {
   local encArgs=$1

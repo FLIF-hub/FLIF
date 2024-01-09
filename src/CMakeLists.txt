@@ -343,7 +343,9 @@ install(FILES "${FLIF_SRC_DIR}/../LICENSE" "${FLIF_SRC_DIR}/../LICENSE_Apache2" 
 
 enable_testing()
 add_test(NAME libtest COMMAND libtest dummy.flif)
+if(BUILD_STATIC_LIBS)
 add_test(NAME libtest_static COMMAND libtest_static dummy.flif)
+endif(BUILD_STATIC_LIBS)
 
 if(UNIX)
     add_test(NAME roundtrip1 COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-roundtrip.sh ${CMAKE_CURRENT_SOURCE_DIR}/../tools/2_webp_ll.png 2_webp_ll.flif decoded_2_webp_ll.png)
